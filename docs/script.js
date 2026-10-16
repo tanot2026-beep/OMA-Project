@@ -249,7 +249,7 @@ const ACT = {
   login:'login', verifyToken:'verifyToken', pdpaStatus:'getPdpaStatus', pdpaAccept:'acceptPdpa',
   createRecord:'createRecord', listRecords:'listRecords', deleteRecord:'deleteRecord', confirmRecordReviewed:'confirmRecordReviewed',
   createUser:'createUser', bulkCreateUsers:'bulkCreateUsers', listUsers:'listUsers',
-  saveMaster:'saveMaster', listMaster:'listMaster', getProgress:'getProgress',
+  saveMaster:'saveMaster', masterUpsert:'masterUpsert', masterDelete:'masterDelete', masterImport:'masterImport', listMaster:'listMaster', getProgress:'getProgress',
   saveAssignment:'saveAssignment', listAssignments:'listAssignments', completeAssignment:'completeAssignment',
   getAssignStats:'getAssignStats', saveTarget:'saveTarget', listTargets:'listTargets'
 };
@@ -447,8 +447,7 @@ const sel={project:'',system:'',loc:'',sub:'',equip:'',serial:''};
 const combos={};
 const INSP_SEED=['Somchai Jaidee','Somying Rakngan'];
 
-async function loadAll(){const m=await sGet(MASTER_KEY);if(m){try{master=JSON.parse(m);}catch(e){master=[];}}if(!master.length)master=seed();buildCombos();buildInspectorCombo();refreshDerived();renderMaster();renderSaved();updateStats();}
-function seed(){return [{id:uid(),project:'Gold Line Skytrain',system:'Electrical',locName:'Krung Thonburi Station',subName:'Electrical Room',equipment:'MDB Cabinet',brand:'Siemens',model:'SIVACON S8',asset:'GL-EQ-001',serial:'SN-2024-00123'},{id:uid(),project:'Gold Line Skytrain',system:'Electrical',locName:'Krung Thonburi Station',subName:'Electrical Room',equipment:'Inverter',brand:'ABB',model:'ACS580',asset:'GL-EQ-002',serial:'SN-2024-00124'}];}
+async function loadAll(){const m=await sGet(MASTER_KEY);if(m){try{master=JSON.parse(m);}catch(e){master=[];}}buildCombos();buildInspectorCombo();refreshDerived();renderMaster();renderSaved();updateStats();}
 
 async function sGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 async function sSet(k,v){try{localStorage.setItem(k,v);}catch(e){console.warn(e);}}
@@ -1514,17 +1513,21 @@ function editMaster(id){
   });
   dlg.style.display='flex';
   dlg.querySelector('#mCancel').onclick=()=>dlg.style.display='none';
-  dlg.querySelector('#mSave').onclick=()=>{
+  dlg.querySelector('#mSave').onclick=async()=>{
     const vals={};
     dlg.querySelectorAll('.mfield').forEach(inp=>{vals[inp.dataset.k]=inp.value.trim();});
     if(!vals.project||!vals.equipment){toast('Project and equipment are required',false);return;}
     const obj={id:id||uid(),...vals};
+    const saveBtn=dlg.querySelector('#mSave');saveBtn.disabled=true;
+    const r=await masterServer('masterUpsert',{rows:[masterToBackend(obj)]});
+    saveBtn.disabled=false;
+    if(!r)return;
     if(id)master=master.map(x=>x.id===id?obj:x);else master.push(obj);
     dlg.style.display='none';
     persistMaster();toast(id?'Updated':'Equipment added',true);
   };
 }
-function delMaster(id){confirmDlg('Delete this equipment?','Delete',()=>{master=master.filter(x=>x.id!==id);persistMaster();toast('Deleted',true);});}
+function delMaster(id){confirmDlg('Delete this equipment?','Delete',async()=>{const r=await masterServer('masterDelete',{ids:[id]});if(!r)return;master=master.filter(x=>x.id!==id);persistMaster();toast('Deleted',true);});}
 function bulkDeleteMaster(){
   const q=$('#masterSearch')?$('#masterSearch').value.trim().toLowerCase():'';
   const fp=$('#masterFProject')?$('#masterFProject').value:'';
@@ -1553,11 +1556,14 @@ function bulkDeleteMaster(){
     'Confirm Deletion',
     criteriaHtml+
     '<div style="margin-top:10px;font-size:14px;color:#374151">This will permanently delete <b>'+list.length+' records</b><br><span style="color:#9CA3AF;font-size:13px">This cannot be undone</span></div>',
-    ()=>{
-      const ids=new Set(list.map(m=>m.id));
+    async()=>{
+      const idList=list.map(m=>m.id);
+      const r=await masterServer('masterDelete',{ids:idList});
+      if(!r)return;
+      const ids=new Set(idList);
       master=master.filter(m=>!ids.has(m.id));
       persistMaster();
-      toast('Deleted '+list.length+' records',true);
+      toast('Deleted '+r.deleted+' records',true);
     }
   );
 }
@@ -1577,8 +1583,13 @@ function showConfirmDialog(title,bodyHtml,onOk){
   ov.querySelector('#_cdOk').onclick=()=>{ov.remove();onOk();};
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
 }
-async function persistMaster(){await sSet(MASTER_KEY,JSON.stringify(master));refreshDerived();renderMaster();if(combos.project)setDisabledStates();if(AUTH.token&&AUTH.user&&AUTH.user.role==='admin'){const payload=master.map(m=>({id:m.id,project:m.project,system:m.system,typeLocation:m.typeLocation,location:m.locName,sublocation:m.subName,equipment:m.equipment,brand:m.brand,model:m.model,asset:m.asset,serial:m.serial,order:m.order||''}));api(ACT.saveMaster,{master:payload}).then(r=>{if(!(r&&r.ok))console.warn('saveMaster failed',r);});}}
-async function loadMasterFromBackend(){if(!AUTH.token)return;const r=await api(ACT.listMaster,{});if(r&&r.ok&&Array.isArray(r.master)){if(r.master.length){const ns=s=>String(s||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim();master=r.master.map(m=>({id:m.id,project:ns(m.project),system:ns(m.system),typeLocation:ns(m.typeLocation),locName:ns(m.location),subName:ns(m.sublocation),equipment:ns(m.equipment),brand:ns(m.brand),model:ns(m.model),asset:ns(m.asset),serial:ns(m.serial),order:m.order||''}));await sSet(MASTER_KEY,JSON.stringify(master));refreshDerived();renderMaster();}else if(AUTH.user&&AUTH.user.role==='admin'&&master.length){const payload=master.map(m=>({id:m.id,project:m.project,system:m.system,typeLocation:m.typeLocation,location:m.locName,sublocation:m.subName,equipment:m.equipment,brand:m.brand,model:m.model,asset:m.asset,serial:m.serial,order:m.order||''}));await api(ACT.saveMaster,{master:payload});}}}
+// Master Data ของจริงอยู่ในชีตบนเซิร์ฟเวอร์ ข้อมูลในเครื่องเป็นแค่สำเนาไว้แสดงผลเร็ว ห้ามส่งสำเนาในเครื่องกลับขึ้นไปทับเซิร์ฟเวอร์เอง
+const masterToBackend=m=>({id:m.id,project:m.project,system:m.system,typeLocation:m.typeLocation,location:m.locName,sublocation:m.subName,equipment:m.equipment,brand:m.brand,model:m.model,asset:m.asset,serial:m.serial,order:m.order||''});
+const masterNs=s=>String(s||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim();
+const masterFromBackend=m=>({id:m.id,project:masterNs(m.project),system:masterNs(m.system),typeLocation:masterNs(m.typeLocation),locName:masterNs(m.location),subName:masterNs(m.sublocation),equipment:masterNs(m.equipment),brand:masterNs(m.brand),model:masterNs(m.model),asset:masterNs(m.asset),serial:masterNs(m.serial),order:m.order||''});
+async function persistMaster(){await sSet(MASTER_KEY,JSON.stringify(master));refreshDerived();renderMaster();if(combos.project)setDisabledStates();}
+async function loadMasterFromBackend(){if(!AUTH.token)return;const r=await api(ACT.listMaster,{});if(r&&r.ok&&Array.isArray(r.master)){master=r.master.map(masterFromBackend);await persistMaster();}}
+async function masterServer(action,payload){const r=await api(ACT[action],payload);if(!(r&&r.ok)){toast((r&&r.message)||'Could not save to the server, please try again',false);return null;}return r;}
 
 /* ─── STATS ─────────────────────────────────────────────── */
 function updateStats(){$('#statCount').textContent=entries.length;$('#savedPill').textContent=entries.length;}
@@ -1614,10 +1625,14 @@ if($('#fileXlsx'))$('#fileXlsx').addEventListener('change',async(ev)=>{
       return obj;
     }).filter(o=>o.project&&o.equipment);
     if(!rows.length){if(prev)prev.innerHTML=`<div class="empty">No importable data found (must have at least the "Project" and "Equipment" columns)</div>`;return;}
-    rows.forEach(r=>master.push({id:uid(),project:r.project||'',system:r.system||'',typeLocation:r.typeLocation||'',locName:r.locName||'',subName:r.subName||'',equipment:r.equipment||'',brand:r.brand||'',model:r.model||'',asset:r.asset||'',serial:r.serial||'',order:r.order||''}));
-    await persistMaster();
-    if(prev)prev.innerHTML=`<div class="empty" style="color:var(--ok)">Imported ${rows.length} Master Data records</div>`;
-    toast(`Imported ${rows.length} Master Data records`,true);
+    const payload=rows.map(r=>({id:uid(),project:r.project||'',system:r.system||'',typeLocation:r.typeLocation||'',location:r.locName||'',sublocation:r.subName||'',equipment:r.equipment||'',brand:r.brand||'',model:r.model||'',asset:r.asset||'',serial:r.serial||'',order:r.order||''}));
+    const res=await masterServer('masterImport',{rows:payload});
+    if(res){
+      await loadMasterFromBackend();
+      const msg=`Imported ${res.added} new records`+(res.skipped?` · skipped ${res.skipped} duplicates`:'');
+      if(prev)prev.innerHTML=`<div class="empty" style="color:var(--ok)">${msg}</div>`;
+      toast(msg,true);
+    }else if(prev)prev.innerHTML=`<div class="empty">Import failed</div>`;
   }catch(e){
     if(prev)prev.innerHTML=`<div class="empty">Failed to read file</div>`;
     toast('Failed to read file',false);
@@ -2754,7 +2769,7 @@ async function saveFillData(){
   a.status='done';a.doneAt=Date.now();a.doneData=doneData;
   // Update master record with filled data
   const m=master.find(x=>x.id===a.masterId);
-  if(m){Object.assign(m,doneData);await persistMaster();}
+  if(m){Object.assign(m,doneData);await persistMaster();if(AUTH.user&&AUTH.user.role==='admin')await masterServer('masterUpsert',{rows:[masterToBackend(m)]});}
   await sSet(ASSIGN_KEY,JSON.stringify(assignments));
   if(AUTH.token)await api(ACT.completeAssignment,{id:a.id,doneData});
   $('#fillDataModal').style.display='none';
@@ -2811,6 +2826,11 @@ $('#ptCancelBtn')?.addEventListener('click',()=>$('#projectTargetModal').style.d
 $('#ptModalClose')?.addEventListener('click',()=>$('#projectTargetModal').style.display='none');
 $('#projectTargetModal')?.addEventListener('click',e=>{if(e.target===$('#projectTargetModal'))$('#projectTargetModal').style.display='none';});
 document.addEventListener('change',e=>{if(e.target.id==='ptProject')_ptUpdateCurrentInfo(e.target.value);});
+
+// บนจอคอมให้ลิ้นชัก Filters เปิดค้างไว้เสมอ (Chrome รุ่นใหม่ซ่อนเนื้อหาของ details ที่ปิดอยู่ ทำให้ช่อง filter หายไป) บนมือถือยังพับ/เปิดเองได้
+function syncFilterDrawers(){if(window.matchMedia('(min-width:601px)').matches)document.querySelectorAll('.flt-drawer').forEach(d=>{d.open=true;});}
+syncFilterDrawers();
+window.matchMedia('(min-width:601px)').addEventListener('change',syncFilterDrawers);
 
 initAuth();
 
