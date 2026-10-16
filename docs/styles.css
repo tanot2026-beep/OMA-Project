@@ -1,0 +1,587 @@
+
+/* ─── TOKENS ────────────────────────────────────────────── */
+:root{
+  --bg:#EBEEF2;--surface:#FFFFFF;--ink:#161B22;--ink-soft:#5B6573;--ink-faint:#8B95A3;
+  --line:#D7DCE4;--line-soft:#E6EAF0;--steel:#222D3A;--steel-2:#2E3C4D;
+  --accent:#D93A2B;--accent-deep:#A82A1E;--accent-wash:#FBE5E2;
+  --ok:#2E9E6B;--danger:#D5443A;--radius:12px;
+  --shadow:0 1px 2px rgba(20,26,34,.05),0 8px 24px rgba(20,26,34,.06);
+  --shadow-lift:0 12px 40px rgba(20,26,34,.18);
+  /* Logo dimensions — consistent everywhere */
+  --logo-h:46px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;font-size:15px;color:var(--ink)}
+
+/* ─── HEADER ────────────────────────────────────────────── */
+header.app{background:#fff;color:var(--ink);padding:14px 22px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;min-height:72px;box-shadow:0 1px 0 rgba(20,26,34,.08)}
+
+/* ── Brandmark: fixed size, never distorts ── */
+.brandmark{
+  height:48px;width:auto;min-width:80px;
+  border-radius:9px;flex:none;
+  background:transparent;
+  display:flex;align-items:center;justify-content:center;
+  padding:1px 10px;
+  overflow:hidden;
+}
+.brandmark img{
+  height:var(--logo-h);width:auto;
+  max-width:160px;
+  display:block;
+  object-fit:contain;
+  /* Prevent broken-image placeholder taking space */
+  min-width:0;
+}
+/* Hide broken-image icon but keep layout */
+.brandmark img:not([src]),.brandmark img[src=""]{
+  visibility:hidden;width:0;height:0;padding:0;margin:0;
+}
+
+.brand-text h1{font-size:17px;font-weight:600;letter-spacing:.2px;line-height:1.1}
+.brand-text .sub{font-size:11px;letter-spacing:1.5px;color:var(--ink-soft);text-transform:uppercase;margin-top:2px}
+.header-stat{margin-left:auto;text-align:right;line-height:1}
+.header-stat .num{font-size:24px;font-weight:600;color:var(--accent)}
+.header-stat .lbl{font-size:11px;color:var(--ink-faint);letter-spacing:.5px}
+
+/* ─── TABS ──────────────────────────────────────────────── */
+.tabs{background:#fff;display:flex;gap:2px;padding:0 14px;position:sticky;top:72px;z-index:35;box-shadow:0 1px 0 rgba(20,26,34,.06),inset 0 -1px 0 var(--line-soft);overflow-x:auto}
+.tab{color:var(--ink-soft);padding:13px 18px;font-size:14px;font-weight:500;border-bottom:2.5px solid transparent;display:flex;align-items:center;gap:8px;white-space:nowrap;transition:color .15s}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--accent);border-color:var(--accent)}
+.tab .pill{font-size:11px;background:var(--bg);color:var(--ink-soft);padding:1px 7px;border-radius:20px}
+
+/* ─── MAIN / PANELS ─────────────────────────────────────── */
+main{max-width:1400px;margin:0 auto;padding:24px 22px 80px}
+.panel{display:none;animation:fade .25s ease}
+.panel.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.panel-title{font-size:22px;font-weight:600;margin-bottom:2px}
+
+/* ─── CARDS ─────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px}
+.card-h{padding:14px 20px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:10px;background:#FAFBFC;border-radius:var(--radius) var(--radius) 0 0}
+.card-h .step{width:24px;height:24px;border-radius:7px;background:var(--accent);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none}
+.card-h h3{font-size:15px;font-weight:600}
+.card-b{padding:20px}
+
+/* ─── FORM ELEMENTS ─────────────────────────────────────── */
+.cascade{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px}
+.field label .req{color:var(--accent-deep)}
+.field input.tin,.field textarea.tin{width:100%;background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 12px;outline:none;transition:.15s}
+.field textarea.tin{resize:vertical;min-height:62px}
+.tin{font-family:inherit;font-size:15px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 12px;outline:none;transition:.15s}
+.tin:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
+
+/* ─── COMBO ─────────────────────────────────────────────── */
+.combo{position:relative}
+.combo-ctl{display:flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:9px;transition:.15s}
+.combo.open .combo-ctl,.combo-ctl:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
+.combo.disabled .combo-ctl{background:#F4F6F8;cursor:not-allowed}
+.combo-input{flex:1;border:none;outline:none;background:none;padding:10px 12px;font-size:15px;min-width:0}
+.combo.disabled .combo-input{color:var(--ink-faint);cursor:not-allowed}
+.combo-caret{padding:0 12px;color:var(--ink-faint);font-size:11px;transition:transform .15s;user-select:none}
+.combo.open .combo-caret{transform:rotate(180deg)}
+.combo-clear{padding:0 8px;color:var(--ink-faint);font-size:16px;display:none}
+.combo.has-val .combo-clear{display:block}
+.combo-list{position:absolute;left:0;right:0;top:calc(100% + 5px);background:#fff !important;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lift);z-index:30;max-height:260px;overflow:auto;display:none}
+.combo.open .combo-list{display:block}
+.combo-opt{padding:10px 13px;cursor:pointer;font-size:14.5px;border-bottom:1px solid var(--line-soft);background:#fff !important;color:var(--ink) !important}
+.combo-opt:hover,.combo-opt.active{background:var(--accent-wash) !important}
+.combo-new{padding:10px 13px;font-size:13px;color:var(--accent-deep) !important;cursor:pointer;background:#FFF9F3 !important}
+.combo-empty{padding:13px;text-align:center;color:var(--ink-faint);font-size:13px;background:#fff !important}
+
+/* ─── BM ROW (Brand / Model auto) ───────────────────────── */
+.bm-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.bm-box{background:#F7F9FB;border:1px solid var(--line-soft);border-radius:9px;padding:10px 13px}
+.bm-box .k{font-size:11px;color:var(--ink-faint);font-weight:600}
+.bm-box .v{font-size:15px;font-weight:600;margin-top:2px;min-height:21px}
+.bm-box .v.empty{color:var(--ink-faint);font-weight:400}
+.bm-box input{width:100%;border:none;background:none;outline:none;font-size:15px;font-weight:600;padding:0;margin-top:2px}
+
+/* ─── IMAGE SLOTS ───────────────────────────────────────── */
+.imgs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.imgslot label.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px;cursor:pointer;transition:.15s;min-height:160px;border:2px dashed var(--line);border-radius:10px;background:#1c242f;background-size:cover;background-position:center;position:relative;overflow:hidden}
+.imgslot label.drop:hover{border-color:var(--accent)}
+.imgslot label.drop.has-img{border-style:solid;border-color:transparent}
+.imgslot .cap{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.imgslot .cap .tagn{font-size:10px;background:var(--accent);color:#fff;padding:1px 7px;border-radius:5px}
+.drop-hint{color:#A9B7C7;font-size:12.5px;margin-top:6px;line-height:1.5}
+.drop-hint b{color:#fff;display:block;font-size:14px;margin-bottom:2px}
+.replace-badge{position:absolute;inset:0;background:linear-gradient(to top,rgba(20,26,34,.7),transparent 45%);display:flex;align-items:flex-end;justify-content:center;padding-bottom:10px;color:#fff;font-size:12px;opacity:0;transition:.15s}
+label.drop.has-img:hover .replace-badge{opacity:1}
+
+/* ─── BUTTONS ───────────────────────────────────────────── */
+.form-actions{display:flex;gap:10px;justify-content:flex-end}
+.btn{border-radius:9px;padding:11px 20px;font-size:14.5px;font-weight:600;display:inline-flex;align-items:center;gap:8px;transition:.15s;cursor:pointer}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(238,124,22,.3);border:none}
+.btn-primary:hover{background:var(--accent-deep)}
+.btn-primary:disabled{background:#E3B788;cursor:not-allowed;box-shadow:none}
+.btn-soft{background:#EEF1F4;color:var(--ink-soft);border:none}
+.ghost-btn{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:500;color:var(--ink-soft);display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.ghost-btn:hover{border-color:var(--accent);color:var(--accent-deep)}
+
+/* ─── IMPORT DROP ───────────────────────────────────────── */
+.import-drop{border:2px dashed var(--line);border-radius:14px;padding:38px 24px;text-align:center;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--surface)}
+.import-drop:hover,.import-drop.drag{border-color:var(--accent);background:var(--accent-wash)}
+.import-drop .id-ic{width:64px;height:64px;border-radius:50%;background:var(--accent-wash);color:var(--accent-deep);display:flex;align-items:center;justify-content:center;margin-bottom:6px;font-size:28px}
+.import-drop .id-btn{margin-top:12px;background:var(--accent);color:#fff;font-weight:600;font-size:13.5px;padding:9px 22px;border-radius:9px}
+.import-cols{background:var(--surface);border:1px solid var(--line-soft);border-radius:11px;padding:16px 18px}
+.ic-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.ic-grid span{font-size:12px;background:var(--accent-wash);color:var(--accent-deep);border:1px solid var(--line-soft);border-radius:7px;padding:5px 11px}
+
+/* ─── FILTER TOOLBAR ────────────────────────────────────── */
+.flt-toolbar select.tin{flex:1;min-width:100px}
+.flt-toolbar input.tin{flex:1;min-width:120px}
+.combo-list{z-index:9999}
+
+/* ─── PAGE WIDTH: wide only for table panels ─────────────── */
+#panel-dash,#panel-add,#panel-users{max-width:1080px;margin-left:auto;margin-right:auto}
+
+/* ─── TABLE ─────────────────────────────────────────────── */
+.table-wrap{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius);box-shadow:var(--shadow);overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:1100px}
+thead th{background:#F4F6F8;text-align:left;padding:10px 12px;font-weight:600;color:var(--ink-soft);font-size:11.5px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tbody tr:hover{background:#FAFBFC}
+td.codecell{font-size:11.5px;color:var(--accent-deep)}
+.rowact{display:flex;gap:4px}
+.icon-btn{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink-faint);transition:.15s;cursor:pointer}
+.icon-btn:hover{background:#EEF1F4;color:var(--ink)}
+.icon-btn.del:hover{background:#FBE9E8;color:var(--danger)}
+/* ปุ่ม + ทรงกลมสีส้ม ใช้แทนปุ่มข้อความเดิม (เพิ่ม Template/อัปโหลดข้อมูลสัญญา) ให้เด่นและกินที่น้อย */
+.round-add-btn{width:30px;height:30px;flex:none;border-radius:50%;background:var(--accent);color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;transition:.15s}
+.round-add-btn:hover{background:var(--accent-deep)}
+
+/* ─── RECORD LIST ───────────────────────────────────────── */
+.rlist{display:flex;flex-direction:column;gap:10px}
+.rrow{display:flex;align-items:stretch;background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.rrow .thumb{width:96px;flex:none;background:#1a222d center/cover no-repeat;position:relative}
+.rrow .thumb .cnt{position:absolute;left:5px;bottom:5px;background:rgba(20,26,34,.8);color:#fff;font-size:9px;padding:1px 6px;border-radius:4px}
+.rrow .body{flex:1;min-width:0;padding:11px 14px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.rrow .body .tt{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rrow .body .loc{font-size:10.5px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rrow .body .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);margin-top:3px}
+.rrow .acts{display:flex;flex-direction:column;border-left:1px solid var(--line-soft);flex:none}
+.rrow .acts button{flex:1;padding:0 16px;font-size:12.5px;color:var(--ink-soft);border-bottom:1px solid var(--line-soft);min-width:78px;text-align:center;cursor:pointer;border:none;border-bottom:1px solid var(--line-soft);background:none}
+.rrow .acts button:hover{background:#F4F6F8;color:var(--ink)}
+.rrow .acts button.del:hover{background:#FBE9E8;color:var(--danger)}
+.empty{text-align:center;padding:54px 20px;color:var(--ink-soft);border:1.5px dashed var(--line);border-radius:var(--radius);background:rgba(255,255,255,.5)}
+
+/* ─── TOAST ─────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--steel);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;box-shadow:var(--shadow-lift);z-index:60;opacity:0;transition:.25s;display:flex;align-items:center;gap:10px;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .tdot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+
+/* ─── KPI / DASH ─────────────────────────────────────────  */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--line-soft);border-radius:13px;padding:16px 18px;box-shadow:var(--shadow)}
+.kpi .k-lbl{font-size:12px;color:var(--ink-soft)}
+.kpi .k-num{font-size:28px;font-weight:700;margin-top:4px;line-height:1.1}
+.kpi.accent{border-left:3px solid var(--accent)}
+.dash-card{background:var(--surface);border:1px solid var(--line-soft);border-radius:13px;padding:16px 18px;box-shadow:var(--shadow)}
+.dc-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+.prog-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px}
+.prog-c{background:#F7F9FB;border:1px solid var(--line-soft);border-radius:10px;padding:12px 14px;text-align:center}
+.prog-c .v{font-size:24px;font-weight:700;line-height:1.1}
+.prog-track{flex:1;background:var(--line-soft);border-radius:6px;height:20px;overflow:hidden;position:relative}
+.prog-fill{height:100%;background:linear-gradient(90deg,#16A34A,#22C55E);border-radius:6px 0 0 6px;transition:width .5s}
+.prog-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px}
+.prog-row .pl{width:170px;font-size:12.5px;flex:none;text-align:right;color:var(--ink-soft);line-height:1.35}
+.prog-row .prog-track{margin-top:3px}
+.prog-row .pn{font-size:11.5px;color:var(--ink-soft);width:90px;flex:none;margin-top:3px}
+
+/* ─── IO COLS ────────────────────────────────────────────── */
+.io-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.io-card{background:var(--surface);border:1px solid var(--line-soft);border-radius:13px;padding:18px;box-shadow:var(--shadow)}
+.io-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.io-ic{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+.io-ic.imp{background:var(--accent-wash);color:var(--accent-deep)}
+.io-ic.exp{background:#EAF1FB;color:#1D4ED8}
+
+/* ─── WORD GEN STEPS ─────────────────────────────────────── */
+.wg-steps{display:flex;flex-direction:column;gap:0}
+.wg-step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line-soft)}
+.wg-step:last-child{border-bottom:none}
+.wg-num{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+.wg-body{flex:1;min-width:0}
+.wg-body h4{font-size:13.5px;font-weight:600;margin-bottom:8px}
+.wg-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wg-field label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);margin-bottom:5px}
+.wg-field input,.wg-field select{width:100%}
+.wg-progress{background:#F4F6F8;border-radius:9px;padding:12px 14px;font-size:12.5px;color:var(--ink-soft);display:none}
+.wg-progress.show{display:block}
+.wg-bar-wrap{background:var(--line-soft);border-radius:5px;height:6px;margin-top:8px;overflow:hidden}
+.wg-bar{height:100%;background:linear-gradient(90deg,var(--accent),#F97316);border-radius:5px;transition:width .4s;width:0}
+
+/* ─── USERS ──────────────────────────────────────────────── */
+.user-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.role-badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600}
+#pagePermContainer table{min-width:unset;width:100%}
+#pagePermContainer th,#pagePermContainer td{padding:8px 6px;white-space:nowrap}
+#pagePermContainer th:first-child,#pagePermContainer td:first-child{text-align:left;min-width:120px}
+.role-admin{background:#FDE8E8;color:#C8102E}
+.role-manager{background:#FCEEE0;color:#B45309}
+.role-leader{background:#EAF1FB;color:#1D4ED8}
+.role-inspector{background:#E9F6EE;color:#15803D}
+.role-observer{background:#EEF0F2;color:#475569}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.status-dot.active{background:var(--ok)}
+.status-dot.inactive{background:var(--ink-faint)}
+
+/* ─── USER CHIP ──────────────────────────────────────────── */
+.user-chip{display:flex;align-items:center;gap:9px;margin-left:14px;padding-left:14px;border-left:1px solid var(--line-soft)}
+.user-chip .av{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex:none}
+.user-chip .un{font-size:13px;font-weight:500;color:var(--ink);line-height:1.2}
+.user-chip .ur{font-size:10px;color:var(--ink-faint);letter-spacing:.5px}
+.user-chip .logout{
+  margin-left:8px;display:flex;align-items:center;gap:5px;
+  color:#B33027;font-size:12.5px;font-weight:600;cursor:pointer;
+  padding:7px 12px;border-radius:7px;
+  background:rgba(213,68,58,.08);border:1px solid rgba(213,68,58,.35);
+}
+.user-chip .logout:hover{background:var(--danger);border-color:var(--danger);color:#fff}
+
+/* ─── PROJECT CHIPS (เลือกหลายโครงการในฟอร์มผู้ใช้) ─────────── */
+.chips-box{display:flex;flex-wrap:wrap;gap:6px;min-height:0}
+.chips-box:empty{display:none}
+.chip{position:relative;display:inline-flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 22px 6px 10px;font-size:12.5px;color:var(--ink);box-shadow:0 1px 2px rgba(20,26,34,.06)}
+.chip-x{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--danger);color:#fff;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1.5px solid #fff}
+.chip-x:hover{background:#B91C1C}
+/* dropdown สีขาวแสดงโครงการของ user ในตาราง — ไม่ขยายแถวตามจำนวนโครงการ */
+.proj-select{width:100%;max-width:170px;background:#fff;border:1px solid var(--line);border-radius:6px;font-size:12.5px;padding:4px 6px;color:var(--ink)}
+
+/* ─── AUTH GATE ──────────────────────────────────────────── */
+#authGate{
+  position:fixed;inset:0;z-index:200;
+  background:radial-gradient(120% 80% at 80% -10%,rgba(238,124,22,.18),transparent 60%),
+             linear-gradient(160deg,#1A232E 0%,#222D3A 55%,#2E3C4D 100%);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+#authGate.hidden{display:none}
+.auth-card{width:100%;max-width:400px;background:var(--surface);border-radius:18px;box-shadow:var(--shadow-lift);padding:34px 30px 28px}
+.auth-brand{display:flex;align-items:center;gap:14px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--line-soft)}
+
+/* Auth logo box — same rules as header brandmark */
+.auth-logo-box{
+  height:auto;width:auto;
+  display:flex;align-items:center;justify-content:center;
+  flex:none;
+}
+.auth-logo-box img{
+  height:48px;width:auto;max-width:none;
+  display:block;object-fit:contain;
+}
+.auth-logo-box img:not([src]),.auth-logo-box img[src=""]{visibility:hidden;width:0;height:0}
+
+/* Fallback text when no logo */
+.auth-logo-fallback{
+  font-size:15px;font-weight:700;
+  color:var(--accent-deep);letter-spacing:.5px;white-space:nowrap;
+}
+
+.auth-brand .info h2{font-size:18px;font-weight:700}
+.auth-brand .info .sub{font-size:10px;letter-spacing:1.6px;color:var(--ink-faint);text-transform:uppercase;margin-top:2px}
+.auth-card label{display:block;font-size:12.5px;color:var(--ink-soft);font-weight:500;margin:14px 0 6px}
+.auth-card .tin{width:100%}
+.auth-pw{position:relative}
+.auth-pw .eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--ink-faint);cursor:pointer;user-select:none;padding:4px}
+.auth-btn{width:100%;margin-top:22px;background:var(--accent);color:#fff;font-weight:600;font-size:15px;border-radius:10px;padding:12px;border:none;cursor:pointer;transition:.15s}
+.auth-btn:hover{background:var(--accent-deep)}
+.auth-btn:disabled{opacity:.6;cursor:default}
+.auth-err{margin-top:14px;background:#FBEAE9;border:1px solid #F2C4C0;color:var(--danger);font-size:13px;border-radius:9px;padding:9px 12px;display:none}
+.auth-err.show{display:block}
+.auth-foot{margin-top:20px;text-align:center;font-size:11px;color:var(--ink-faint);letter-spacing:.4px}
+
+/* ─── PDPA ───────────────────────────────────────────────── */
+#pdpaBanner{position:fixed;right:20px;bottom:20px;z-index:150;width:360px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lift);padding:18px 18px 16px;transform:translateY(150%);opacity:0;transition:transform .45s,opacity .3s;pointer-events:none}
+#pdpaBanner.show{transform:none;opacity:1;pointer-events:auto}
+#pdpaBanner .pd-head{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+#pdpaBanner .pd-ic{width:30px;height:30px;border-radius:8px;background:var(--accent-wash);color:var(--accent-deep);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+#pdpaBanner .pd-body{font-size:12.5px;color:var(--ink-soft);line-height:1.55}
+#pdpaBanner .pd-body a{color:var(--accent-deep);text-decoration:underline;cursor:pointer}
+#pdpaBanner .pd-actions{display:flex;gap:8px;margin-top:13px}
+#pdpaBanner .pd-btn{flex:1;border-radius:9px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;border:none}
+#pdpaBanner .pd-accept{background:var(--accent);color:#fff}
+#pdpaBanner .pd-detail{background:#fff;border:1px solid var(--line);color:var(--ink-soft)}
+#pdpaBanner .pd-extra{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--ink-soft);line-height:1.6;max-height:180px;overflow:auto}
+#pdpaBanner.expanded .pd-extra{display:block}
+
+/* ─── REPORT AREA (print PDF) ────────────────────────────── */
+#reportArea{display:none}
+/* ป้าย QR สำหรับพิมพ์ไปติดอุปกรณ์จริง — ใช้ #reportArea เดียวกัน (โชว์เฉพาะตอนสั่งพิมพ์) */
+.qr-print-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm}
+.qr-label-card{border:1px dashed #999;border-radius:4px;padding:6mm;display:flex;flex-direction:column;align-items:center;text-align:center;break-inside:avoid}
+.qr-label-card img{margin-bottom:3mm}
+.qr-label-card .qr-text{font-size:9.5pt;line-height:1.5;color:#000}
+@media print{
+  @page{ size:A4; margin:20mm 16mm 14mm 16mm; }
+  header.app,.tabs,.no-print,.toast,#rptDialog,#qrMasterModal,#qrScanModal{display:none !important}
+  body{background:#fff} main{padding:0;max-width:none}
+  .panel{display:none !important} #reportArea{display:block !important}
+  .rpt-runhead{position:fixed;top:-16mm;left:0;right:0;height:14mm;display:flex;align-items:center;gap:10px;border-bottom:1pt solid #000;padding-bottom:1mm;background:#fff}
+  .rpt-runhead img{height:11mm;width:auto}
+  .rpt-runhead .ct{flex:1;text-align:right;font-size:10px;line-height:1.35}
+  .rpt-runfoot{position:fixed;bottom:-11mm;left:0;right:0;height:8mm;font-size:9pt;color:#000;display:flex;align-items:center;background:#fff}
+  .rpt-h1{break-after:avoid;break-inside:avoid;text-align:center}
+  .rpt-proj-heading{break-after:avoid}
+  .rpt-equip{break-inside:avoid;page-break-inside:avoid;margin-bottom:14px}
+  .rpt-imgs{break-inside:avoid;page-break-inside:avoid}
+  img{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+/* ใช้ตอนสร้างไฟล์ PDF จริงผ่าน html2pdf — ต้องอยู่ในจอจริง (ไม่ใช่ left:-9999px) ไม่งั้น html2canvas capture ไม่ติด/ได้ภาพเปล่า
+   ระหว่างสร้างไฟล์จะมี #pdfGenOverlay (z-index สูงกว่า) คลุมทับไว้ ไม่ให้ผู้ใช้เห็นเนื้อหาวาบ */
+/* ไม่ใช้ position:fixed กับตัวที่จะ capture — html2canvas คำนวณตำแหน่ง/scroll พลาดได้กับ fixed element
+   ทำให้ได้ภาพเปล่า ปล่อยให้อยู่ใน flow ปกติแทน แล้วให้ #pdfGenOverlay (fixed, z-index สูงกว่า) บังหน้าจอไว้ระหว่างสร้างไฟล์ */
+#reportArea.pdf-render{display:block;width:210mm;background:#fff}
+/* ใส่ margin ของหน้าเป็น padding บนตัวหน้าเองแทนการส่ง margin ผ่าน html2pdf options —
+   ใช้ทั้งสองทางพร้อมกันทำให้ html2pdf บวก margin ซ้ำ เกิดช่องว่างเกินจริงด้านบนทุกหน้า */
+.pdf-page{page-break-after:always;width:210mm;box-sizing:border-box;padding:10mm}
+
+/* การ์ตูนวิศวกร AMR ตอนหน้า PDF กำลังโหลด */
+#pgoArm{animation:pgoWrench .6s ease-in-out infinite}
+@keyframes pgoWrench{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-25deg)}}
+#pgoWheelSpin,#pgoWheelSpin2{animation:pgoSpin 1s linear infinite}
+@keyframes pgoSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+/* สไตล์ของ runhead/runfoot ตอน html2pdf capture (ไม่มี position:fixed เพราะ capture เป็น canvas ทีละหน้าตามจุดตัด page-break-after ที่กำหนดเอง) */
+#reportArea.pdf-render .rpt-runhead{position:static;display:flex;align-items:center;gap:10px;border-bottom:1pt solid #000;padding-bottom:6px;margin-bottom:10px}
+#reportArea.pdf-render .rpt-runhead img{height:11mm;width:auto}
+#reportArea.pdf-render .rpt-runhead .ct{flex:1;text-align:right;font-size:10px;line-height:1.35}
+/* แสดงแค่เลขหน้าตรงกลาง ไม่มีข้อความความยาวไม่แน่นอน (ชื่อรายงาน) ปนอยู่ในแถวเดียวกัน — กันปัญหา overflow/ตัดท้ายที่เจอซ้ำๆ */
+#reportArea.pdf-render .rpt-runfoot{position:static;text-align:center;font-size:9pt;color:#000;margin-top:14px;padding-top:6px;border-top:1pt solid #ddd}
+#reportArea{font-family:'IBM Plex Sans Thai',sans-serif;color:#000}
+#reportArea .rpt-h1{font-size:17px;font-weight:700;color:#E2231A;margin:14px 0 4px}
+#reportArea .rpt-proj-heading{font-size:16px;font-weight:700;color:#E2231A;text-align:center;margin:16px 0 10px;padding-bottom:4px;border-bottom:1.5px solid #E2231A}
+#reportArea .rpt-equip-title{font-size:14px;font-weight:700;color:#1A232E;margin-top:10px}
+#reportArea .rpt-equip-line{font-size:13px;margin:2px 0}
+#reportArea .rpt-equip-loc{font-size:12px;color:#666;margin:2px 0}
+#reportArea .rpt-equip-meta{font-size:11px;color:#888;margin:2px 0}
+#reportArea .rpt-imgs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+#reportArea .rpt-imgs .cell{text-align:center}
+#reportArea .rpt-imgs .cell.empty{display:none}
+#reportArea .rpt-imgs img{width:100%;max-height:64mm;object-fit:contain;background:transparent}
+#reportArea .rpt-imgs .cap{font-size:10px;color:#777;margin-top:3px}
+#reportArea .rpt-note{font-size:11px;color:#666;margin-top:3px}
+#reportArea .rpt-equip.noimg{background:#FDECEA;border-left:3px solid #E2231A;padding:8px 10px;border-radius:4px}
+#reportArea .rpt-equip.noimg .rpt-equip-title{color:#C8102E}
+
+/* ─── DIALOG (ใช้ร่วมกันหลายจุด เช่น แก้ไขข้อมูลหลัก) ───────────── */
+.sdlg-grid,.sdlg-imgs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sdlg{background:#fff;border-radius:18px;max-width:620px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lift)}
+.sdlg-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:130px;border:2px dashed var(--line);border-radius:10px;background:#1c242f;background-size:cover;background-position:center;cursor:pointer;position:relative;overflow:hidden}
+.sdlg-drop.has-img{border-style:solid;border-color:transparent}
+.sdlg-drop .dh{color:#A9B7C7;font-size:12px;text-align:center;padding:0 8px}
+.sdlg-drop .dh b{color:#fff;display:block;font-size:13px;margin-bottom:2px}
+.sdlg-replace{position:absolute;inset:0;background:linear-gradient(to top,rgba(20,26,34,.7),transparent 45%);display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;color:#fff;font-size:11px;opacity:0;transition:.15s}
+.sdlg-drop.has-img:hover .sdlg-replace{opacity:1}
+.scap{font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.scap .tagn{font-size:10px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:5px}
+.img-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:var(--accent-wash);color:var(--accent-deep);border-radius:6px;padding:2px 8px;cursor:pointer}
+.img-badge:hover{background:#F9D9B8}
+
+/* ─── DONUT / LEADER DASH ────────────────────────────────── */
+.donut-seg{transition:opacity .15s,transform .15s;cursor:pointer;transform-origin:100px 100px}
+.donut-seg:hover{opacity:.85;transform:scale(1.04)}
+.proj-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;cursor:pointer;transition:.15s;border:1px solid var(--line-soft)}
+.proj-item:hover{background:var(--accent-wash);border-color:var(--accent)}
+.proj-dot{width:12px;height:12px;border-radius:50%;flex:none}
+.proj-bar-track{flex:1;background:var(--line-soft);border-radius:4px;height:8px;overflow:hidden}
+.proj-bar-fill{height:100%;border-radius:4px;transition:width .5s}
+.deadline-ok{color:#16A34A;font-weight:600}
+.deadline-warn{color:#F97316;font-weight:600}
+.deadline-over{color:#EF4444;font-weight:600}
+.target-form{background:#F7F9FB;border-radius:10px;padding:14px;margin-top:14px;border:1px solid var(--line-soft)}
+
+/* ─── ROLE VISIBILITY ─────────────────────────────────────  */
+/* ซ่อนไว้เป็นค่าเริ่มต้นเสมอ — JS แค่ "เปิดให้เห็น" ด้วย class บน body เมื่อมีสิทธิ์จริง
+   กันไม่ให้แท็บที่ไม่มีสิทธิ์โผล่ให้เห็นแว้บหนึ่งก่อนถูกซ่อนทีหลัง (flash of unauthorized content) */
+body:not(.is-admin) .admin-only{display:none !important}
+body:not(.can-word-report) .word-report-only{display:none !important}
+body:not(.can-qr) .qr-only{display:none !important}
+body:not(.can-pdf) .pdf-only{display:none !important}
+body.readonly .edit-only{display:none !important}
+body:not(.can-dash) #tabDash{display:none !important}
+body:not(.can-master) #tabMaster{display:none !important}
+body:not(.can-users) #tabUsers{display:none !important}
+body:not(.can-add) #tabAdd{display:none !important}
+body:not(.can-records) [data-tab="saved"]{display:none !important}
+body:not(.can-survey) [data-tab="survey"]{display:none !important}
+.ro-banner{display:none;background:#EEF2F6;border:1px solid var(--line);border-radius:9px;padding:9px 14px;font-size:12.5px;color:var(--ink-soft);margin-bottom:14px}
+body.readonly .ro-banner{display:block}
+
+/* ─── DARK MODE ─────────────────────────────────────────── */
+/* โหมดมืด — สลับด้วยปุ่ม 🌙/☀️ (ไม่ใช้ค่า OS อัตโนมัติ กันปัญหาสีเพี้ยน) */
+:root[data-theme="dark"]{
+  --bg:#1c1b22;--surface:#24232b;--ink:#f3f1f8;--ink-soft:#b6b0c4;--ink-faint:#7c7690;
+  --line:#38363f;--line-soft:#2e2c36;--steel:#0f0e14;--steel-2:#1c1b22;
+  --accent:#ff5a4a;--accent-deep:#ff3d2a;--accent-wash:#301613;
+  --ok:#34d399;--danger:#f87171;
+  --shadow:rgba(0,0,0,.5) 0 10px 15px -3px,rgba(0,0,0,.3) 0 4px 6px -2px;
+  --shadow-lift:0 12px 40px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .io-card,
+:root[data-theme="dark"] .dash-card,
+:root[data-theme="dark"] .kpi-card,
+:root[data-theme="dark"] .prog-card,
+:root[data-theme="dark"] .wg-step{background:#24232b;border-color:#38363f}
+:root[data-theme="dark"] .card-h{background:#1c1b22}
+:root[data-theme="dark"] .auth-card{background:#24232b;border-color:#38363f}
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea{background:#1c1b22 !important;color:#f3f1f8;border-color:#38363f}
+:root[data-theme="dark"] .tin{background:#1c1b22 !important;color:#f3f1f8 !important;border-color:#38363f !important}
+:root[data-theme="dark"] table thead tr{background:#0f0e14;color:#b6b0c4}
+:root[data-theme="dark"] table tbody tr:hover{background:rgba(255,255,255,.04)}
+:root[data-theme="dark"] td,:root[data-theme="dark"] th{border-color:#38363f !important}
+:root[data-theme="dark"] .combo-list{background:#24232b !important;border-color:#38363f}
+:root[data-theme="dark"] .combo-opt,
+:root[data-theme="dark"] .combo-new,
+:root[data-theme="dark"] .combo-empty{background:#24232b !important;color:#f3f1f8}
+:root[data-theme="dark"] .combo-opt:hover{background:#38363f !important}
+:root[data-theme="dark"] .btn-soft{background:#38363f;color:#f3f1f8}
+:root[data-theme="dark"] .ghost-btn{background:#24232b;color:#b6b0c4;border-color:#38363f}
+:root[data-theme="dark"] .icon-btn{background:#24232b;color:#b6b0c4;border-color:#38363f}
+:root[data-theme="dark"] .sdlg-panel{background:#24232b}
+:root[data-theme="dark"] .flt-toolbar input{background:#24232b !important}
+:root[data-theme="dark"] .import-drop{background:#24232b;border-color:#38363f;color:#7c7690}
+:root[data-theme="dark"] .ic-grid span{background:#1c1b22;border-color:#38363f;color:#7c7690}
+:root[data-theme="dark"] .assign-card{background:#24232b;border-color:#38363f}
+:root[data-theme="dark"] #pagePermContainer{background:#24232b !important}
+:root[data-theme="dark"] .prog-c{background:#24232b;border-color:#38363f;color:#f3f1f8}
+:root[data-theme="dark"] .prog-c .v{color:#ff5a4a}
+:root[data-theme="dark"] header.app{background:#24232b;color:#f3f1f8;box-shadow:0 1px 0 rgba(0,0,0,.4)}
+:root[data-theme="dark"] .tabs{background:#24232b;box-shadow:0 1px 0 rgba(0,0,0,.3),inset 0 -1px 0 #38363f}
+:root[data-theme="dark"] .tab{color:#b6b0c4}
+:root[data-theme="dark"] .tab:hover{color:#f3f1f8}
+:root[data-theme="dark"] .icon-toggle-btn{color:#7c7690}
+:root[data-theme="dark"] .icon-toggle-btn:hover{background:#38363f}
+:root[data-theme="dark"] .hdr-ctrl-btn{color:#f3f1f8}
+:root[data-theme="dark"] .hdr-ctrl-btn:hover{background:#38363f}
+:root[data-theme="dark"] .user-chip{border-left-color:#38363f}
+:root[data-theme="dark"] .user-chip .un{color:#f3f1f8}
+/* bm-box (brand/model auto) */
+:root[data-theme="dark"] .bm-box{background:#24232b;border-color:#38363f}
+/* survey dialog */
+:root[data-theme="dark"] .sdlg{background:#24232b}
+/* table header — override the per-cell rule */
+:root[data-theme="dark"] thead th{background:#0f0e14 !important;color:#b6b0c4 !important}
+/* ─── LOGIN PAGE — unaffected by dark mode ─────────────────
+   Force every element inside #authGate back to light appearance
+   using !important to beat the global dark-mode overrides      */
+:root[data-theme="dark"] #authGate .auth-card{
+  background:#ffffff !important;border-color:#E2E8F0 !important;
+  color:#1A2332 !important;
+}
+:root[data-theme="dark"] #authGate .auth-brand{border-color:#E2E8F0 !important}
+:root[data-theme="dark"] #authGate label{color:#4A5568 !important}
+:root[data-theme="dark"] #authGate .auth-err{color:#EF4444 !important}
+:root[data-theme="dark"] #authGate .auth-foot{color:#718096 !important}
+:root[data-theme="dark"] #authGate .eye{color:#718096 !important}
+:root[data-theme="dark"] #authGate input,
+:root[data-theme="dark"] #authGate select,
+:root[data-theme="dark"] #authGate textarea,
+:root[data-theme="dark"] #authGate .tin{
+  background:#F7F9FB !important;color:#1A2332 !important;border-color:#CBD5E0 !important;
+}
+
+/* ─── ASSIGN WORK CARDS ──────────────────────────────────── */
+.assign-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.assign-badge-pending{background:#FEF3C7;color:#D97706;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.assign-badge-done{background:#D1FAE5;color:#059669;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+body.dark .assign-badge-pending{background:#292524;color:#F59E0B}
+body.dark .assign-badge-done{background:#022C22;color:#34D399}
+/* ─── HEADER CONTROLS ────────────────────────────────────── */
+.hdr-ctrl-btn{background:transparent;border:none;color:var(--ink);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;padding:6px 12px;transition:background .15s,color .15s}
+.hdr-ctrl-btn:hover{background:var(--bg)}
+.icon-toggle-btn{width:36px;height:32px;display:flex;align-items:center;justify-content:center;padding:0;color:#B5BCC5}
+.icon-toggle-btn:hover{background:var(--bg);color:var(--accent)}
+
+/* ─── FILTER DRAWER — บนคอมโชว์ inline เหมือนเดิมทุกอย่าง (ผ่าน display:contents),
+   บนมือถือพับเป็นลิ้นชักกดเปิด/ปิดได้ (ใช้ <details> ของเบราว์เซอร์ ไม่ต้องพึ่ง JS) ─── */
+.flt-drawer,.flt-drawer-body{display:contents}
+.flt-drawer-toggle{display:none}
+@media(max-width:600px){
+  .flt-drawer{display:block;width:100%;order:5}
+  .flt-drawer-toggle{display:flex;align-items:center;gap:6px;width:100%;padding:9px 12px;background:var(--surface);border:1px solid var(--line);border-radius:9px;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;list-style:none}
+  .flt-drawer-toggle::-webkit-details-marker{display:none}
+  .flt-drawer-toggle::after{content:'▾';margin-left:auto;transition:transform .15s}
+  .flt-drawer[open] .flt-drawer-toggle::after{transform:rotate(180deg)}
+  .flt-drawer-body{display:flex !important;flex-direction:column;gap:8px;margin-top:8px}
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+@media(max-width:760px){
+  .cascade,.bm-row,.imgs,.io-cols,.wg-row,.prog-cards,.user-cols{grid-template-columns:1fr}
+  .kpi-row{grid-template-columns:repeat(4,1fr)}
+  .header-stat{display:none}
+}
+@media(max-width:600px){
+  /* ปุ่มบันทึก/ล้างฟอร์ม ค้างไว้ล่างจอเสมอ กันต้องเลื่อนลงมาสุดฟอร์มยาวๆ ทุกครั้งบนมือถือ */
+  #panel-add.active{padding-bottom:74px}
+  #panel-add .form-actions{position:fixed;left:0;right:0;bottom:0;z-index:60;margin:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line-soft);box-shadow:0 -4px 16px rgba(0,0,0,.08)}
+  #panel-add .form-actions .btn{flex:1;justify-content:center}
+  header.app{flex-wrap:wrap;gap:10px;padding:12px 14px}
+  .tabs{padding:0 8px;overflow-x:auto}
+  .tab{padding:12px 12px;font-size:13px;white-space:nowrap}
+  .sdlg-grid,.sdlg-imgs{grid-template-columns:1fr}
+  /* ช่อง filter (รายการที่บันทึก/จัดการข้อมูลหลัก/สำรวจ) เรียงเต็มความกว้างทีละช่องบนมือถือ
+     กันปัญหา wrap ไม่สม่ำเสมอ (2 ช่องบรรทัดหนึ่ง 1 ช่องอีกบรรทัด) ไม่กระทบขนาดบนคอม */
+  .flt-toolbar{gap:8px}
+  .flt-toolbar>select.tin,.flt-toolbar>input{width:100%;min-width:0;flex:1 1 100%}
+  /* แถบผู้ใช้/ปุ่มออกจากระบบบนมือถือ ให้กระชับขึ้น ไม่ดูรกรุงรัง */
+  .user-chip{margin-left:0;padding-left:0;border-left:none;gap:8px}
+  .user-chip .av{width:26px;height:26px;font-size:11px}
+  .user-chip .un{font-size:12.5px}
+  .user-chip .ur{font-size:9px}
+  .user-chip .logout{padding:6px 10px;font-size:11.5px}
+  /* ปุ่ม dark/lang บน header */
+  .hdr-ctrl-btn{font-size:11px;padding:5px 8px}
+  #darkToggleBtn{width:30px;font-size:16px;padding:5px 0}
+  /* assign card */
+  .assign-card{flex-wrap:wrap}
+  #assignModal>div{margin-top:10px}
+  .icon-btn{width:32px;height:32px}
+  .rowact{gap:6px}
+  .dc-head{flex-wrap:wrap;row-gap:8px}
+  .dc-head select{width:100% !important;min-width:0 !important}
+  /* หัวเว็บ/โลโก้/ตัวอักษร ย่อลงให้พอดีจอมือถือ ไม่ดันปุ่มขวาให้ตกบรรทัด */
+  header.app{padding:10px 14px;gap:10px;min-height:auto}
+  .brandmark{height:34px;min-width:0;padding:1px 6px}
+  .brand-text h1{font-size:14px}
+  .brand-text .sub{font-size:8.5px;letter-spacing:1px}
+  .user-chip{gap:6px}
+  /* กล่องสรุปด้านบน Dashboard ย่อให้อยู่แถวเดียวเหมือนจอคอม */
+  .kpi-row{gap:6px;margin-bottom:14px}
+  .kpi{padding:8px 6px;border-radius:9px;border-left-width:3px !important}
+  .kpi .k-lbl{font-size:9px;line-height:1.2}
+  .kpi .k-num{font-size:16px;margin-top:2px}
+  /* ปุ่ม/ช่อง filter (รายการที่บันทึก/จัดการข้อมูลหลัก) ย่อให้พอดี ไม่ใหญ่รก */
+  .flt-toolbar .btn,.flt-toolbar .ghost-btn,.flt-toolbar .btn-soft{padding:7px 12px;font-size:12px}
+  .flt-drawer-toggle{padding:7px 10px;font-size:12px}
+  /* ตาราง จัดการข้อมูลหลัก/จัดการผู้ใช้ — คอลัมน์เยอะเกินจะอ่านสะดวกบนมือถือ พับเป็นการ์ดแทน
+     (แต่ละแถวกลายเป็นการ์ด แต่ละเซลล์ขึ้นชื่อคอลัมน์กำกับด้วย data-label ผ่าน ::before) */
+  .table-wrap table,.table-wrap thead,.table-wrap tbody,.table-wrap tr,.table-wrap th{display:block}
+  .table-wrap table{width:100% !important;min-width:0 !important}
+  .table-wrap thead{position:absolute;left:-9999px;top:-9999px}
+  .table-wrap tr{border:1px solid var(--line-soft);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:var(--surface)}
+  /* flex แทน float+text-align เดิม — กันข้อความยาว (เช่นชื่อโครงการภาษาไทย) ดันล้นออกนอกจอ */
+  .table-wrap td{display:flex !important;justify-content:space-between;align-items:flex-start;gap:10px;border:none !important;padding:7px 0 !important;min-height:20px;text-align:right;word-break:break-word}
+  .table-wrap td[data-label]:not([data-label=""])::before{content:attr(data-label);flex:none;font-weight:600;color:var(--ink-soft);font-size:12px;text-align:left}
+  .table-wrap td[data-label=""]{justify-content:flex-end;text-align:left}
+  .table-wrap td .rowact{justify-content:flex-end}
+}
+
+/* ─── WARP ANIMATION (สร้างรายงาน Word) ────────────────────── */
+#warpOverlay{color:#e8f2ff}
+#warpStatus{position:absolute;bottom:44px;left:0;right:0;text-align:center;color:#9fd8ff;font-size:14px;letter-spacing:.4px;font-family:'TH Sarabun New',sans-serif;min-height:20px;z-index:3}
+#warpDone{gap:4px;position:relative;z-index:3}
+#warpPlanet{width:180px;height:180px;border-radius:50%;box-shadow:0 0 70px 14px rgba(120,200,255,.35);animation:warpPlanetIn .9s cubic-bezier(.2,.8,.3,1.1) both}
+#warpDoneText{margin-top:22px;font-size:16px;font-weight:600;font-family:'TH Sarabun New',sans-serif;opacity:0;animation:warpTextIn .6s ease .3s forwards}
+@keyframes warpPlanetIn{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes warpTextIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
