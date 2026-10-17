@@ -176,6 +176,11 @@ td.codecell{font-size:11.5px;color:var(--accent-deep)}
 /* ─── TOAST ─────────────────────────────────────────────── */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--steel);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;box-shadow:var(--shadow-lift);z-index:60;opacity:0;transition:.25s;display:flex;align-items:center;gap:10px;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.has-act{pointer-events:auto}
+.toast-act{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:8px;padding:6px 14px;font-weight:700;font-size:14px;cursor:pointer;margin-left:6px}
+.toast-act:hover{background:rgba(255,255,255,.3)}
+.imgslot label.drop.img-busy{opacity:.55;animation:imgpulse 1s ease-in-out infinite}
+@keyframes imgpulse{50%{opacity:.9}}
 .toast .tdot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
 
 /* ─── KPI / DASH ─────────────────────────────────────────  */

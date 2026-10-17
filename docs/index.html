@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=1792223115083">
+<link rel="stylesheet" href="styles.css?v=1792224877294">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D93A2B">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -266,6 +266,7 @@
       </div>
     </details>
     <button class="ghost-btn" id="exportXlsx">Export Excel</button>
+    <button class="ghost-btn" id="openTrashBtn" style="display:none">Trash</button>
     <button class="ghost-btn word-report-only" id="openWordReportBtn" disabled>Report</button>
   </div>
   <div class="rlist" id="savedGrid"></div>
@@ -525,7 +526,7 @@
 </main>
 
 <div id="reportArea"></div>
-<div class="toast" id="toast"><span class="tdot"></span><span id="toastMsg"></span></div>
+<div class="toast" id="toast"><span class="tdot"></span><span id="toastMsg"></span><button type="button" class="toast-act" id="toastAct" style="display:none"></button></div>
 
 <!-- ══════ MODAL: QR/BARCODE SCAN ══════ -->
 <div id="qrScanModal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(10,14,20,.85);align-items:center;justify-content:center;padding:20px">
@@ -564,7 +565,7 @@
   </div>
 </div>
 
-<script src="script.js?v=1792223115083"></script>
+<script src="script.js?v=1792224877294"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
