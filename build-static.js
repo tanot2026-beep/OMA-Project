@@ -4,9 +4,11 @@
 const fs = require('fs');
 
 const strip = s => s.replace(/^﻿/, '');
-const html0 = strip(fs.readFileSync('index.html', 'utf8'));
-const style = strip(fs.readFileSync('styles', 'utf8')).replace(/^<style>\n?/, '').replace(/<\/style>\s*$/, '');
-const script = strip(fs.readFileSync('script', 'utf8')).replace(/^<script>\n?/, '').replace(/<\/script>\s*$/, '');
+// หาไฟล์ต้นฉบับ: โฟลเดอร์ปัจจุบันก่อน แล้วค่อยดูใน ../GAS (ชื่อ index.html หรือ index.txt)
+const pick = (...c) => { const f = c.find(p => fs.existsSync(p)); if (!f) throw new Error('ไม่พบไฟล์: ' + c.join(' หรือ ')); return f; };
+const html0 = strip(fs.readFileSync(pick('index.html', 'index.txt', '../GAS/index.html', '../GAS/index.txt'), 'utf8'));
+const style = strip(fs.readFileSync(pick('styles', '../GAS/styles'), 'utf8')).replace(/^<style>\n?/, '').replace(/<\/style>\s*$/, '');
+const script = strip(fs.readFileSync(pick('script', '../GAS/script'), 'utf8')).replace(/^<script>\n?/, '').replace(/<\/script>\s*$/, '');
 
 // แท็ก PWA (manifest/ไอคอน/theme-color) ใส่เฉพาะเวอร์ชัน Vercel เท่านั้น — ไม่แตะ index.html ต้นฉบับที่ใช้กับ GAS Editor
 const pwaHead = `<link rel="manifest" href="manifest.json">
@@ -25,9 +27,12 @@ if ('serviceWorker' in navigator) {
 </script>
 `;
 
+// เปลี่ยน ?v= ทุกครั้งที่ build เพื่อให้ service worker/เบราว์เซอร์ดึงไฟล์ใหม่หลัง deploy
+const ver = Date.now();
+
 const html = html0
-  .replace('<?!= include("styles") ?>', '<link rel="stylesheet" href="styles.css">')
-  .replace('<?!= include("script") ?>', '<script src="script.js"></script>')
+  .replace('<?!= include("styles") ?>', `<link rel="stylesheet" href="styles.css?v=${ver}">`)
+  .replace('<?!= include("script") ?>', `<script src="script.js?v=${ver}"></script>`)
   .replace('</head>', pwaHead + '</head>')
   .replace('</body>', pwaRegisterScript + '</body>');
 
