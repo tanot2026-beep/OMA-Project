@@ -2218,7 +2218,7 @@ function showPdfGenOverlayDone(){
 }
 
 let usersCache=[];
-async function loadUsers(){if(!canSeeUsers())return;const r=await api(ACT.listUsers,{});if(r&&r.ok&&Array.isArray(r.users)){usersCache=r.users;renderUsers(r.users);}}
+async function loadUsers(){if(!canSeeUsers())return;const r=await api(ACT.listUsers,{});if(r&&r.ok&&Array.isArray(r.users)){usersCache=r.users;const up=$('#usersPill');if(up)up.textContent=r.users.length;renderUsers(r.users);}}
 function renderUsers(list){
   list=list||usersCache;window._userList=list;
   const projectOptions=uniq([...master.map(m=>m.project),...list.map(x=>x.project)]).filter(Boolean);
