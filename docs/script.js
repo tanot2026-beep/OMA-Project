@@ -1,17 +1,5 @@
+const LOGO_DRIVE_ID = '1UiYHVecqMs5DaoIT3z-aIOjweIJ8FP5q';
 
-/* ══════════════════════════════════════════════════════════
-   LOGO MANAGER
-   — ทำให้โลโก้แสดงทั้งหน้า login และ header หลัง login
-   — ถ้าไม่มี src ก็ซ่อน img และแสดง fallback text
-══════════════════════════════════════════════════════════ */
-// ─── โลโก้ — วาง URL ตรงๆ ที่นี่ ───────────────────────────
-// วิธีได้ URL:
-//   1) อัปโหลดรูปโลโก้ขึ้น Google Drive
-//   2) คลิกขวา → Share → Change to Anyone with link → Copy link
-//   3) Link จะได้ประมาณ drive.google.com/file/d/XXXX/view (ขึ้นต้นด้วย https)
-//   4) เอา XXXX มาใส่ใน LOGO_DRIVE_ID ด้านล่าง
-const LOGO_DRIVE_ID = '1UiYHVecqMs5DaoIT3z-aIOjweIJ8FP5q'; // ← ไม่ได้ใช้แล้ว
-// โลก้โหลดผ่าน GitHub CDN (jsDelivr) — ไฟล์ logo.png อยู่ใน repo tanot713-sudo/OME
 const LOGO_SRC = 'data:image/png;base64,' + [
   'iVBORw0KGgoAAAANSUhEUgAAAv0AAAHXCAYAAAAvGeXZAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAKRkSURBVHhe7f37s2VXdeeJ9t+hJ8YIYwkJ9EACF24L2jIIosM8JNzRRhJ9AZex+4eSCoQc14hqgysKXN2AkHB1R7RBvtFtoqMRwgUS+AG4bqHMvj/YeoDxbwWWlCeVL6FXKs8ruXPus+acn7FzjLPXzjz7tc73h0+Ecqyx5mOMMef8rqO19/6vTp8+/XMhhBBCCCHEcJHoF0IIIYQQYuBI9AshhBBCCDFwJPqFEEIIIYQYOBL9QgghhBBCDByJfiGEEEIIIQaORL8QQgghhBADR6JfCCGE',
   'EEKIgSPRL4QQQgghxMCR6BdCCCGEEGLgSPQLIYQQQggxcCT6hRBCCCGEGDgS/UIIIYQQQgwciX4hhBBCCCEGjkS/EEIIIYQQA0eiXwghhBBCiIEj0S+EEEIIIcTAkegXQgghhBBi4Ej0CyGEEEIIMXAk+oUQQgghhBg4Ev1CCCGEEEIMHIl+IYQQQgghBo5EvxBCCCGEEANHol8IIYQQQoiBI9EvhBBCCCHEwJHoF0IIIYQQYuBI9AshhBBCCDFwJPqFEEIIIYQYOBL9QgghhBBCDByJfiGEEEIIIQaORL8QQgghhBADR6JfCCGEEEKIgSPRL4QQQgghxMCR6BdCCCGEEGLgSPQLIYQQQggxcCT6hRBCCCGEGDgS/UIsE9vble3tzcpWuuZxenOz',
@@ -188,11 +176,8 @@ function applyLogo(src) {
   const authBox = document.getElementById('authLogoBox');
   const authFallback = document.getElementById('authLogoFallback');
 
-  if (!src || !src.trim()) return; // fallback text already visible by default
+  if (!src || !src.trim()) return;
 
-  // เดิม appendChild ใส่ hdr/authBox ตรงๆ ถ้า element หา id ไม่เจอ (null) จะพัง
-  // ทั้งฟังก์ชันทันทีด้วย TypeError แบบเงียบ — ทำให้ทั้งโลโก้ header และ auth ไม่ขึ้นเลย
-  // แก้ให้เช็ค null ทีละจุด และซ่อน fallback ก็ต่อเมื่อรูปโหลดสำเร็จจริง (ไม่ใช่ซ่อนทันทีก่อนรู้ผล)
   function mount(container, fallback, cssText) {
     if (!container) { console.warn('applyLogo: element not found, skip'); return; }
     const img = document.createElement('img');
@@ -209,10 +194,6 @@ function applyLogo(src) {
 }
 applyLogo(LOGO_SRC);
 
-/* ══════════════════════════════════════════════════════════
-   CONFIRM DIALOG — popup สีขาวแทน confirm() ของเบราว์เซอร์
-   ปุ่ม Cancel อยู่ซ้าย, OK/ปุ่มหลักอยู่ขวา
-══════════════════════════════════════════════════════════ */
 function confirmDlg(message, okLabel, onOk){
   let dlg = document.getElementById('confirmDlg');
   if(!dlg){
@@ -238,12 +219,9 @@ function confirmDlg(message, okLabel, onOk){
   dlg.style.display = 'flex';
 }
 
-/* ══════════════════════════════════════════════════════════
-   CORE APP
-══════════════════════════════════════════════════════════ */
 const API_URL = 'https:\x2f\x2fscript.google.com/macros/s/AKfycbxlEbqSLnqiU_TCT86urymZ3ttxStmqaw4Y2WYAErU25jjgzj7GjN5NWcj7P_9uUrY1/exec';
 const PDPA_VERSION = '1.0';
-// ห้ามมีเครื่องหมาย slash สองตัวติดกันในโค้ดนี้เด็ดขาด (รวมใน URL, base64, คอมเมนต์) — GAS ประมวลผลไฟล์ก่อนส่งให้เบราว์เซอร์ แล้วทำ URL ขาด/เพี้ยน ทั้งไฟล์พัง ใช้ \x2f แทนใน URL
+
 const DRIVE_THUMB = 'https:\x2f\x2fdrive.google.com/thumbnail?id=';
 const ACT = {
   login:'login', verifyToken:'verifyToken', pdpaStatus:'getPdpaStatus', pdpaAccept:'acceptPdpa',
@@ -261,18 +239,20 @@ let _clientIP = '';
 const $=s=>document.querySelector(s);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const uniq=a=>[...new Set(a.filter(v=>v!==''&&v!=null))];
-const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const escAttr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const escAttr=esc;
+// ใช้ใส่ค่าลงใน onclick="fn(...)" — แปลงเป็นสตริง JS ที่ปลอดภัยแล้ว escape สำหรับ attribute (ไม่ต้องใส่เครื่องหมายคำพูดครอบเอง)
+const jsArg=v=>esc(JSON.stringify(String(v==null?'':v)));
 
 const pad=n=>String(n).padStart(2,'0');
 const fmtDate=(ts,t)=>{
   if(!ts)return'';
-  // ถ้าเป็น ISO string ที่มีปี พ.ศ. (>2400) เช่น "2570-06-25T00:00:00.000Z" ให้แยก date part ออกโดยตรง
+
   if(typeof ts==='string'&&/^\d{4}-\d{2}-\d{2}/.test(ts)){
     const[yr,mo,dy]=ts.slice(0,10).split('-').map(Number);
     if(yr>2400){let s=`${pad(dy)}/${pad(mo)}/${yr}`;if(t)s+=` 00:00`;return s;}
   }
-  // ถ้าเป็น string dd/MM/yyyy หรือ dd-MM-yyyy แล้ว ให้คืนตรงๆ
+
   if(typeof ts==='string'&&/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(ts))return ts.replace(/-/g,'/');
   const d=new Date(ts);if(isNaN(d))return String(ts);
   let s=`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()+543}`;
@@ -280,12 +260,39 @@ const fmtDate=(ts,t)=>{
 };
 const fileStamp=ts=>{const d=new Date(ts);return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;};
 
-async function getClientIP(){if(_clientIP)return _clientIP;try{const r=await fetch('https:\x2f\x2fapi.ipify.org?format=json');const j=await r.json();_clientIP=j.ip||'';}catch(e){_clientIP='';}return _clientIP;}
-// Google ไม่ส่ง CORS header ให้ origin นอกโดเมนตัวเอง — หน้าเว็บที่ host แยก (เช่น Vercel)
-// ต้องยิงผ่าน /api/proxy (serverless function) แทนการเรียก API_URL ตรง ๆ
+async function getClientIP(){
+  if(_clientIP)return _clientIP;
+  try{const c=sessionStorage.getItem('clientIP');if(c){_clientIP=c;return _clientIP;}}catch(e){}
+  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),2000);
+  try{const r=await fetch('https:\x2f\x2fapi.ipify.org?format=json',{signal:ctl.signal});const j=await r.json();_clientIP=j.ip||'';try{if(_clientIP)sessionStorage.setItem('clientIP',_clientIP);}catch(e){}}catch(e){_clientIP='';}
+  clearTimeout(t);return _clientIP;
+}
+getClientIP();
+
 const FETCH_URL=/(^|\.)google(usercontent)?\.com$/.test(location.hostname)?API_URL:'/api/proxy';
+const LIB_SRC={
+  xlsx:'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  docx:'https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js',
+  html2pdf:'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
+  qrscan:'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js'
+};
+const LIB_READY={xlsx:()=>typeof XLSX!=='undefined',docx:()=>typeof docx!=='undefined',html2pdf:()=>typeof html2pdf!=='undefined',qrscan:()=>typeof Html5Qrcode!=='undefined'};
+const _libP={};
+// โหลดไลบรารีหนักเมื่อต้องใช้จริง (ครั้งแรกเท่านั้น) — ทำให้หน้าแรกเปิดเร็วขึ้นมาก
+function loadLib(k){
+  if(LIB_READY[k]())return Promise.resolve();
+  if(_libP[k])return _libP[k];
+  try{toast('Loading library...',true);}catch(e){}
+  _libP[k]=new Promise((res,rej)=>{
+    const sc=document.createElement('script');sc.src=LIB_SRC[k];
+    sc.onload=()=>res();
+    sc.onerror=()=>{delete _libP[k];sc.remove();rej(new Error('Failed to load '+k));};
+    document.head.appendChild(sc);
+  });
+  return _libP[k];
+}
 async function api(action,payload={}){
-  const ctx={device:navigator.platform||'',browser:navigator.userAgent||'',ip:await getClientIP(),ts:new Date().toISOString()};
+  const ctx={device:navigator.platform||'',browser:navigator.userAgent||'',ip:_clientIP||(action==='login'?await getClientIP():''),ts:new Date().toISOString()};
   const body=JSON.stringify({action,...payload,token:AUTH.token,ctx});
   let res;
   try{res=await fetch(FETCH_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},redirect:'follow',body});}
@@ -303,7 +310,6 @@ function clearSession(){AUTH={token:null,user:null};try{sessionStorage.removeIte
 let toastTimer;
 function toast(msg,ok=true){const t=$('#toast');$('#toastMsg').textContent=msg;t.querySelector('.tdot').style.background=ok?'var(--ok)':'var(--danger)';t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);}
 
-/* ─── AUTH ──────────────────────────────────────────────── */
 function showGate(){$('#authGate').classList.remove('hidden');}
 function hideGate(){$('#authGate').classList.add('hidden');}
 function authError(msg){const e=$('#authErr');e.textContent=msg;e.classList.add('show');}
@@ -321,6 +327,7 @@ async function doLogin(){
   $('#authPass').value='';
   paintUser();hideGate();
   await afterLogin();
+  if(r.warnDefaultPassword)setTimeout(()=>toast('Security warning: the admin account still uses the default password. Change it in Users now.',false),600);
 }
 function doLogout(){clearSession();$('#userChip').style.display='none';$('#authUser').value='';$('#authPass').value='';hidePdpa();showGate();}
 async function afterLogin(){
@@ -341,7 +348,7 @@ function paintUser(){
   applyRoleVisibility();
   updateAssignBtn();
 }
-// ดูสิทธิ์หน้า/ฟีเจอร์จาก pagePerms ที่ admin ตั้งไว้ (ได้มาตอน login) — admin เห็น/ทำได้ทุกอย่างเสมอ
+
 function hasPagePerm(page){
   const u=AUTH.user; if(!u) return false;
   if(u.role==='admin') return true;
@@ -356,7 +363,7 @@ function canPdf(){return hasPagePerm('pdfReport');}
 
 function applyRoleVisibility(){
   const dash=canSeeDashboard(),master=canSeeMaster(),users=canSeeUsers(),edit=canEdit();
-  // ใช้ class บน body เพื่อ "make visible" เท่านั้น — ค่าเริ่มต้นคือซ่อนไว้ตั้งแต่ CSS (กัน flash ก่อนสิทธิ์ถูกคำนวณ)
+
   document.body.classList.toggle('can-dash',dash);
   document.body.classList.toggle('can-master',master);
   document.body.classList.toggle('can-users',users);
@@ -367,8 +374,7 @@ function applyRoleVisibility(){
   document.body.classList.toggle('can-pdf',canPdf());
   document.body.classList.toggle('can-word-report',['admin','manager','leader'].includes(AUTH.user&&AUTH.user.role));
   document.body.classList.toggle('can-qr',hasPagePerm('qrScan'));
-  // ถ้าหน้า (panel) ที่กำลังเปิดอยู่ไม่อยู่ในสิทธิ์ที่อนุญาตแล้ว (เช่น เคยเปิดไว้ตอนเป็นคนละ role ในแท็บเดิม
-  // โดยไม่ได้รีโหลดหน้า) ให้ดีดไปหน้าที่อนุญาตหน้าแรกทันที — กันไม่ให้เนื้อหาที่ไม่มีสิทธิ์โผล่ค้างอยู่
+
   const allowedTabs=[];
   if(dash)allowedTabs.push('dash');
   if(edit&&hasPagePerm('add'))allowedTabs.push('add');
@@ -386,7 +392,6 @@ function applyRoleVisibility(){
   if(master)renderMaster();
 }
 
-/* ─── PAGE PERMISSIONS (admin) ──────────────────────────────── */
 const PAGE_LABELS={overview:'Overview',add:'Add Record',records:'Records',master:'Master Data',users:'Manage Users',delete:'Delete Button',qrScan:'Scan/Print QR'};
 let _pagePerms={};
 function renderPagePermUI(){
@@ -422,13 +427,11 @@ async function savePagePerms(){
   } else toast((r&&r.message)||'Failed to save permissions',false);
 }
 
-/* ─── PDPA ──────────────────────────────────────────────── */
 function showPdpa(){$('#pdpaBanner').classList.add('show');}
 function hidePdpa(){$('#pdpaBanner').classList.remove('show');}
 async function checkPdpa(){const key='pdpa_'+(AUTH.user?.username||'')+'_'+PDPA_VERSION;if(localStorage.getItem(key)==='1'){hidePdpa();return;}const r=await api(ACT.pdpaStatus,{version:PDPA_VERSION});if(r&&r.ok&&r.accepted){localStorage.setItem(key,'1');hidePdpa();return;}setTimeout(showPdpa,500);}
 async function acceptPdpa(){const btn=$('#pdpaAccept');btn.disabled=true;btn.textContent='Saving...';const r=await api(ACT.pdpaAccept,{version:PDPA_VERSION});btn.disabled=false;btn.textContent='Accept';const key='pdpa_'+(AUTH.user?.username||'')+'_'+PDPA_VERSION;localStorage.setItem(key,'1');hidePdpa();toast((r&&r.ok)?'Consent saved':'Consent saved on this device',true);}
 
-/* ─── TABS ──────────────────────────────────────────────── */
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
@@ -436,7 +439,6 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
 }));
 function goTab(n){document.querySelector(`.tab[data-tab="${n}"]`).click();}
 
-/* ─── MASTER / COMBO ────────────────────────────────────── */
 const MASTER_KEY='master';
 const LEVELS=['project','system','typeloc','loc','sub','equip','serial'];
 const PROP={project:'project',system:'system',typeloc:'typeLocation',loc:'locName',sub:'subName',equip:'equipment',serial:'serial'};
@@ -490,7 +492,7 @@ function setDisabledStates(){
     else{c.el.classList.add('disabled');c.input.disabled=true;c.input.placeholder=`Select ${LABEL[req]} first`;}
   });
   if(combos.serial)refreshSerialCombo();
-  // sync inpAsset combo disabled state
+
   const assetWrap=$('#inpAsset')?.closest?.('.combo');
   if(assetWrap){const en=!!sel.loc;assetWrap.classList.toggle('disabled',!en);$('#inpAsset').disabled=!en;$('#inpAsset').placeholder=en?'e.g. Firewall, Switch, Transceiver...':'Select a location first';if(!en&&$('#inpAsset').value){$('#inpAsset').value='';syncComboVal('inpAsset');}}
 }
@@ -522,8 +524,6 @@ function refreshDerived(){
   }
 }
 
-// แทน <input list="..."> ของ browser ด้วย combo style เดียวกับหน้า "Add Record" (ไม่มี "+ Use "..." (new)" — พิมพ์เองได้ตรงๆอยู่แล้ว)
-// ใช้ inputId เดิม (ย้าย element เดิมเข้า wrapper) เพื่อให้โค้ดเดิมที่อ่าน $('#id').value ไม่ต้องแก้อะไรเลย
 function upgradeToCombo(inputIdOrEl,getOptionsFn){
   const inp=typeof inputIdOrEl==='string'?document.getElementById(inputIdOrEl):inputIdOrEl;
   if(!inp||inp.dataset.comboUpgraded)return;
@@ -568,18 +568,17 @@ function upgradeToCombo(inputIdOrEl,getOptionsFn){
   clearBtn.addEventListener('mousedown',e=>{e.preventDefault();pick('');});
   wrap.classList.toggle('has-val',!!inp.value);
 }
-// คืนค่าตัวเลือกปัจจุบันจาก <datalist> (อ่านสดทุกครั้ง เผื่อมีการเติม option เพิ่มทีหลัง เช่นตอน loadReportPresets/loadReportInfo)
+
 function dlOptions(datalistId){return ()=>{const dl=document.getElementById(datalistId);return dl?Array.from(dl.options).map(o=>o.value).filter(Boolean):[];};}
-// sync class "has-val" เวลามีโค้ดอื่นไป set .value ตรงๆ (ไม่ผ่าน pick()) เช่นตอนเปิด dialog แล้วเติมค่าเริ่มต้น
+
 function syncComboVal(inputId){const inp=document.getElementById(inputId);const wrap=inp&&inp.closest('.combo');if(wrap)wrap.classList.toggle('has-val',!!inp.value);}
 
 function buildInspectorCombo(){const el=$('#inspCombo');if(!el)return;el.innerHTML=`<div class="combo-ctl"><input id="inpInspector" class="combo-input" placeholder="Type inspector name" autocomplete="off"><span class="combo-clear">&times;</span><span class="combo-caret">▾</span></div><div class="combo-list"></div>`;const input=el.querySelector('.combo-input'),list=el.querySelector('.combo-list'),clear=el.querySelector('.combo-clear');let active=-1;const people=()=>{const role=AUTH.user?.role||'';if(role==='leader'||role==='inspector')return[AUTH.user?.name||AUTH.user?.username||''];let pool=entries;if(sel['project'])pool=pool.filter(e=>e.project===sel['project']);return uniq([...INSP_SEED,...pool.map(e=>e.inspector)]).filter(Boolean).sort((a,b)=>a.localeCompare(b,'th'));};function render(filter){let opts=people();const f=(filter||'').trim().toLowerCase();if(f)opts=opts.filter(o=>o.toLowerCase().includes(f));active=-1;let html=opts.map(o=>`<div class="combo-opt" data-v="${escAttr(o)}">${esc(o)}</div>`).join('');if(f&&!people().some(o=>o.toLowerCase()===f))html+=`<div class="combo-new" data-new="${escAttr(filter.trim())}">+ Use "${esc(filter.trim())}" (new)</div>`;if(!html)html=`<div class="combo-empty">Type inspector name</div>`;list.innerHTML=html;list.querySelectorAll('.combo-opt').forEach(o=>o.addEventListener('mousedown',e=>{e.preventDefault();pick(o.dataset.v);}));const nw=list.querySelector('.combo-new');if(nw)nw.addEventListener('mousedown',e=>{e.preventDefault();pick(nw.dataset.new);});}function pick(v){input.value=v;el.classList.toggle('has-val',!!v);el.classList.remove('open');}function open(){el.classList.add('open');render(input.value);}input.addEventListener('focus',open);input.addEventListener('click',open);input.addEventListener('input',()=>{el.classList.add('open');el.classList.toggle('has-val',!!input.value);render(input.value);});input.addEventListener('keydown',e=>{const items=list.querySelectorAll('.combo-opt,.combo-new');if(e.key==='ArrowDown'){e.preventDefault();active=Math.min(active+1,items.length-1);}else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(active-1,0);}else if(e.key==='Enter'){e.preventDefault();if(active>=0){const it=items[active];pick(it.dataset.v||it.dataset.new);}else if(input.value.trim())pick(input.value.trim());return;}else if(e.key==='Escape'){el.classList.remove('open');return;}items.forEach((it,i)=>it.classList.toggle('active',i===active));if(active>=0)items[active].scrollIntoView({block:'nearest'});});input.addEventListener('blur',()=>setTimeout(()=>el.classList.remove('open'),150));clear.addEventListener('mousedown',e=>{e.preventDefault();pick('');});}
 
-/* ─── IMAGE WIRING ──────────────────────────────────────── */
 function wireImg(inputId,dropId,setter){$('#'+inputId).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{const img=new Image();img.onload=()=>{
   const max=1280;let{width:w,height:h}=img;if(w>h&&w>max){h=Math.round(h*max/w);w=max;}else if(h>=w&&h>max){w=Math.round(w*max/h);h=max;}
   const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
-  // ลด quality ทีละขั้นถ้าไฟล์ยังใหญ่เกินเป้าหมาย (~300KB จริง ≈ base64 ยาวไม่เกิน 410,000 ตัวอักษร) กันไม่ให้ payload ใหญ่เกินจำเป็น
+
   let q=0.72,data=c.toDataURL('image/jpeg',q);
   while(data.length>410000&&q>0.4){q-=0.1;data=c.toDataURL('image/jpeg',q);}
   setter(data);const lbl=$('#'+dropId);lbl.classList.add('has-img');lbl.style.backgroundImage=`url(${data})`;const ph=lbl.querySelector('.ph-content');if(ph)ph.style.display='none';
@@ -589,7 +588,6 @@ wireImg('fileSticker','dropSticker',d=>imgSticker=d);
 wireImg('fileImg3','dropImg3',d=>img3=d);
 wireImg('fileImg4','dropImg4',d=>img4=d);
 
-// แสดงรูปเดิมที่เคยแนบไว้เมื่อเปิดแก้ไขรายการ (ใช้ thumbnail ที่มีอยู่แล้วเพื่อโหลดเร็ว)
 function setImgPreview(dropId,url){
   if(!url)return;
   const lbl=$('#'+dropId);if(!lbl)return;
@@ -598,9 +596,6 @@ function setImgPreview(dropId,url){
   const ph=lbl.querySelector('.ph-content');if(ph)ph.style.display='none';
 }
 
-/* ─── SAVE RECORD ───────────────────────────────────────── */
-// เช็คว่าค่าที่เลือก/พิมพ์ไว้ใน sel ตรงกับ Master Data ที่มีอยู่แล้วไหม — ถ้าไม่ตรงเป๊ะกับค่าไหนเลย
-// ถือว่าเป็นค่าใหม่ที่หน้างานพิมพ์เอง คืน label ของฟิลด์ที่เป็นค่าใหม่ (ใช้ติดป้าย "Pending Review")
 function detectNewFields(){
   const checks=[
     {label:'Project',val:sel.project,prop:'project'},
@@ -631,14 +626,13 @@ $('#saveBtn').addEventListener('click',async()=>{
     editingId=null;goTab('saved');
     await loadRecords();
   }else{
-    // ไม่ล้างฟอร์ม/ไม่สลับหน้า — ให้ผู้ใช้เห็น error (เช่น Serial ซ้ำ) แล้วแก้ไขในฟอร์มเดิมได้ทันที
+
     toast(errMsg||'Save failed, please try again',false);
   }
 });
 $('#resetBtn').addEventListener('click',resetForm);
 function resetForm(){imgMain='';imgSticker='';editingId=null;img3='';img4='';['fileMain','fileSticker','fileImg3','fileImg4'].forEach(id=>$('#'+id).value='');['dropMain','dropSticker','dropImg3','dropImg4'].forEach(id=>{const l=$('#'+id);l.classList.remove('has-img');l.style.backgroundImage='';const ph=l.querySelector('.ph-content');if(ph)ph.style.display='';});['inpInspector','inpAsset','inpNote'].forEach(id=>$('#'+id).value='');$('#inspCombo').classList.remove('has-val');syncComboVal('inpAsset');LEVELS.forEach(lv=>{sel[lv]='';if(combos[lv]){combos[lv].input.value='';combos[lv].el.classList.remove('has-val');}});setDisabledStates();updateBrandModel();const role=AUTH.user?.role||'';const userProjs=(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean);if(role==='leader'||role==='inspector'){$('#inpInspector').value=AUTH.user?.name||AUTH.user?.username||'';$('#inpInspector').disabled=true;$('#inspCombo').classList.add('has-val');$('#inspCombo').style.background='#EEF1F4';if(userProjs.length===1){setTimeout(()=>choose('project',userProjs[0]),50);if(combos.project){combos.project.input.disabled=true;combos.project.el.style.background='#EEF1F4';}}}else{$('#inpInspector').disabled=false;$('#inspCombo').style.background='';if(role&&role!=='admin'){const n=AUTH.user?.name||AUTH.user?.username||'';if(n){$('#inpInspector').value=n;$('#inspCombo').classList.add('has-val');}}if(combos.project){combos.project.input.disabled=false;combos.project.el.style.background='';}}$('#addTitle').textContent='Add New Record';$('#saveBtn').textContent='Save Record';}
 
-/* ─── RECORDS ───────────────────────────────────────────── */
 async function loadRecords(){if(!AUTH.token)return;const r=await api(ACT.listRecords,{});if(r&&r.ok&&Array.isArray(r.records)){entries=r.records.map(x=>({id:x.id,project:x.project,system:x.system,typeLocation:x.typeLocation,locName:x.location,subName:x.sublocation,equipment:x.equipment,serial:x.serial,brand:x.brand,model:x.model,asset:x.asset,inspector:x.inspector,note:x.note,imgMain:x.imgMain,imgSticker:x.imgSticker,img3:x.img3,img4:x.img4,thumbMain:x.thumbMain,thumbSticker:x.thumbSticker,thumb3:x.thumb3,thumb4:x.thumb4,pendingReview:!!x.pendingReview,newFields:x.newFields||'',createdAt:x.createdAt||Date.now(),synced:true}));entries.sort((a,b)=>b.createdAt-a.createdAt);renderSaved();updateStats();renderDashboard();}}
 
 $('#savedSearch').addEventListener('input',renderSaved);
@@ -678,9 +672,8 @@ function fillSavedFilters(){
   fillDep($('#savedFEquip'),sc4,'equipment','All Equipment');
 }
 
-// แยกตรรกะ filter/sort ของหน้ารายการออกมา ให้ปุ่ม "Generate PDF Report" เรียกใช้รายการชุดเดียวกับที่เห็นบนตารางได้
-let recordsDateFilter=null; // 'YYYY-M-D' set by clicking a bar on the Daily Uploads chart, or null
-let recordsStatusFilter=null; // 'confirmed' | 'pending', set by clicking the Status Breakdown donut, or null
+let recordsDateFilter=null;
+let recordsStatusFilter=null;
 function dateKeyOf(ts){const d=new Date(ts);return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
 function getSavedFilteredList(){
   const q=$('#savedSearch')?$('#savedSearch').value.trim().toLowerCase():'';
@@ -717,7 +710,7 @@ function driveViewUrl(u,sz){
   const m=String(u).match(/[-\w]{25,}/);
   return m?DRIVE_THUMB+m[0]+'&sz=w'+(sz||400):u;
 }
-// สร้าง checkbox กรอง "Pending Review" แทรกเข้า toolbar เอง (แค่ครั้งแรก) — ไม่ต้องแก้ index.html
+
 function ensurePendingFilterUI(){
   if($('#savedFPending'))return;
   const toolbar=$('#savedSort')&&$('#savedSort').closest('.flt-toolbar');
@@ -728,7 +721,7 @@ function ensurePendingFilterUI(){
   toolbar.appendChild(wrap);
   $('#savedFPending').addEventListener('change',renderSaved);
 }
-// ชิป "Filtered by ..." โผล่เฉพาะตอนมี filter จากการกดกราฟ (วันที่/สถานะ) — ไม่ใช่ dropdown ปกติ
+
 function ensureChartFilterChip(){
   if($('#chartFilterChip'))return;
   const toolbar=$('#savedSort')&&$('#savedSort').closest('.flt-toolbar');
@@ -750,12 +743,13 @@ function updateChartFilterChip(){
     chip.style.display='none';
   }
 }
+const SAVED_PAGE=60;let savedShown=SAVED_PAGE,_savedSig='';
 function renderSaved(){
   fillSavedFilters();
   ensurePendingFilterUI();
   ensureChartFilterChip();
   updateChartFilterChip();
-  const list=getSavedFilteredList();
+  let list=getSavedFilteredList();
   $('#savedPill').textContent=entries.length;
   const pendingCount=entries.filter(e=>e.pendingReview).length;
   const cntEl=$('#savedFPendingCount');
@@ -763,7 +757,11 @@ function renderSaved(){
   const canConfirm=AUTH.user&&(AUTH.user.role==='admin'||AUTH.user.role==='manager');
   const grid=$('#savedGrid');
   if(!list.length){grid.innerHTML=`<div class="empty"><b>${entries.length?'No records match the condition':'No records yet'}</b></div>`;return;}
-  grid.innerHTML=list.map(e=>{const thumb=driveViewUrl(e.thumbMain||e.thumbSticker||e.imgMain||e.imgSticker||'',300);const n=(e.imgMain?1:0)+(e.imgSticker?1:0);const title=esc([e.equipment,e.brand,e.model].filter(Boolean).join(' · '))||'(Equipment not specified)';const loc=esc([e.project,e.locName,e.subName].filter(Boolean).join(' › '));const pendingBadge=e.pendingReview?`<div class="loc" style="color:#F97316;font-weight:600">Pending Review${e.newFields?': '+esc(e.newFields):''}</div>`:'';return `<div class="rrow" data-id="${e.id}"><div class="thumb" style="background-image:url(${thumb})">${n?`<span class="cnt">${n} photos</span>`:''}</div><div class="body"><div class="tt">${title}</div>${loc?`<div class="loc">${loc}</div>`:''}${pendingBadge}<div class="meta"><span>${esc(e.inspector||'-')}</span>${e.serial?`<span>SN: ${esc(e.serial)}</span>`:''}<span>${fmtDate(e.createdAt,true)}</span></div></div><div class="acts">${canEdit()?'<button data-act="edit">Edit</button>':''}<button data-act="img">Photos</button>${e.pendingReview&&canConfirm?'<button data-act="confirm" style="color:#F97316">Confirmed</button>':''}${canDelete()?'<button data-act="del" class="del">Delete</button>':''}</div></div>`;}).join('');
+  const sig=[$('#savedSearch').value,...['savedFProject','savedFSystem','savedFLoc','savedFSub','savedFEquip','savedSort'].map(id=>document.getElementById(id)?.value||''),recordsDateFilter,recordsStatusFilter,!!$('#savedFPending')?.checked].join('|');
+  if(sig!==_savedSig){_savedSig=sig;savedShown=SAVED_PAGE;}
+  const fullList=list;list=fullList.slice(0,savedShown);
+  grid.innerHTML=list.map(e=>{const thumb=driveViewUrl(e.thumbMain||e.thumbSticker||e.imgMain||e.imgSticker||'',300);const n=(e.imgMain?1:0)+(e.imgSticker?1:0);const title=esc([e.equipment,e.brand,e.model].filter(Boolean).join(' · '))||'(Equipment not specified)';const loc=esc([e.project,e.locName,e.subName].filter(Boolean).join(' › '));const pendingBadge=e.pendingReview?`<div class="loc" style="color:#F97316;font-weight:600">Pending Review${e.newFields?': '+esc(e.newFields):''}</div>`:'';return `<div class="rrow" data-id="${e.id}"><div class="thumb" style="background-image:url(${thumb})">${n?`<span class="cnt">${n} photos</span>`:''}</div><div class="body"><div class="tt">${title}</div>${loc?`<div class="loc">${loc}</div>`:''}${pendingBadge}<div class="meta"><span>${esc(e.inspector||'-')}</span>${e.serial?`<span>SN: ${esc(e.serial)}</span>`:''}<span>${fmtDate(e.createdAt,true)}</span></div></div><div class="acts">${canEdit()?'<button data-act="edit">Edit</button>':''}<button data-act="img">Photos</button>${e.pendingReview&&canConfirm?'<button data-act="confirm" style="color:#F97316">Confirmed</button>':''}${canDelete()?'<button data-act="del" class="del">Delete</button>':''}</div></div>`;}).join('')+(fullList.length>list.length?`<div style="text-align:center;padding:14px"><button class="ghost-btn" id="savedLoadMore">Load more (${list.length}/${fullList.length})</button></div>`:`<div style="text-align:center;padding:10px;color:var(--ink-faint);font-size:12.5px">Showing all ${fullList.length} records</div>`);
+  const lmBtn=$('#savedLoadMore');if(lmBtn)lmBtn.onclick=()=>{savedShown+=SAVED_PAGE;renderSaved();};
   grid.querySelectorAll('.rrow').forEach(c=>{const id=c.dataset.id;const be=c.querySelector('[data-act="edit"]');if(be)be.onclick=()=>editEntry(id);c.querySelector('[data-act="img"]').onclick=()=>viewImgs(id);const bc=c.querySelector('[data-act="confirm"]');if(bc)bc.onclick=()=>confirmRecordReviewed(id);const bd=c.querySelector('[data-act="del"]');if(bd)bd.onclick=()=>delEntry(id);});
 }
 async function confirmRecordReviewed(id){
@@ -774,10 +772,6 @@ async function confirmRecordReviewed(id){
 function editEntry(id){const e=entries.find(x=>x.id===id);if(!e)return;resetForm();editingId=id;imgMain=e.imgMain||'';imgSticker=e.imgSticker||'';img3=e.img3||'';img4=e.img4||'';setImgPreview('dropMain',e.thumbMain||e.imgMain);setImgPreview('dropSticker',e.thumbSticker||e.imgSticker);setImgPreview('dropImg3',e.thumb3||e.img3);setImgPreview('dropImg4',e.thumb4||e.img4);choose('project',e.project||'');choose('system',e.system||'');choose('loc',e.locName||'');choose('sub',e.subName||'');choose('equip',e.equipment||'');choose('serial',e.serial||'');if($('#inpBrand'))$('#inpBrand').value=e.brand||'';if($('#inpModel'))$('#inpModel').value=e.model||'';$('#inpAsset').value=e.asset||'';syncComboVal('inpAsset');$('#inpInspector').value=e.inspector||'';$('#inspCombo').classList.toggle('has-val',!!e.inspector);$('#inpNote').value=e.note||'';$('#addTitle').textContent='Edit Record';$('#saveBtn').textContent='Save Changes';goTab('add');window.scrollTo(0,0);}
 function delEntry(id){confirmDlg('Permanently delete this record?','Delete',async()=>{if(AUTH.token){const r=await api(ACT.deleteRecord,{id});if(r&&r.ok){await loadRecords();toast('Record deleted',true);}else toast((r&&r.message)||'Delete failed',false);}});}
 
-/* ─── สแกน QR/บาร์โค้ด — หา Serial ที่ตรงกัน แล้วเปิดฟอร์มให้เลย ───────── */
-// พบใน "Records" อยู่แล้ว → เปิดฟอร์มแก้ไขรายการนั้น (editEntry เดิม)
-// พบใน Master Data แต่ยังไม่เคยบันทึก → เปิดฟอร์มเพิ่มรายการใหม่ พร้อมเติมข้อมูลจาก Master ให้
-// ไม่พบทั้งสองที่ → เปิดฟอร์มเปล่า เติมแค่ Serial ที่สแกนได้ ให้กรอกส่วนที่เหลือเอง
 function openAddFromMaster(m){
   resetForm();editingId=null;
   choose('project',m.project||'');
@@ -812,11 +806,11 @@ function onQrScanSuccess(decodedText){
   resetForm();editingId=null;choose('serial',code);goTab('add');window.scrollTo(0,0);
   toast(`Serial "${code}" not found in the system — filled in the Serial, please complete the rest`,false);
 }
-function openQrScanner(){
+async function openQrScanner(){
   const modal=$('#qrScanModal'); if(!modal)return;
   modal.style.display='flex';
   const msg=$('#qrScanMsg'); if(msg)msg.textContent='Opening camera...';
-  if(typeof Html5Qrcode==='undefined'){if(msg)msg.textContent='Scanner library is still loading, please try again';return;}
+  try{await loadLib('qrscan');}catch(e){if(msg)msg.textContent='Could not load the scanner library. Check your connection and try again';return;}
   _qrScanner=new Html5Qrcode('qrReaderBox');
   Html5Qrcode.getCameras().then(cams=>{
     if(!cams||!cams.length){if(msg)msg.textContent='No camera found';return;}
@@ -835,11 +829,10 @@ $('#openQrScanBtn')?.addEventListener('click',openQrScanner);
 $('#qrScanClose')?.addEventListener('click',closeQrScanner);
 $('#qrScanModal')?.addEventListener('click',e=>{if(e.target===$('#qrScanModal'))closeQrScanner();});
 
-// สแกนจากรูปที่แนบ (แทนกล้องสด) — เผื่อกล้องใช้ไม่ได้ หรือมีรูปฉลาก QR/บาร์โค้ดอยู่แล้ว
 async function scanQrFromFile(file){
   if(!file)return;
   const msg=$('#qrScanMsg');
-  if(typeof Html5Qrcode==='undefined'){if(msg)msg.textContent='Scanner library is still loading, please try again';return;}
+  try{await loadLib('qrscan');}catch(e){if(msg)msg.textContent='Could not load the scanner library. Check your connection and try again';return;}
   if(msg)msg.textContent='Reading photo...';
   if(_qrScanner){try{await _qrScanner.stop();}catch(e){}try{await _qrScanner.clear();}catch(e){}_qrScanner=null;}
   const scanner=new Html5Qrcode('qrReaderBox');
@@ -854,12 +847,10 @@ async function scanQrFromFile(file){
 }
 $('#qrScanFile')?.addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';scanQrFromFile(f);});
 
-/* ─── สร้าง/พิมพ์ป้าย QR — เก็บ Serial Number เป็นค่าในโค้ด ให้พิมพ์ไปติดอุปกรณ์จริง แล้วใช้ปุ่มสแกนด้านบนเปิดฟอร์มได้ทันที ─── */
-// คืนค่าเป็น data URL รูป QR (ใช้ตอนสร้างชีทพิมพ์หลายใบ ซึ่งต้องประกอบเป็น string HTML ไม่ใช่ DOM สด)
 function qrDataUrl(text,size){
   const tmp=document.createElement('div');
   new QRCode(tmp,{text:String(text||''),width:size,height:size,correctLevel:QRCode.CorrectLevel.M});
-  // qrcode.js วาดลง <canvas> จริง ส่วน <img> คู่กันไม่ถูกเติม src เว้นเรียก makeImage() เอง — ดึงจาก canvas ตรงๆ เชื่อถือได้กว่า
+
   const canvas=tmp.querySelector('canvas');
   return canvas?canvas.toDataURL('image/png'):'';
 }
@@ -882,7 +873,6 @@ function printQrForList(list){
   setTimeout(()=>window.print(),80);
 }
 
-/* ─── QR CODE GENERATOR (Master Data, admin only) ──────────── */
 function fillQrMasterFilters(){
   const fp=$('#qrfProject'); if(!fp) return;
   const projects=uniq(master.map(m=>m.project)).filter(Boolean).sort((a,b)=>a.localeCompare(b,'th'));
@@ -924,8 +914,7 @@ $('#qrMasterClose')?.addEventListener('click',()=>{$('#qrMasterModal').style.dis
 $('#qrMasterModal')?.addEventListener('click',e=>{if(e.target===$('#qrMasterModal'))$('#qrMasterModal').style.display='none';});
 ['qrfProject','qrfTypeLoc','qrfLoc','qrfSub','qrfEquip'].forEach(id=>{$('#'+id)?.addEventListener('change',fillQrMasterFilters);});
 $('#qrMasterGenBtn')?.addEventListener('click',()=>printQrForList(getQrMasterFilteredList()));
-// ตัวดูรูปแบบ lightbox ใช้ร่วมกันทั้งหน้ารายการและสำรวจภาคสนาม
-// รองรับซูม: ดับเบิลคลิก/แตะ 2 ครั้งเพื่อซูมเข้า-ออก แล้วลาก (mouse/touch) เพื่อเลื่อนดูส่วนที่ซูมได้
+
 function openImageViewer(imgs){
   if(!imgs.length){toast('No photo',false);return;}
   let cur=0;
@@ -985,7 +974,6 @@ function viewImgs(id){
   openImageViewer(imgs);
 }
 
-/* ─── DASHBOARD ─────────────────────────────────────────── */
 let progressCache=[];
 async function loadProgress(){if(!AUTH.token)return;const r=await api(ACT.getProgress,{});if(r&&r.ok&&Array.isArray(r.progress)){progressCache=r.progress;renderSavedProgress();renderOverviewDash();renderLeaderDashboard();}}
 document.addEventListener('DOMContentLoaded',()=>{const df=$('#dashMainFilter');if(df)df.addEventListener('change',renderDashboard);});
@@ -1069,7 +1057,7 @@ function renderStatusDonut(list){
   });
   const rows=[{label:'Confirmed',n:confirmed,color:'#2E9E6B',status:'confirmed'},{label:'Pending Review',n:pending,color:'#F97316',status:'pending'}];
   const wrap=$('#statusDonutList');
-  if(wrap)wrap.innerHTML=rows.map(r=>`<div onclick="filterRecordsByStatus('${r.status}')" style="display:flex;align-items:center;gap:8px;cursor:pointer"><div style="width:10px;height:10px;border-radius:50%;background:${r.color};flex:none"></div><div style="font-size:13px">${r.label}</div><div style="font-size:14px;font-weight:700">${r.n}</div></div>`).join('');
+  if(wrap)wrap.innerHTML=rows.map(r=>`<div onclick="filterRecordsByStatus(${jsArg(r.status)})" style="display:flex;align-items:center;gap:8px;cursor:pointer"><div style="width:10px;height:10px;border-radius:50%;background:${r.color};flex:none"></div><div style="font-size:13px">${r.label}</div><div style="font-size:14px;font-weight:700">${r.n}</div></div>`).join('');
 }
 function filterRecordsByProjectStatus(project,status){
   recordsStatusFilter=status||null;recordsDateFilter=null;
@@ -1078,7 +1066,7 @@ function filterRecordsByProjectStatus(project,status){
   const sel=$('#savedFProject');if(sel)sel.value=project;
   renderSaved();
 }
-/* ─── EQUIPMENT BY LOCATION (Overview) — filterable, scrollable table of Master Data ── */
+
 let _dashEquipMaster=null;
 function fillDashEquipLocFilter(scopedMaster){
   if(scopedMaster)_dashEquipMaster=scopedMaster;
@@ -1124,7 +1112,7 @@ function renderDailyChart(filtered){
   });
   const tableWrap=$('#dailyTableWrap');
   if(tableWrap){
-    const rows=dateKeys.map((dk,i)=>`<td onclick="filterRecordsByDate('${dk.key}')" style="cursor:pointer;text-align:center;padding:6px 4px;font-size:11.5px;color:${vals[i]?'var(--ink)':'var(--ink-faint)'};font-weight:${vals[i]?'700':'400'}">${vals[i]}</td>`).join('');
+    const rows=dateKeys.map((dk,i)=>`<td onclick="filterRecordsByDate(${jsArg(dk.key)})" style="cursor:pointer;text-align:center;padding:6px 4px;font-size:11.5px;color:${vals[i]?'var(--ink)':'var(--ink-faint)'};font-weight:${vals[i]?'700':'400'}">${vals[i]}</td>`).join('');
     const labels=dateKeys.map(dk=>`<td style="text-align:center;padding:4px;font-size:10.5px;color:var(--ink-faint)">${dk.lbl}</td>`).join('');
     tableWrap.innerHTML=`<table style="width:100%;border-collapse:collapse"><tbody><tr>${rows}</tr><tr style="border-top:1px solid var(--line-soft)">${labels}</tr></tbody></table>`;
   }
@@ -1142,7 +1130,7 @@ function renderOverviewDash(){
   const pctAll=totalAll?Math.round(doneAll/totalAll*100):0;
   if($('#overviewDonutLegend'))$('#overviewDonutLegend').textContent=list.length+' projects · '+doneAll+'/'+totalAll+' records ('+pctAll+'%)';
   if($('#overviewDonutPct'))$('#overviewDonutPct').textContent=pctAll+'%';
-  // Build donut
+
   const svg=$('#overviewDonutSvg');
   const cx=110,cy=110,R=90,r=58;
   let startAngle=-Math.PI/2,paths='';
@@ -1163,14 +1151,14 @@ function renderOverviewDash(){
   });
   svg.innerHTML=paths;
   svg.querySelectorAll('.donut-seg').forEach(seg=>seg.addEventListener('click',()=>renderOverviewRight(seg.dataset.proj)));
-  // Legend list
+
   const donutList=$('#overviewDonutList');
   if(donutList)donutList.innerHTML=list.map((p,i)=>{
     const color=DONUT_COLORS[i%DONUT_COLORS.length];
     const leader=usersCache.find(u=>u.role==='leader'&&(u.project||'').split(',').map(x=>x.trim()).includes(p.project));
     const leaderName=leader?(leader.name||leader.username):'—';
     const pct=p.total?Math.round(p.done/p.total*100):0;
-    return `<div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 4px;border-radius:6px" onclick="renderOverviewRight('${escAttr(p.project)}')" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><div style="width:10px;height:10px;border-radius:50%;background:${color};flex:none"></div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.project)}</div><div style="font-size:10px;color:var(--ink-faint)">${esc(leaderName)} · ${pct}%</div></div></div>`;
+    return `<div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 4px;border-radius:6px" onclick="renderOverviewRight(${jsArg(p.project)})" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><div style="width:10px;height:10px;border-radius:50%;background:${color};flex:none"></div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.project)}</div><div style="font-size:10px;color:var(--ink-faint)">${esc(leaderName)} · ${pct}%</div></div></div>`;
   }).join('');
   renderOverviewRight(null);
 }
@@ -1215,14 +1203,13 @@ function renderOverviewRight(selectedProj){
       const dl=getProjectDeadline(p.project);
       const leader=usersCache.find(u=>u.role==='leader'&&(u.project||'').split(',').map(x=>x.trim()).includes(p.project));
       const leaderName=leader?(leader.name||leader.username):'—';
-      html+=`<div style="margin-bottom:14px;cursor:pointer" onclick="renderOverviewRight('${escAttr(p.project)}')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:${color};flex:none"></div><span style="font-size:12px;font-weight:600">${esc(p.project)}</span><span style="font-size:10px;color:var(--ink-faint)">${esc(leaderName)}</span></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;font-weight:600;color:${barColor}">${p.done}/${p.total}</span>${dl?daysChip(dl):''}</div></div><div style="background:var(--line-soft);border-radius:8px;height:16px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:8px;transition:width .6s;display:flex;align-items:center;justify-content:flex-end;padding-right:6px">${pct>=15?`<span style="font-size:10px;color:#fff;font-weight:600">${pct}%</span>`:''}</div></div><div style="font-size:10px;color:var(--ink-faint);margin-top:2px;display:flex;justify-content:space-between"><span>${p.total-p.done} remaining</span>${dl?`<span>target: ${dl}</span>`:''}</div></div>`;
+      html+=`<div style="margin-bottom:14px;cursor:pointer" onclick="renderOverviewRight(${jsArg(p.project)})"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:${color};flex:none"></div><span style="font-size:12px;font-weight:600">${esc(p.project)}</span><span style="font-size:10px;color:var(--ink-faint)">${esc(leaderName)}</span></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;font-weight:600;color:${barColor}">${p.done}/${p.total}</span>${dl?daysChip(dl):''}</div></div><div style="background:var(--line-soft);border-radius:8px;height:16px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:8px;transition:width .6s;display:flex;align-items:center;justify-content:flex-end;padding-right:6px">${pct>=15?`<span style="font-size:10px;color:#fff;font-weight:600">${pct}%</span>`:''}</div></div><div style="font-size:10px;color:var(--ink-faint);margin-top:2px;display:flex;justify-content:space-between"><span>${p.total-p.done} remaining</span>${dl?`<span>target: ${dl}</span>`:''}</div></div>`;
     });
     wrap.innerHTML=html||'<div style="color:var(--ink-faint);font-size:12px;text-align:center;padding:20px">No data yet</div>';
   }
 }
 function renderSavedProgress(){const role=(AUTH.user&&AUTH.user.role)||'';const box=$('#savedProgress');if(!box)return;const show=(role==='leader'||role==='manager'||role==='admin')&&progressCache.length;box.style.display=show?'':'none';if(!show)return;const sel_f=$('#savedProgFilter');const multi=(role==='manager'||role==='admin');sel_f.style.display=multi?'':'none';if(multi){const cur=sel_f.value;sel_f.innerHTML=['<option value="__all">All Projects</option>'].concat(progressCache.map(p=>`<option value="${esc(p.project)}">${esc(p.project)}</option>`)).join('');if(cur&&[...sel_f.options].some(o=>o.value===cur))sel_f.value=cur;sel_f.onchange=()=>renderSavedProgress();}const pick=multi?sel_f.value:'__all';const list=(pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;let html=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--danger)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--accent)">${pct}%</div><div>Progress</div></div></div>`;html+=list.map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;return `<div class="prog-row"><span class="pl">${esc(p.project)}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%"></div></div><span class="pn">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');$('#savedProgBody').innerHTML=html;}
 
-/* ─── LEADER DONUT ──────────────────────────────────────── */
 const DONUT_COLORS=['#D93A2B','#3B82F6','#10B981','#8B5CF6','#EC4899','#F59E0B','#14B8A6','#6366F1','#EF4444','#84CC16'];
 let targetsCache=[];
 async function loadTargets(){if(!AUTH.token)return;const role=(AUTH.user&&AUTH.user.role)||'';if(!['admin','manager','leader'].includes(role))return;const r=await api('listTargets',{});if(r&&r.ok){targetsCache=r.targets||[];renderGanttChart();}}
@@ -1248,7 +1235,7 @@ function renderAssignStatsPanel(){
     if(!assignStats.length){el.innerHTML='';return;}
     let html='';
     if(role==='inspector'){
-      // รวม stats ของตัวเองทุกโครงการ
+
       let total=0,done=0,earliest='';
       assignStats.forEach(proj=>{
         const ins=proj.inspectors.find(i=>i.username===me);
@@ -1285,7 +1272,7 @@ function renderAssignStatsPanel(){
         html+=`</div>`;
       });
     } else if(role==='admin'||role==='manager'){
-      // Accordion per project
+
       assignStats.forEach((proj,pi)=>{
         if(!proj.inspectors.length)return;
         const totalP=proj.inspectors.reduce((s,i)=>s+i.total,0);
@@ -1333,7 +1320,7 @@ function renderDashAssign(){
   let data=filterProj?assignStats.filter(p=>p.project===filterProj):assignStats;
   if(role==='inspector') data=data.map(p=>({...p,inspectors:p.inspectors.filter(i=>i.username===me)})).filter(p=>p.inspectors.length);
   if(!data.length){chart.innerHTML='<div class="empty">No data</div>';return;}
-  // Render horizontal stacked bars per project
+
   let html='<div style="display:flex;flex-direction:column;gap:10px">';
   data.forEach(proj=>{
     const totalP=proj.inspectors.reduce((s,i)=>s+i.total,0);
@@ -1384,14 +1371,13 @@ function renderLeaderDashboard(){
       }
     });
   }
-  $('#leaderDonutList').innerHTML=list.map((p,i)=>{const pct=p.total?Math.round(p.done/p.total*100):0;const color=DONUT_COLORS[i%DONUT_COLORS.length];const t=getTargetForProject(p.project);return `<div class="proj-item" onclick="openProjDetail('${escAttr(p.project)}')"><div class="proj-dot" style="background:${color}"></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(p.project)}</div><div class="proj-bar-track" style="margin:4px 0"><div class="proj-bar-fill" style="width:${pct}%;background:${color}"></div></div><div style="font-size:11px">${p.done}/${p.total} (${pct}%)</div><div style="font-size:11px;margin-top:2px">${t?deadlineLabel(t.deadline):'<span style="color:var(--ink-faint)">Target not set</span>'}</div></div></div>`;}).join('');
+  $('#leaderDonutList').innerHTML=list.map((p,i)=>{const pct=p.total?Math.round(p.done/p.total*100):0;const color=DONUT_COLORS[i%DONUT_COLORS.length];const t=getTargetForProject(p.project);return `<div class="proj-item" onclick="openProjDetail(${jsArg(p.project)})"><div class="proj-dot" style="background:${color}"></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(p.project)}</div><div class="proj-bar-track" style="margin:4px 0"><div class="proj-bar-fill" style="width:${pct}%;background:${color}"></div></div><div style="font-size:11px">${p.done}/${p.total} (${pct}%)</div><div style="font-size:11px;margin-top:2px">${t?deadlineLabel(t.deadline):'<span style="color:var(--ink-faint)">Target not set</span>'}</div></div></div>`;}).join('');
   if($('#leaderDonutLegend'))$('#leaderDonutLegend').textContent=`${list.length} projects · ${doneAll}/${totalAll} records`;
 }
 
-function openProjDetail(proj){const p=progressCache.find(x=>x.project===proj);if(!p)return;const i=progressCache.indexOf(p);const color=DONUT_COLORS[i%DONUT_COLORS.length];const pct=p.total?Math.round(p.done/p.total*100):0;const remain=Math.max(0,p.total-p.done);const t=getTargetForProject(proj);const statusColor=pct>=80?'#22C55E':pct>=40?'#F97316':'#EF4444';$('#projDetailContent').innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div style="width:14px;height:14px;border-radius:50%;background:${color};flex:none"></div><h3>${esc(proj)}</h3></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px"><div style="background:#F7F9FB;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700">${p.total}</div><div style="font-size:11px;color:var(--ink-soft)">Total Work</div></div><div style="background:#F7F9FB;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#22C55E">${p.done}</div><div style="font-size:11px;color:var(--ink-soft)">Done</div></div><div style="background:#F7F9FB;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#EF4444">${remain}</div><div style="font-size:11px;color:var(--ink-soft)">Remaining</div></div></div><div style="background:#F7F9FB;border-radius:10px;padding:14px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:13px;font-weight:600">Progress</span><span style="font-weight:700;color:${statusColor}">${pct}%</span></div><div style="background:var(--line-soft);border-radius:6px;height:14px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${statusColor};border-radius:6px;transition:width .5s"></div></div></div><div class="target-form"><div style="font-size:13px;font-weight:600;margin-bottom:10px">${t?'Edit':'Set'} Target Due Date</div><label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Due Date</label><input type="date" class="tin" id="targetDate" style="width:100%;margin-bottom:10px" value="${t?t.deadline.split('T')[0]:''}"><label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Note</label><input type="text" class="tin" id="targetNote" style="width:100%;margin-bottom:12px" placeholder="e.g. per contract..." value="${t?esc(t.note||''):''}"><button class="btn btn-primary" style="width:100%" onclick="saveTargetForProj('${escAttr(proj)}')">Save Target</button><div id="targetSaveMsg" style="margin-top:8px;font-size:12px;text-align:center"></div></div>`;$('#projDetailModal').style.display='flex';}
+function openProjDetail(proj){const p=progressCache.find(x=>x.project===proj);if(!p)return;const i=progressCache.indexOf(p);const color=DONUT_COLORS[i%DONUT_COLORS.length];const pct=p.total?Math.round(p.done/p.total*100):0;const remain=Math.max(0,p.total-p.done);const t=getTargetForProject(proj);const statusColor=pct>=80?'#22C55E':pct>=40?'#F97316':'#EF4444';$('#projDetailContent').innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div style="width:14px;height:14px;border-radius:50%;background:${color};flex:none"></div><h3>${esc(proj)}</h3></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px"><div style="background:#F7F9FB;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700">${p.total}</div><div style="font-size:11px;color:var(--ink-soft)">Total Work</div></div><div style="background:#F7F9FB;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#22C55E">${p.done}</div><div style="font-size:11px;color:var(--ink-soft)">Done</div></div><div style="background:#F7F9FB;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#EF4444">${remain}</div><div style="font-size:11px;color:var(--ink-soft)">Remaining</div></div></div><div style="background:#F7F9FB;border-radius:10px;padding:14px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:13px;font-weight:600">Progress</span><span style="font-weight:700;color:${statusColor}">${pct}%</span></div><div style="background:var(--line-soft);border-radius:6px;height:14px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${statusColor};border-radius:6px;transition:width .5s"></div></div></div><div class="target-form"><div style="font-size:13px;font-weight:600;margin-bottom:10px">${t?'Edit':'Set'} Target Due Date</div><label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Due Date</label><input type="date" class="tin" id="targetDate" style="width:100%;margin-bottom:10px" value="${t?t.deadline.split('T')[0]:''}"><label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Note</label><input type="text" class="tin" id="targetNote" style="width:100%;margin-bottom:12px" placeholder="e.g. per contract..." value="${t?esc(t.note||''):''}"><button class="btn btn-primary" style="width:100%" onclick="saveTargetForProj(${jsArg(proj)})">Save Target</button><div id="targetSaveMsg" style="margin-top:8px;font-size:12px;text-align:center"></div></div>`;$('#projDetailModal').style.display='flex';}
 async function saveTargetForProj(proj){const deadline=$('#targetDate').value,note=$('#targetNote').value.trim(),msg=$('#targetSaveMsg');if(!deadline){msg.innerHTML='<span style="color:#EF4444">Please select a date</span>';return;}msg.innerHTML='<span style="color:var(--ink-soft)">Saving...</span>';const r=await api('saveTarget',{project:proj,deadline,note});if(r&&r.ok){msg.innerHTML='<span style="color:#22C55E">Saved</span>';await loadTargets();renderLeaderDashboard();setTimeout(()=>{$('#projDetailModal').style.display='none';},800);}else msg.innerHTML=`<span style="color:#EF4444">❌ ${esc((r&&r.message)||'An error occurred')}</span>`;}
 
-/* ─── MASTER TABLE ──────────────────────────────────────── */
 function fillMasterFilters(){
   const fp=$('#masterFProject'); if(!fp) return;
   const projects=uniq(master.map(m=>m.project)).filter(Boolean).sort((a,b)=>a.localeCompare(b,'th'));
@@ -1487,8 +1473,7 @@ function editMaster(id){
       <button class="btn btn-soft" id="mCancel" style="flex:1">Cancel</button>
       <button class="btn btn-primary" id="mSave" style="flex:1">${id?'Save Changes':'Add'}</button>
     </div></div>`;
-  // เรียงตามลำดับ: โครงการ → ระบบ → Location Type → สถานที่ → Sub-location → อุปกรณ์ — ตัวเลือกของแต่ละช่อง
-  // กรองจากค่าที่ "selected earlier" เท่านั้น กันไม่ให้เห็น/เลือกค่าข้ามโครงการกันได้เหมือนเดิม
+
   const HIER=['project','system','typeLocation','locName','subName','equipment'];
   const fieldVal=(k)=>{const el=dlg.querySelector(`.mfield[data-k="${k}"]`);return el?el.value.trim():'';};
   const cascadeOptions=(level)=>{
@@ -1543,7 +1528,7 @@ function bulkDeleteMaster(){
   if(fsub)list=list.filter(m=>m.subName===fsub);
   if(feq)list=list.filter(m=>m.equipment===feq);
   if(!list.length){toast('No records match the condition',false);return;}
-  // build criteria label for dialog
+
   const parts=[];
   if(fp)parts.push('Project: '+fp);
   if(fs)parts.push('System: '+fs);
@@ -1583,7 +1568,7 @@ function showConfirmDialog(title,bodyHtml,onOk){
   ov.querySelector('#_cdOk').onclick=()=>{ov.remove();onOk();};
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
 }
-// Master Data ของจริงอยู่ในชีตบนเซิร์ฟเวอร์ ข้อมูลในเครื่องเป็นแค่สำเนาไว้แสดงผลเร็ว ห้ามส่งสำเนาในเครื่องกลับขึ้นไปทับเซิร์ฟเวอร์เอง
+
 const masterToBackend=m=>({id:m.id,project:m.project,system:m.system,typeLocation:m.typeLocation,location:m.locName,sublocation:m.subName,equipment:m.equipment,brand:m.brand,model:m.model,asset:m.asset,serial:m.serial,order:m.order||''});
 const masterNs=s=>String(s||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim();
 const masterFromBackend=m=>({id:m.id,project:masterNs(m.project),system:masterNs(m.system),typeLocation:masterNs(m.typeLocation),locName:masterNs(m.location),subName:masterNs(m.sublocation),equipment:masterNs(m.equipment),brand:masterNs(m.brand),model:masterNs(m.model),asset:masterNs(m.asset),serial:masterNs(m.serial),order:m.order||''});
@@ -1591,14 +1576,11 @@ async function persistMaster(){await sSet(MASTER_KEY,JSON.stringify(master));ref
 async function loadMasterFromBackend(){if(!AUTH.token)return;const r=await api(ACT.listMaster,{});if(r&&r.ok&&Array.isArray(r.master)){master=r.master.map(masterFromBackend);await persistMaster();}}
 async function masterServer(action,payload){const r=await api(ACT[action],payload);if(!(r&&r.ok)){toast((r&&r.message)||'Could not save to the server, please try again',false);return null;}return r;}
 
-/* ─── STATS ─────────────────────────────────────────────── */
 function updateStats(){$('#statCount').textContent=entries.length;$('#savedPill').textContent=entries.length;}
 
-/* ─── EXPORT EXCEL ──────────────────────────────────────── */
-$('#exportXlsx').addEventListener('click',()=>{if(!entries.length){toast('No data to export yet',false);return;}const rows=entries.map(e=>({'Date recorded':fmtDate(e.createdAt,true),'Project':e.project,'System':e.system,'Location':e.locName,'Sub-location':e.subName,'Equipment':e.equipment,'Brand':e.brand,'Model':e.model,'Equipment Code':e.asset,'Serial Number':e.serial,'Inspector Name':e.inspector,'Note':e.note}));const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Records');XLSX.writeFile(wb,`records_${fileStamp(Date.now())}.xlsx`);toast(`Exported to Excel (${entries.length} records)`,true);});
+$('#exportXlsx').addEventListener('click',async()=>{if(!entries.length){toast('No data to export yet',false);return;}try{await loadLib('xlsx');}catch(e){toast('Could not load the Excel library. Check your connection and try again',false); return;}const rows=entries.map(e=>({'Date recorded':fmtDate(e.createdAt,true),'Project':e.project,'System':e.system,'Location':e.locName,'Sub-location':e.subName,'Equipment':e.equipment,'Brand':e.brand,'Model':e.model,'Equipment Code':e.asset,'Serial Number':e.serial,'Inspector Name':e.inspector,'Note':e.note}));const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Records');XLSX.writeFile(wb,`records_${fileStamp(Date.now())}.xlsx`);toast(`Exported to Excel (${entries.length} records)`,true);});
 const MASTER_IMPORT_COLS=[['order','Order'],['project','Project'],['system','System'],['typeLocation','Location Type'],['locName','Location'],['subName','Sub-location'],['asset','Equipment Type'],['equipment','Equipment'],['brand','Brand'],['model','Model'],['serial','Serial Number']];
-// ใช้ฟิลด์ "Order" จาก Master Data จัดเรียงสถานที่/Sub-location/อุปกรณ์ ตอน gen Word/PDF แทนการเรียง ก-ฮ อัตโนมัติ
-// match กันด้วย โครงการ+Location Type+สถานที่+Sub-location+อุปกรณ์ — ไม่ได้ตั้งเลขไว้ = เรียง ก-ฮ เหมือนเดิม (fallback)
+
 function masterOrderKey(o){return [o.project,o.typeLocation,o.locName,o.subName,o.equipment].map(x=>String(x||'').trim()).join('|');}
 function buildMasterOrderMap(){
   const map={};
@@ -1606,13 +1588,14 @@ function buildMasterOrderMap(){
   return map;
 }
 function masterOrderOf(orderMap,e){ const v=orderMap[masterOrderKey(e)]; return v===undefined?Infinity:v; }
-function downloadMasterTemplate(){try{const ws=XLSX.utils.aoa_to_sheet([MASTER_IMPORT_COLS.map(c=>c[1])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Master');XLSX.writeFile(wb,'master_template.xlsx');}catch(e){toast('Failed to load form',false);}}
-function downloadMasterData(){try{if(!master.length){toast('No Master Data yet',false);return;}const rows=master.map(m=>MASTER_IMPORT_COLS.map(c=>m[c[0]]||''));const ws=XLSX.utils.aoa_to_sheet([MASTER_IMPORT_COLS.map(c=>c[1]),...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Master');XLSX.writeFile(wb,'master_data.xlsx');toast('Master Data downloaded',true);}catch(e){toast('Failed to load data',false);}}
-// นำเข้าข้อมูลอุปกรณ์จาก Excel — เพิ่มเข้า Master Data ที่มีอยู่ (ไม่ลบของเดิม)
+async function downloadMasterTemplate(){try{await loadLib('xlsx');const ws=XLSX.utils.aoa_to_sheet([MASTER_IMPORT_COLS.map(c=>c[1])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Master');XLSX.writeFile(wb,'master_template.xlsx');}catch(e){toast('Failed to load form',false);}}
+async function downloadMasterData(){try{if(!master.length){toast('No Master Data yet',false);return;}await loadLib('xlsx');const rows=master.map(m=>MASTER_IMPORT_COLS.map(c=>m[c[0]]||''));const ws=XLSX.utils.aoa_to_sheet([MASTER_IMPORT_COLS.map(c=>c[1]),...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Master');XLSX.writeFile(wb,'master_data.xlsx');toast('Master Data downloaded',true);}catch(e){toast('Failed to load data',false);}}
+
 if($('#fileXlsx'))$('#fileXlsx').addEventListener('change',async(ev)=>{
   const file=ev.target.files[0]; if(!file)return;
   const prev=$('#importPreview');
   try{
+    await loadLib('xlsx');
     const buf=await file.arrayBuffer();
     const wb=XLSX.read(buf,{type:'array'});
     const ws=wb.Sheets[wb.SheetNames[0]];
@@ -1640,8 +1623,6 @@ if($('#fileXlsx'))$('#fileXlsx').addEventListener('change',async(ev)=>{
   ev.target.value='';
 });
 
-/* ─── WORD TEMPLATE GENERATION (browser-side, mirrors Colab) ── */
-// ดึงรูปผ่าน backend (UrlFetchApp) แทน fetch() ตรงจาก browser — เลี่ยงปัญหา CORS ของ drive.google.com
 async function fetchImageBuffer(url){
   if(!url) return null;
   try{
@@ -1655,8 +1636,6 @@ async function fetchImageBuffer(url){
   }catch(e){ return null; }
 }
 
-// เหมือน fetchImageBuffer แต่คืนเป็น data: URL string ตรงๆ ใช้กับ <img src> ในรายงาน PDF (html2canvas)
-// ต้องแปลงเป็น data URI ก่อนเสมอ ไม่ใส่ลิงก์ Drive ตรงๆ เพราะ html2canvas วาดรูป cross-origin ที่ไม่มี CORS header ลงบน canvas ไม่ได้ (ภาพจะหายไปเงียบๆ)
 async function fetchImageDataUrl(url){
   if(!url) return '';
   if(String(url).startsWith('data:')) return url;
@@ -1669,7 +1648,6 @@ async function fetchImageDataUrl(url){
   }catch(e){ return ''; }
 }
 
-// ตำแหน่งทวีปแบบง่าย (lon/lat องศา) ปั้นเป็น blob รอบจุดศูนย์กลางจริงของแต่ละทวีป — คงที่ทุกครั้ง (ไม่สุ่มใหม่) กันทวีป "change shape" ตอนหมุน
 function makeContinentBlob(centerLon,centerLat,baseSize,points,seed){
   const verts=[];
   for(let i=0;i<points;i++){
@@ -1680,7 +1658,7 @@ function makeContinentBlob(centerLon,centerLat,baseSize,points,seed){
   return verts;
 }
 const EARTH_CONTINENTS=[
-  {color:'#c9a876',verts:makeContinentBlob(15,10,42,10,1.1)},   // แอฟริกา/ซาฮารา โทนทราย
+  {color:'#c9a876',verts:makeContinentBlob(15,10,42,10,1.1)},
   {color:'#4a9a56',verts:makeContinentBlob(65,50,46,10,2.3)},
   {color:'#3f8a4c',verts:makeContinentBlob(-100,42,38,9,3.6)},
   {color:'#4a9a56',verts:makeContinentBlob(-60,-15,26,8,4.4)},
@@ -1690,7 +1668,7 @@ const EARTH_CLOUDS=[
   {lon:-30,lat:20,size:22},{lon:40,lat:-10,size:18},{lon:100,lat:30,size:16},
   {lon:-120,lat:-20,size:20},{lon:160,lat:5,size:14},{lon:-10,lat:-40,size:18}
 ];
-// จุดไฟเมือง (คร่าวๆ ตามตำแหน่งเมืองใหญ่จริง) — โผล่เฉพาะฝั่งกลางคืนของโลก ให้ความรู้สึกเหมือนภาพถ่ายดาวเทียมจริง
+
 const EARTH_CITY_LIGHTS=[
   {lon:10,lat:50},{lon:20,lat:48},{lon:30,lat:55},{lon:35,lat:31},{lon:55,lat:25},
   {lon:77,lat:20},{lon:88,lat:23},{lon:105,lat:30},{lon:120,lat:35},{lon:139,lat:36},
@@ -1732,12 +1710,12 @@ function drawEarth(canvas,rot){
     ctx.beginPath();ctx.ellipse(p.x,p.y,rad,rad*0.5,0,0,Math.PI*2);ctx.fill();
   });
   ctx.globalAlpha=1;
-  // เงากลางคืน — ไล่มืดไปด้านตรงข้ามแหล่งแสง (มุมบนซ้าย) ให้ดูเป็นทรงกลมมีมิติจริง
+
   const night=ctx.createLinearGradient(cx-R*0.6,cy-R*0.6,cx+R*0.75,cy+R*0.75);
   night.addColorStop(0,'rgba(0,0,10,0)');night.addColorStop(.55,'rgba(0,0,10,0)');night.addColorStop(1,'rgba(0,0,12,.6)');
   ctx.fillStyle=night;
   ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
-  // ไฟเมืองฝั่งกลางคืน
+
   EARTH_CITY_LIGHTS.forEach(cl=>{
     const p=projectGlobe(cl.lon,cl.lat,rot,R,cx,cy);
     if(p.z<=0.04) return;
@@ -1755,7 +1733,7 @@ function drawEarth(canvas,rot){
   const spec=ctx.createRadialGradient(cx-R*0.4,cy-R*0.45,0,cx-R*0.4,cy-R*0.45,R*0.5);
   spec.addColorStop(0,'rgba(255,255,255,.35)');spec.addColorStop(1,'rgba(255,255,255,0)');
   ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fillStyle=spec;ctx.fill();
-  // แสงแฟลร์จากดวงอาทิตย์มุมบนซ้าย เหมือนภาพถ่ายดาวเทียมจริง
+
   const flare=ctx.createRadialGradient(cx-R*1.25,cy-R*1.25,0,cx-R*1.25,cy-R*1.25,R*1.3);
   flare.addColorStop(0,'rgba(255,250,235,.55)');flare.addColorStop(.3,'rgba(255,240,200,.18)');flare.addColorStop(1,'rgba(255,240,200,0)');
   ctx.fillStyle=flare;
@@ -1772,7 +1750,7 @@ function startWarpAnimation(){
   const ctx=canvas.getContext('2d');
   const resize=()=>{canvas.width=innerWidth;canvas.height=innerHeight;};
   resize();
-  // จุดรวมสายตาอยู่กลางหน้าต่างโค้ง (ค่อนไปทางบนกว่ากึ่งกลางจอ เพราะคอนโซลกินพื้นที่ด้านล่าง) เหมือนมุมมองในห้องนักบิน
+
   const stars=Array.from({length:280},()=>({angle:Math.random()*Math.PI*2,radius:Math.random()*80,speed:2+Math.random()*4}));
   function frame(){
     ctx.fillStyle='rgba(4,6,16,.28)';
@@ -1817,8 +1795,8 @@ function closeWarpAnimation(){
 }
 
 async function generateWordTemplate(){
-  if(typeof docx==='undefined'){toast('Word library is still loading, try again',false);return;}
-  // ใช้ข้อมูลตาม filter ที่เลือกอยู่ในตารางรายการ ณ ขณะนี้ (เหมือนปุ่ม PDF) ไม่ใช่ทุกโครงการรวมกัน
+  try{await loadLib('docx');}catch(e){toast('Could not load the Word library. Check your connection and try again',false);return;}
+
   let entries=getSavedFilteredList();
   if(!entries.length){toast('No data matches the current filter',false);return;}
   const orderMap=buildMasterOrderMap();
@@ -1826,7 +1804,7 @@ async function generateWordTemplate(){
   const groupBy='location';
   const fieldKey={project:'project',system:'system',location:'locName'}[groupBy];
   const groupLabel={project:'Project',system:'System',location:'Location'}[groupBy];
-  // ไม่มีช่องกรอกชื่อโครงการ/สัญญาแล้ว — ใช้ชื่อโครงการจากข้อมูลที่ filter ไว้ในตารางแทน
+
   const projectNames=uniq(entries.map(e=>e.project).filter(Boolean));
   const projectName=projectNames.length?projectNames.join(', '):'-';
   const btn=$('#openWordReportBtn');if(btn)btn.disabled=true;
@@ -1834,26 +1812,23 @@ async function generateWordTemplate(){
   setWarpStatus('Preparing data...');
   try{
 
-  // กำหนดขนาดหน้า A4 ตรงๆ (ไม่พึ่ง default ของไลบรารี) แล้วคำนวณความกว้างเนื้อหาจริงไว้ใช้กับทุกตาราง
-  // กันปัญหาตารางกว้างเกินหน้า ทำให้ Google Docs เลื่อนตารางออกไปนอกระยะที่มองเห็น (ตารางลอย)
-  const PAGE_SIZE={width:11906,height:16838}; // A4 เป็น twips
+  const PAGE_SIZE={width:11906,height:16838};
   const PAGE_MARGIN={top:1400,bottom:1100,left:1130,right:1130};
-  const CONTENT_DXA=PAGE_SIZE.width-PAGE_MARGIN.left-PAGE_MARGIN.right-60; // เผื่อ buffer เล็กน้อยกันเส้นขอบ/rounding
+  const CONTENT_DXA=PAGE_SIZE.width-PAGE_MARGIN.left-PAGE_MARGIN.right-60;
   const FONT='TH Sarabun New',BLACK='000000',DARK='1A232E',GREY='5B6573';
   const T=(t,o={})=>new TextRun({text:t,font:FONT,size:(o.size||28),bold:o.bold||false,color:o.color||'000000'});
   const P=(runs,o={})=>new Paragraph({children:Array.isArray(runs)?runs:[runs],alignment:o.align,spacing:o.spacing,heading:o.heading,keepNext:o.keepNext,keepLines:o.keepLines});
   const noBorders=()=>{const n={style:BorderStyle.NONE,size:0,color:'FFFFFF'};return{top:n,bottom:n,left:n,right:n,insideHorizontal:n,insideVertical:n};};
 
-  /* Logo — รองรับทั้ง base64 และ URL (ใช้เฉพาะในหัวกระดาษ ไม่มีหน้าปกแล้ว) */
   let logoBuf=null;
   if(LOGO_SRC&&LOGO_SRC.trim()){
     try{
       if(LOGO_SRC.startsWith('data:')){
-        // base64 string
+
         const b64=LOGO_SRC.split(',')[1];
         if(b64){const bin=atob(b64);const len=bin.length;const buf=new Uint8Array(len);for(let i=0;i<len;i++)buf[i]=bin.charCodeAt(i);logoBuf=buf.buffer;}
       } else {
-        // URL — fetch เป็น ArrayBuffer
+
         setWarpStatus('Loading logo...');
         logoBuf = await fetchImageBuffer(LOGO_SRC);
       }
@@ -1862,13 +1837,11 @@ async function generateWordTemplate(){
 
   const tocKids=[P(T('Table of Contents',{size:44,bold:true,color:DARK}),{align:AlignmentType.CENTER}),new TableOfContents('Table of Contents',{hyperlink:true,headingStyleRange:'1-3'})];
 
-  /* Body */
   setWarpStatus('Grouping data...');
   const bodyKids=[];
 
   async function pushEquipmentBlock(e, idx){
-    // keepNext:true ทุกบรรทัดก่อนตารางรูป — บังคับให้ Word ไม่ตัดหน้าคั่นกลางบล็อกนี้
-    // (ถ้าทั้งบล็อกไม่พอที่เหลือในหน้านั้น จะดันทั้งหัวข้อ+ข้อความ+รูปไปอยู่หน้าถัดไปด้วยกันทั้งหมด ไม่ใช่แยกหน้า)
+
     bodyKids.push(P(T(`${idx}. ${e.equipment||'(Equipment not specified)'}`,{size:28,bold:true,color:DARK}),{heading:HeadingLevel.HEADING_3,keepNext:true}));
     const bm=[e.brand?'Brand '+e.brand:'',e.model?'Model '+e.model:''].filter(Boolean).join('  ');if(bm)bodyKids.push(P(T(bm,{size:28}),{keepNext:true}));
     const meta=[e.serial?'Serial: '+e.serial:'',e.asset?'Code: '+e.asset:''].filter(Boolean).join('   ');if(meta)bodyKids.push(P(T(meta,{size:24,color:GREY}),{keepNext:true}));
@@ -1883,16 +1856,16 @@ async function generateWordTemplate(){
       setWarpStatus('Loading images...');
       const bufs=await Promise.all(photoSlots.map(s=>fetchImageBuffer(s.u)));
       const slotBufs=photoSlots.map((s,i)=>({buf:bufs[i],cap:s.cap})).filter(s=>s.buf);
-      const CELL_DXA_HALF=CONTENT_DXA/2, CELL_DXA_FULL=CONTENT_DXA; // ครึ่งหน้า/เต็มหน้า เป็น twips (1/20pt) พอดีความกว้างเนื้อหาจริง (A4 - margin) — เกินแล้ว Google Docs จะเลื่อนตารางออกนอกจอ
+      const CELL_DXA_HALF=CONTENT_DXA/2, CELL_DXA_FULL=CONTENT_DXA;
       const cellFor=(slot,wide)=>new TableCell({borders:noBorders(),columnSpan:wide?2:1,width:{size:wide?CELL_DXA_FULL:CELL_DXA_HALF,type:WidthType.DXA},children:[
         new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:slot.buf,transformation:{width:wide?420:300,height:wide?315:225}})]}),
       ]});
-      // มีรูปเท่าไหร่แสดงเท่านั้น — ไม่เติมช่องว่างแทนรูปที่ไม่มี (ตามตัวอย่างจริง)
+
       const spacerRow=()=>new TableRow({cantSplit:true,children:[new TableCell({borders:noBorders(),columnSpan:2,width:{size:CELL_DXA_FULL,type:WidthType.DXA},children:[new Paragraph({})]})]});
       const rows=[];
       for(let ri=0;ri<slotBufs.length;ri+=2){
         const left=slotBufs[ri],right=slotBufs[ri+1];
-        if(rows.length) rows.push(spacerRow()); // เว้น 1 บรรทัดระหว่างแถวรูปบน-ล่าง กันรูปติดกัน
+        if(rows.length) rows.push(spacerRow());
         rows.push(new TableRow({cantSplit:true,children: right?[cellFor(left),cellFor(right)]:[cellFor(left,true)]}));
       }
       if(rows.length)bodyKids.push(new Table({width:{size:CELL_DXA_FULL,type:WidthType.DXA},columnWidths:[CELL_DXA_HALF,CELL_DXA_HALF],layout:TableLayoutType.FIXED,rows}));
@@ -1903,7 +1876,6 @@ async function generateWordTemplate(){
 
   const useTypeLoc = groupBy==='location' && entries.some(e=>e.typeLocation);
 
-  // เรียงกลุ่ม/รายการตามเลข "Order" ใน Master Data ก่อน (ถ้าตั้งไว้) แล้วค่อย fallback เป็น ก-ฮ
   const byOrderThenAlpha=(getItemsA,getItemsB,a,b)=>{
     const oa=Math.min(...getItemsA.map(e=>masterOrderOf(orderMap,e)));
     const ob=Math.min(...getItemsB.map(e=>masterOrderOf(orderMap,e)));
@@ -1912,7 +1884,7 @@ async function generateWordTemplate(){
   };
   const sortItemsByOrder=(items)=>items.slice().sort((a,b)=>{
     const oa=masterOrderOf(orderMap,a),ob=masterOrderOf(orderMap,b);
-    if(oa===Infinity&&ob===Infinity) return 0; // ไม่ได้ตั้งไว้ทั้งคู่ — คงลำดับเดิมไว้ (sort เสถียร), เลี่ยง Infinity-Infinity=NaN
+    if(oa===Infinity&&ob===Infinity) return 0;
     return oa-ob;
   });
   if(useTypeLoc){
@@ -1942,8 +1914,6 @@ async function generateWordTemplate(){
     }
   }
 
-  /* Header / Footer — ใส่ในหน้าสารบัญและหน้าเนื้อหา (ไม่ใส่ในหน้าปก) ตามแบบ template จริง
-     ใช้ width แบบ DXA พอดีความกว้างเนื้อหา (CONTENT_DXA) กันคอลัมน์บีบแคบ/ตารางลอยเวลาเปิดผ่าน Google Docs */
   setWarpStatus('Building header/footer...');
   const HDR_DXA_LOGO=Math.round(CONTENT_DXA*0.23), HDR_DXA_TEXT=CONTENT_DXA-Math.round(CONTENT_DXA*0.23);
   const hdrLeft=new TableCell({borders:noBorders(),width:{size:HDR_DXA_LOGO,type:WidthType.DXA},children:[
@@ -1952,7 +1922,7 @@ async function generateWordTemplate(){
   const hdrRight=new TableCell({borders:noBorders(),width:{size:HDR_DXA_TEXT,type:WidthType.DXA},children:[
     P(T(projectName,{size:24,bold:true}),{align:AlignmentType.RIGHT})
   ]});
-  // เพิ่ม paragraph เปล่า 1 บรรทัดต่อจากตาราง header กันเนื้อหาหน้าถัดไปดูติดกับหัวกระดาษเกินไป
+
   const header=new Header({children:[new Table({width:{size:CONTENT_DXA,type:WidthType.DXA},columnWidths:[HDR_DXA_LOGO,HDR_DXA_TEXT],layout:TableLayoutType.FIXED,borders:noBorders(),rows:[new TableRow({children:[hdrLeft,hdrRight]})]}),new Paragraph({})]});
   const footer=new Footer({children:[new Table({width:{size:CONTENT_DXA,type:WidthType.DXA},columnWidths:[Math.round(CONTENT_DXA*0.7),Math.round(CONTENT_DXA*0.3)],layout:TableLayoutType.FIXED,borders:noBorders(),rows:[new TableRow({children:[
     new TableCell({borders:noBorders(),width:{size:Math.round(CONTENT_DXA*0.7),type:WidthType.DXA},children:[new Paragraph({children:[T(`Project: ${projectName}`,{size:22})]})]}),
@@ -1965,7 +1935,7 @@ async function generateWordTemplate(){
   ]})]})]})
 
   setWarpStatus('Compressing file...');
-  // TOC1-3 คือ style ที่ Word ใช้จริงตอน render รายการในสารบัญ (จาก field code TableOfContents) — override ที่นี่เพื่อให้ตรง TH Sarabun New ขนาด 14
+
   const doc=new Document({styles:{
     default:{document:{run:{font:FONT}}},
     paragraphStyles:[
@@ -1996,8 +1966,6 @@ async function generateWordTemplate(){
 $('#openWordReportBtn').addEventListener('click',generateWordTemplate);
 if($('#dashRefresh'))$('#dashRefresh').addEventListener('click',async()=>{await loadRecords();toast('Data updated',true);});
 
-/* ─── PDF REPORT (html2pdf, ตามรายการที่ filter อยู่ในตารางตอนกดปุ่ม) ──── */
-// กดแล้วสร้าง PDF ตรงเลย ไม่ต้องเปิด popup ให้กรอก/ยืนยันซ้ำ เพราะระบบดึงข้อมูลที่กรอกไว้แล้วมาเติมอัตโนมัติอยู่แล้ว
 if($('#makeReport'))$('#makeReport').addEventListener('click',()=>{
   const list=getSavedFilteredList();
   if(!list.length){toast('No data matches the current filter',false);return;}
@@ -2014,7 +1982,6 @@ if($('#makeReport'))$('#makeReport').addEventListener('click',()=>{
   generatePdfFile(list,fields);
 });
 
-/* popup กรอกข้อมูลก่อนสร้าง PDF (เก็บไว้เผื่อใช้ในอนาคต — ปัจจุบันปุ่มสร้าง PDF ไม่เรียกใช้แล้ว) */
 function openPdfReportDialog(list){
   let dlg=$('#pdfReportDlg');
   if(!dlg){
@@ -2062,7 +2029,7 @@ function openPdfReportDialog(list){
     upgradeToCombo('pdlgLogoCustomer',dlOptions('dl_wgLogoCustomer'));
   }
   $('#pdfDlgCount').textContent=list.length;
-  // ตั้งค่าเริ่มต้นจากฟอร์ม Word ถ้าเคยกรอกไว้ในเซสชันนี้ (สะดวกกรณีเพิ่ง gen word มาก่อน)
+
   $('#pdlgReportName').value=$('#wgReportName')?.value.trim()||'Equipment Report';
   $('#pdlgContract').value=$('#wgContract')?.value.trim()||'';
   $('#pdlgContractNo').value=$('#wgContractNo')?.value.trim()||'';
@@ -2089,15 +2056,12 @@ function openPdfReportDialog(list){
   };
 }
 
-/* สร้างไฟล์ PDF จริง — แบ่งเป็น "Page" เอง (1 อุปกรณ์ = 1 หน้า) พร้อม header/footer ซ้ำทุกหน้า
-   เพราะ html2pdf/html2canvas capture เป็นภาพยาวภาพเดียวแล้วค่อยตัด ไม่ใช่การพิมพ์แบ่งหน้าจริง
-   ต้องกำหนดจุดตัดหน้า (page-break-after) เองให้ตรงทุกครั้ง */
 async function generatePdfFile(list,fields){
-  if(typeof html2pdf==='undefined'){toast('PDF library is still loading, try again',false);return;}
+  try{await loadLib('html2pdf');}catch(e){toast('Could not load the PDF library. Check your connection and try again',false);return;}
   showPdfGenOverlay(true,'Loading images...');
   const logo=LOGO_SRC||'';
   const reportName=fields.reportName,contract=fields.contract,contractNo=fields.contractNo;
-  // ถ้าชื่อสัญญา/โครงการที่กรอกตรงกับโครงการจริง กรองข้อมูลเหลือแค่โครงการนั้นด้วย (เผื่อลืม set filter ในตาราง)
+
   if(contract && master.some(m=>m.project===contract)){
     const scoped=list.filter(e=>e.project===contract);
     if(scoped.length) list=scoped;
@@ -2117,7 +2081,7 @@ async function generatePdfFile(list,fields){
     if(oa===Infinity&&ob===Infinity) return 0;
     return oa-ob;
   });
-  const seq=[]; // [{heading, e}] — heading จะมีค่าแค่รายการแรกของกลุ่มนั้น
+  const seq=[];
   if(useTypeLoc){
     const typeGroups={};list.forEach(e=>{const tk=e.typeLocation||'(Location type not specified)';(typeGroups[tk]=typeGroups[tk]||[]).push(e);});
     Object.keys(typeGroups).sort((a,b)=>byOrderThenAlpha(typeGroups[a],typeGroups[b],a,b)).forEach((tname,ti)=>{
@@ -2139,7 +2103,7 @@ async function generatePdfFile(list,fields){
     });
   }
   const totalPages=seq.length;
-  // ต้องดึงรูปเป็น data URI ก่อนใส่ <img src> เสมอ (html2canvas วาดรูป cross-origin ที่ไม่มี CORS ลง canvas ไม่ได้)
+
   const pageHtmls=[];
   for(let i=0;i<seq.length;i++){
     const item=seq[i],n=i+1,e=item.e;
@@ -2161,10 +2125,9 @@ async function generatePdfFile(list,fields){
   const exportPdf=async()=>{
     showPdfGenOverlay(true,'Generating PDF...');
     area.classList.add('pdf-render');
-    // ต้องรอฟอนต์ไทย (IBM Plex Sans Thai) โหลดเสร็จก่อน ไม่งั้นบนมือถือที่เน็ต/CPU ช้ากว่า เครื่องอาจ capture
-    // ตอนยังใช้ font fallback อยู่ แล้วพอฟอนต์โหลดเสร็จเกิด reflow เลื่อนตำแหน่งข้อความ ทำให้ข้อความลงไปกองด้านล่าง
+
     if(document.fonts&&document.fonts.ready) await document.fonts.ready;
-    // ต้องรอให้ browser layout จริงก่อน ไม่งั้น html2canvas จะ capture ก่อน reflow เสร็จ ได้ภาพเปล่า
+
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     const fn=`Equipment Report_${fileStamp(Date.now())}.pdf`;
     try{
@@ -2172,8 +2135,7 @@ async function generatePdfFile(list,fields){
         margin:0,
         filename:fn,
         image:{type:'jpeg',quality:0.92},
-        // windowWidth คงที่ 794px (=210mm ที่ 96dpi) ไม่ใช้ scrollWidth/scrollHeight (ลองแล้วพังบนคอม)
-        // กันปัญหาจอมือถือแคบกว่า .pdf-page มาก ทำให้ html2canvas render ผิดสัดส่วนจนเนื้อหาขยับลงไปกองด้านล่าง
+
         html2canvas:{scale:2,useCORS:true,windowWidth:794},
         jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
         pagebreak:{mode:['css']}
@@ -2196,7 +2158,7 @@ async function generatePdfFile(list,fields){
   imgs.forEach(im=>{if(im.complete){tick();}else{im.addEventListener('load',tick);im.addEventListener('error',tick);}});
   setTimeout(tryExport,8000);
 }
-// การ์ตูนวิศวกร AMR ซ่อมรถElectricalตอนโหลดรูป — สลับเป็นท่ายกนิ้วโป้งตอนเสร็จ
+
 const PGO_SVG_WORKING=`<svg viewBox="0 0 220 160" width="180" height="131">
   <rect x="6" y="78" width="208" height="46" rx="10" fill="#3B4A5E"/>
   <rect x="16" y="86" width="34" height="20" rx="3" fill="#AFC8E8"/>
@@ -2255,7 +2217,6 @@ function showPdfGenOverlayDone(){
   $('#pgoMsg').textContent='';
 }
 
-/* ─── USERS ─────────────────────────────────────────────── */
 let usersCache=[];
 async function loadUsers(){if(!canSeeUsers())return;const r=await api(ACT.listUsers,{});if(r&&r.ok&&Array.isArray(r.users)){usersCache=r.users;renderUsers(r.users);}}
 function renderUsers(list){
@@ -2268,9 +2229,9 @@ function renderUsers(list){
     if(!ps.length)return '-';
     return `<select class="proj-select">${ps.map(p=>`<option>${esc(p)}</option>`).join('')}</select>`;
   };
-  tb.innerHTML=list.map(u=>`<tr><td data-label="Username"><b>${esc(u.username)}</b></td><td class="codecell" style="font-size:12px" data-label="Password">${u.username!=='admin'?(u.plainPwd?esc(u.plainPwd):'—'):'••••••••'}</td><td data-label="Full Name">${esc(u.name||'-')}</td><td data-label="Role"><span class="role-badge role-${esc(u.role)}">${esc(u.role)}</span></td><td data-label="Project">${projCell(u)}</td><td style="font-size:12.5px" data-label="Email">${esc(u.email||'-')}</td><td data-label="Status"><span class="status-dot ${u.active?'active':'inactive'}"></span>${u.active?'Active':'Disabled'}</td><td data-label="">${u.username!=='admin'?`<div class="rowact"><button class="icon-btn" onclick="openEditUser('${u.username}')">✎</button><button class="icon-btn del" onclick="deleteUser('${u.username}')">🗑</button></div>`:'—'}</td></tr>`).join('');
+  tb.innerHTML=list.map(u=>`<tr><td data-label="Username"><b>${esc(u.username)}</b></td><td class="codecell" style="font-size:12px" data-label="Password">${u.username!=='admin'?(u.plainPwd?esc(u.plainPwd):'—'):'••••••••'}</td><td data-label="Full Name">${esc(u.name||'-')}</td><td data-label="Role"><span class="role-badge role-${esc(u.role)}">${esc(u.role)}</span></td><td data-label="Project">${projCell(u)}</td><td style="font-size:12.5px" data-label="Email">${esc(u.email||'-')}</td><td data-label="Status"><span class="status-dot ${u.active?'active':'inactive'}"></span>${u.active?'Active':'Disabled'}</td><td data-label="">${u.username!=='admin'?`<div class="rowact"><button class="icon-btn" onclick="openEditUser(${jsArg(u.username)})">✎</button><button class="icon-btn del" onclick="deleteUser(${jsArg(u.username)})">🗑</button></div>`:'—'}</td></tr>`).join('');
 }
-// chip UI ใช้ร่วมกันระหว่างฟอร์ม "Add User" และ "Edit User" — arr ถูก mutate ตรงๆ (อ้างอิงตัวแปรเดิม)
+
 function renderChips(containerId,arr){
   const box=$('#'+containerId); if(!box) return;
   box.innerHTML=arr.map((p,i)=>`<span class="chip">${esc(p)}<span class="chip-x" data-i="${i}">×</span></span>`).join('');
@@ -2376,13 +2337,14 @@ if($('#nuProjectAdd'))$('#nuProjectAdd').addEventListener('click',()=>{
 });
 if($('#nuAdd'))$('#nuAdd').addEventListener('click',async()=>{const username=$('#nuUser').value.trim(),password=$('#nuPass').value.trim();if(!username||!password){toast('Please enter username and password',false);return;}const r=await api(ACT.createUser,{username,password,name:$('#nuName').value.trim(),role:$('#nuRole').value,project:nuProjects.join(','),email:$('#nuEmail')?$('#nuEmail').value.trim():''});if(r&&r.ok){toast('User added',true);['nuUser','nuPass','nuName','nuProject','nuEmail'].forEach(id=>{const el=$('#'+id);if(el)el.value='';});nuProjects=[];renderChips('nuProjectChips',nuProjects);await loadUsers();}else toast((r&&r.message)||'Failed to add user',false);});
 if($('#usersRefresh'))$('#usersRefresh').addEventListener('click',loadUsers);
-function downloadUsersTemplate(){try{const ws=XLSX.utils.aoa_to_sheet([['username','password','name','role','project','email']]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Users');XLSX.writeFile(wb,'users_template.xlsx');}catch(e){toast('Failed to load form',false);}}
-function downloadUsersData(){try{if(!usersCache.length){toast('No user data yet',false);return;}const rows=usersCache.filter(u=>u.username!=='admin').map(u=>[u.username,u.plainPwd||'',u.name||'',u.role||'',u.project||'',u.email||'']);const ws=XLSX.utils.aoa_to_sheet([['username','password','name','role','project','email'],...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Users');XLSX.writeFile(wb,'users_data.xlsx');toast('User data downloaded',true);}catch(e){toast('Failed to load data',false);}}
-// นำเข้าผู้ใช้หลายคนจาก Excel — username ซ้ำของเดิมจะข้ามไปอัตโนมัติ (ไม่ทับรหัสผ่านเดิม)
+async function downloadUsersTemplate(){try{await loadLib('xlsx');const ws=XLSX.utils.aoa_to_sheet([['username','password','name','role','project','email']]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Users');XLSX.writeFile(wb,'users_template.xlsx');}catch(e){toast('Failed to load form',false);}}
+async function downloadUsersData(){try{if(!usersCache.length){toast('No user data yet',false);return;}await loadLib('xlsx');const rows=usersCache.filter(u=>u.username!=='admin').map(u=>[u.username,u.plainPwd||'',u.name||'',u.role||'',u.project||'',u.email||'']);const ws=XLSX.utils.aoa_to_sheet([['username','password','name','role','project','email'],...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Users');XLSX.writeFile(wb,'users_data.xlsx');toast('User data downloaded',true);}catch(e){toast('Failed to load data',false);}}
+
 if($('#fileUsers'))$('#fileUsers').addEventListener('change',async(ev)=>{
   const file=ev.target.files[0]; if(!file)return;
   const msg=$('#usersImportMsg');
   try{
+    await loadLib('xlsx');
     const buf=await file.arrayBuffer();
     const wb=XLSX.read(buf,{type:'array'});
     const ws=wb.Sheets[wb.SheetNames[0]];
@@ -2411,7 +2373,6 @@ if($('#fileUsers'))$('#fileUsers').addEventListener('change',async(ev)=>{
   ev.target.value='';
 });
 
-/* ─── MASTER SEARCH ─────────────────────────────────────── */
 document.getElementById('masterSearch')?.addEventListener('input',debounce(()=>renderMaster(false),250));
 ['masterFProject','masterFSystem','masterFLoc','masterFSub','masterFEquip'].forEach(id=>{
   document.getElementById(id)?.addEventListener('change',()=>renderMaster(true));
@@ -2420,7 +2381,6 @@ document.getElementById('masterSearch')?.addEventListener('input',debounce(()=>r
   document.getElementById(id)?.addEventListener('change',()=>renderMaster(false));
 });
 
-/* ─── INIT AUTH ─────────────────────────────────────────── */
 async function initAuth(){
   $('#authBtn').addEventListener('click',doLogin);
   $('#authPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -2435,7 +2395,7 @@ async function initAuth(){
     paintUser();hideGate();
     const v=await api(ACT.verifyToken,{});
     if(v&&v.ok){
-      // อัปเดตสิทธิ์ผู้ใช้ให้เป็นปัจจุบันเสมอ (เผื่อ admin เปลี่ยนสิทธิ์ระหว่างที่ session ยังไม่หมดอายุ)
+
       if(v.user){ saveSession(AUTH.token,v.user); paintUser(); }
       await afterLogin();
     }else doLogout();
@@ -2446,31 +2406,8 @@ $('#importExcelModalClose')?.addEventListener('click',()=>$('#importExcelModal')
 $('#importExcelModal')?.addEventListener('click',e=>{if(e.target===$('#importExcelModal'))$('#importExcelModal').style.display='none';});
 upgradeToCombo('nuProject',dlOptions('nuProjectList'));
 
-/* ─── รอ docx library โหลดเสร็จแล้วเปิดปุ่ม Generate ──────── */
-(function waitForDocx(){
-  const btn = document.getElementById('openWordReportBtn');
-  if(!btn) return;
-  btn.disabled = true;
-  const origLabel = btn.textContent;
-  btn.textContent = 'Loading library...';
-  let tries = 0;
-  const check = setInterval(()=>{
-    tries++;
-    if(typeof docx !== 'undefined'){
-      clearInterval(check);
-      btn.disabled = false;
-      btn.textContent = origLabel;
-    } else if(tries > 30){
-      clearInterval(check);
-      btn.disabled = false;
-      btn.textContent = origLabel;
-    }
-  }, 500);
-})();
+(function(){const b=document.getElementById('openWordReportBtn');if(b)b.disabled=false;})();
 
-/* ══════════════════════════════════════════════════════════
-   DARK MODE
-══════════════════════════════════════════════════════════ */
 const ICON_SUN='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
 const ICON_MOON='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
 function applyDark(on){
@@ -2481,10 +2418,6 @@ function applyDark(on){
 {const _dm=localStorage.getItem('darkMode');if(_dm==='1')applyDark(true);}
 $('#darkToggleBtn')?.addEventListener('click',()=>applyDark(document.documentElement.getAttribute('data-theme')!=='dark'));
 
-
-/* ══════════════════════════════════════════════════════════
-   ASSIGN WORK
-══════════════════════════════════════════════════════════ */
 async function loadAssignments(){
   const local=await sGet(ASSIGN_KEY);
   if(local){try{assignments=JSON.parse(local);}catch(e){assignments=[];}}
@@ -2516,7 +2449,7 @@ function _buildAssignCards(list){
         <div style="font-size:11px;color:var(--ink-faint);margin-top:2px">Assigned by ${esc(a.assignedBy)} · ${fmtDate(a.createdAt)}</div>
       </div>
       <span class="assign-badge-pending">Pending</span>
-      ${a.scopeType==='missing'?`<button onclick="openFillData('${a.id}')" style="padding:7px 14px;border-radius:8px;border:none;background:#6366F1;color:#fff;font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap">กรอกข้อมูล</button>`:''}
+      ${a.scopeType==='missing'?`<button onclick="openFillData(${jsArg(a.id)})" style="padding:7px 14px;border-radius:8px;border:none;background:#6366F1;color:#fff;font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap">กรอกข้อมูล</button>`:''}
     </div>`;
   }).join('');
 }
@@ -2529,7 +2462,7 @@ function renderMyAssignments(){
     else{sec.style.display='block';list.innerHTML=_buildAssignCards(mine);if(pill)pill.textContent=mine.length;if(btn)btn.style.display=canAssign()?'':'none';}
   }
 }
-// ── Assign button visibility after login ──
+
 function updateAssignBtn(){
   const btn=$('#assignWorkBtn');
   if(btn)btn.style.display=canAssign()?'':'none';
@@ -2537,7 +2470,6 @@ function updateAssignBtn(){
   if(tBtn)tBtn.style.display=canAssign()?'':'none';
 }
 
-// ── Assign modal multi-select helpers ──
 function renderAwChips(containerId,arr){
   const box=document.getElementById(containerId);if(!box)return;
   box.innerHTML=arr.map((v,i)=>`<span class="chip">${esc(v)}<span class="chip-x" data-i="${i}">×</span></span>`).join('');
@@ -2557,7 +2489,6 @@ function initAwMultiCombo(inputId,chipsId,arr,getOptionsFn){
   });
 }
 
-// ── Show assign modal ──
 function _awClearComboVal(id){
   const inp=document.getElementById(id);if(!inp)return;
   inp.value='';const wrap=inp.closest('.combo');if(wrap)wrap.classList.remove('has-val');
@@ -2568,13 +2499,13 @@ function showAssignModal(){
   modal.style.display='flex';
   const role=AUTH.user?.role||'';
   const userProjs=(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean);
-  // Reset multi-select arrays + chips
+
   awSelProjs.length=0;awSelLocs.length=0;awSelSubs.length=0;awSelEquips.length=0;
   renderAwChips('awProjectChips',awSelProjs);
   renderAwChips('awLocChips',awSelLocs);
   renderAwChips('awSubChips',awSelSubs);
   renderAwChips('awEquipChips',awSelEquips);
-  // Init multi combos
+
   initAwMultiCombo('awProject','awProjectChips',awSelProjs,()=>{
     let projs=uniq(master.map(m=>m.project)).filter(Boolean).sort((a,b)=>a.localeCompare(b,'th'));
     if(role==='leader'&&userProjs.length)projs=projs.filter(p=>userProjs.includes(p));
@@ -2598,9 +2529,9 @@ function showAssignModal(){
   initAwMultiCombo('awEquip','awEquipChips',awSelEquips,()=>{
     return uniq(master.filter(m=>(!awSelProjs.length||awSelProjs.includes(m.project))&&(!awSelLocs.length||awSelLocs.includes(m.locName))&&(!awSelSubs.length||awSelSubs.includes(m.subName))).map(m=>m.equipment)).filter(Boolean).sort((a,b)=>a.localeCompare(b,'th'));
   });
-  // Reset single-select
+
   _awClearComboVal('awAssignee');
-  // Reset scope
+
   document.querySelector('input[name="awScope"][value="project"]').checked=true;
   awScopeChange();
   $('#awNote').value='';
@@ -2608,9 +2539,8 @@ function showAssignModal(){
   const hint=$('#awTargetHint');if(hint)hint.innerHTML='';
 }
 
-function refreshAssigneeList(){}  // no-op: options are live via upgradeToCombo getOptionsFn
+function refreshAssigneeList(){}
 
-// ── Project Target Modal ──
 function showProjectTargetModal(presetProject){
   const modal=$('#projectTargetModal');if(!modal)return;
   modal.style.display='flex';
@@ -2630,7 +2560,7 @@ function showProjectTargetModal(presetProject){
   $('#ptDeadline').value='';
   $('#ptNote').value='';
   const info=$('#ptCurrentInfo');if(info)info.style.display='none';
-  // show current if project already selected
+
   if(presetProject)_ptUpdateCurrentInfo(presetProject);
 }
 function _ptUpdateCurrentInfo(proj){
@@ -2673,7 +2603,7 @@ function awScopeChange(){
   if(scope==='loc'||scope==='sub'||scope==='equip'){_awClearComboVal('awLoc');_awClearComboVal('awSub');_awClearComboVal('awEquip');}
 }
 
-function refreshAwCascade(){}  // no-op: cascade via upgradeToCombo live options
+function refreshAwCascade(){}
 
 function renderMissingTable(){
   const rows=master.filter(m=>(!awSelProjs.length||awSelProjs.includes(m.project))&&(!m.brand||!m.model||!m.serial));
@@ -2742,7 +2672,6 @@ async function saveAssignment(){
   toast('Assigned Work '+newItems.length+' records',true);
 }
 
-// ── Fill missing data (inspector) ──
 let _fillingAssignId=null;
 function openFillData(assignId){
   const a=assignments.find(x=>x.id===assignId);if(!a)return;
@@ -2767,7 +2696,7 @@ async function saveFillData(){
   const doneData={};
   $('#fillDataFields').querySelectorAll('input[data-field]').forEach(inp=>{doneData[inp.dataset.field]=inp.value.trim();});
   a.status='done';a.doneAt=Date.now();a.doneData=doneData;
-  // Update master record with filled data
+
   const m=master.find(x=>x.id===a.masterId);
   if(m){Object.assign(m,doneData);await persistMaster();if(AUTH.user&&AUTH.user.role==='admin')await masterServer('masterUpsert',{rows:[masterToBackend(m)]});}
   await sSet(ASSIGN_KEY,JSON.stringify(assignments));
@@ -2777,8 +2706,7 @@ async function saveFillData(){
   toast('Data saved',true);
 }
 
-// ── Export assign data as Excel ──
-function exportAssignData(){
+async function exportAssignData(){
   const done=assignments.filter(a=>a.scopeType==='missing'&&a.status==='done');
   if(!done.length){toast('No completed work yet',false);return;}
   const header=['Order','Project','System','Location Type','Location','Sub-location','Equipment Type','Equipment','Brand','Model','Serial Number'];
@@ -2786,20 +2714,20 @@ function exportAssignData(){
     const m=master.find(x=>x.id===a.masterId)||{};
     return [m.order||'',a.project,m.system||'',m.typeLocation||'',a.locName,a.subName,m.asset||'',a.equipment,a.doneData.brand||m.brand||'',a.doneData.model||m.model||'',a.doneData.serial||m.serial||''];
   });
+  try{await loadLib('xlsx');}catch(e){toast('Could not load the Excel library. Check your connection and try again',false); return;}
   const ws=XLSX.utils.aoa_to_sheet([header,...rows]);
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'AssignData');
   XLSX.writeFile(wb,'assign_data_'+fileStamp(Date.now())+'.xlsx');
   toast('Download '+done.length+' records',true);
 }
 
-// ── Wire up events ──
 $('#assignWorkBtn')?.addEventListener('click',()=>showAssignModal());
 $('#assignModalClose')?.addEventListener('click',()=>$('#assignModal').style.display='none');
 $('#awCancelBtn')?.addEventListener('click',()=>$('#assignModal').style.display='none');
 $('#assignModal')?.addEventListener('click',e=>{if(e.target===$('#assignModal'))$('#assignModal').style.display='none';});
 document.addEventListener('change',e=>{
   if(e.target.id==='awProject'){
-    // awProject is now multi-combo; hint updated based on all selected projects
+
     const hint=$('#awTargetHint');
     if(hint){
       const dls=awSelProjs.map(p=>getProjectDeadline(p)).filter(Boolean);
@@ -2819,7 +2747,6 @@ $('#assignSectionToggle')?.addEventListener('click',()=>{
   const l=$('#myAssignmentsList');if(l)l.style.display=l.style.display==='none'?'flex':'none';
 });
 
-// ── Project Target Modal events ──
 $('#setProjectTargetBtn')?.addEventListener('click',()=>showProjectTargetModal());
 $('#ptSaveBtn')?.addEventListener('click',saveProjectTarget);
 $('#ptCancelBtn')?.addEventListener('click',()=>$('#projectTargetModal').style.display='none');
@@ -2827,10 +2754,8 @@ $('#ptModalClose')?.addEventListener('click',()=>$('#projectTargetModal').style.
 $('#projectTargetModal')?.addEventListener('click',e=>{if(e.target===$('#projectTargetModal'))$('#projectTargetModal').style.display='none';});
 document.addEventListener('change',e=>{if(e.target.id==='ptProject')_ptUpdateCurrentInfo(e.target.value);});
 
-// บนจอคอมให้ลิ้นชัก Filters เปิดค้างไว้เสมอ (Chrome รุ่นใหม่ซ่อนเนื้อหาของ details ที่ปิดอยู่ ทำให้ช่อง filter หายไป) บนมือถือยังพับ/เปิดเองได้
 function syncFilterDrawers(){if(window.matchMedia('(min-width:601px)').matches)document.querySelectorAll('.flt-drawer').forEach(d=>{d.open=true;});}
 syncFilterDrawers();
 window.matchMedia('(min-width:601px)').addEventListener('change',syncFilterDrawers);
 
 initAuth();
-
