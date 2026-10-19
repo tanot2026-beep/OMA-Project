@@ -730,3 +730,16 @@ input:disabled,textarea:disabled,select:disabled{color:var(--ink-soft);-webkit-t
 :root[data-theme="dark"] #darkToggleBtn{color:#f3f1f8}
 :root:not([data-theme="dark"]) #darkToggleBtn{color:var(--ink)}
 @media(max-width:600px){header.app{position:static}.tabs{top:0}}
+
+/* Phase 13: หน้า login — กันสีช่องกรอกเพี้ยนตอน Chrome autofill (พื้นเทาฟ้า + ตัวอักษรขาว) */
+#authGate{color-scheme:light}
+#authGate input:-webkit-autofill,
+#authGate input:-webkit-autofill:hover,
+#authGate input:-webkit-autofill:focus,
+#authGate input:-webkit-autofill:active{
+  -webkit-box-shadow:0 0 0 1000px #FFFFFF inset !important;
+  box-shadow:0 0 0 1000px #FFFFFF inset !important;
+  -webkit-text-fill-color:#161B22 !important;
+  caret-color:#161B22;
+  transition:background-color 9999s ease-out 0s;
+}
