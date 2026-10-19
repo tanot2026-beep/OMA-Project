@@ -803,8 +803,8 @@ async function confirmRecordReviewed(id){
   else toast((r&&r.message)||'Confirmation failed',false);
 }
 function editEntry(id){const e=entries.find(x=>x.id===id);if(!e)return;resetForm();editingId=id;imgMain=e.imgMain||'';imgSticker=e.imgSticker||'';img3=e.img3||'';img4=e.img4||'';setImgPreview('dropMain',e.thumbMain||e.imgMain);setImgPreview('dropSticker',e.thumbSticker||e.imgSticker);setImgPreview('dropImg3',e.thumb3||e.img3);setImgPreview('dropImg4',e.thumb4||e.img4);choose('project',e.project||'');choose('system',e.system||'');choose('loc',e.locName||'');choose('sub',e.subName||'');choose('equip',e.equipment||'');choose('serial',e.serial||'');if($('#inpBrand'))$('#inpBrand').value=e.brand||'';if($('#inpModel'))$('#inpModel').value=e.model||'';$('#inpAsset').value=e.asset||'';syncComboVal('inpAsset');$('#inpInspector').value=e.inspector||'';$('#inspCombo').classList.toggle('has-val',!!e.inspector);$('#inpNote').value=e.note||'';$('#addTitle').textContent='Edit Record';$('#saveBtn').textContent='Save Changes';goTab('add');window.scrollTo(0,0);}
-function delEntry(id){confirmDlg('Delete this record? Its photos are moved to the _Trash folder and you can undo this.','Delete',async()=>{if(AUTH.token){const r=await api(ACT.deleteRecord,{id});if(r&&r.ok){await loadRecords();toast('Record deleted',true,{label:'Undo',ms:10000,fn:()=>restoreFromTrash(id)});}else toast((r&&r.message)||'Delete failed',false);}});}
-async function restoreFromTrash(id){const r=await api(ACT.restoreRecord,{id});if(r&&r.ok){await loadRecords();toast('Record restored',true);return true;}toast((r&&r.message)||'Restore failed',false);return false;}
+function delEntry(id){confirmDlg('Delete this record? Its photos are moved to the _Trash folder and you can undo this.','Delete',async()=>{if(AUTH.token){const r=await api(ACT.deleteRecord,{id});if(r&&r.ok){await loadRecords();loadProgress();toast('Record deleted',true,{label:'Undo',ms:10000,fn:()=>restoreFromTrash(id)});}else toast((r&&r.message)||'Delete failed',false);}});}
+async function restoreFromTrash(id){const r=await api(ACT.restoreRecord,{id});if(r&&r.ok){await loadRecords();loadProgress();toast('Record restored',true);return true;}toast((r&&r.message)||'Restore failed',false);return false;}
 function openTrash(){
   let dlg=document.getElementById('trashDlg');
   if(!dlg){dlg=document.createElement('div');dlg.id='trashDlg';dlg.style.cssText='position:fixed;inset:0;z-index:450;background:rgba(20,26,34,.55);display:none;align-items:center;justify-content:center;padding:16px';
@@ -1026,7 +1026,7 @@ function viewImgs(id){
 }
 
 let progressCache=[];
-async function loadProgress(){if(!AUTH.token)return;const r=await api(ACT.getProgress,{});if(r&&r.ok&&Array.isArray(r.progress)){progressCache=r.progress;renderSavedProgress();renderOverviewDash();renderLeaderDashboard();}}
+async function loadProgress(){if(!AUTH.token)return;const r=await api(ACT.getProgress,{});if(r&&r.ok&&Array.isArray(r.progress)){progressCache=r.progress;renderSavedProgress();try{renderProgress();}catch(e){}renderOverviewDash();renderLeaderDashboard();}}
 document.addEventListener('DOMContentLoaded',()=>{const df=$('#dashMainFilter');if(df)df.addEventListener('change',renderDashboard);});
 
 function renderDashboard(){if(!canSeeDashboard())return;const role=(AUTH.user&&AUTH.user.role)||'';const leaderProjs=(role==='leader')?(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean):[];const baseEntries=(role==='leader'&&leaderProjs.length>0)?entries.filter(e=>leaderProjs.includes(e.project)):entries;let withImg=0,days={};baseEntries.forEach(e=>{if(e.imgMain||e.imgSticker)withImg++;const d=new Date(e.createdAt);const key=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;days[key]=(days[key]||0)+1;});const total=baseEntries.length;const projCount=uniq(baseEntries.map(e=>e.project)).filter(Boolean).length;const td=new Date();const tkey=`${td.getFullYear()}-${pad(td.getMonth()+1)}-${pad(td.getDate())}`;const todayN=days[tkey]||0;
@@ -1036,7 +1036,7 @@ $('#kpiRow').innerHTML=[
   {lbl:'Today',n:todayN,color:'var(--c-green)'},
   {lbl:'With Photos',n:withImg,color:'var(--c-amber)'},
 ].map(k=>`<div class="kpi" style="border-left:4px solid ${k.color}"><div class="k-lbl">${k.lbl}</div><div class="k-num" style="color:${k.color}">${k.n}</div></div>`).join('');
-const allProjs=uniq(baseEntries.map(e=>e.project)).filter(Boolean).sort();const df=$('#dashMainFilter');if(df){const cur=df.value;df.innerHTML='<option value="__all">All Projects</option>'+allProjs.map(p=>`<option value="${escAttr(p)}">${esc(p)}</option>`).join('');df.value=cur;}renderOverviewDash();renderLeaderDashboard();renderStatusDonut(baseEntries);renderDailyChart(baseEntries);const baseMaster=(role==='leader'&&leaderProjs.length>0)?master.filter(m=>leaderProjs.includes(m.project)):master;fillDashEquipLocFilter(baseMaster);renderDashEquipTable(baseMaster);renderGanttChart();}
+const allProjs=uniq(baseEntries.map(e=>e.project)).filter(Boolean).sort();const df=$('#dashMainFilter');if(df){const cur=df.value;df.innerHTML='<option value="__all">All Projects</option>'+allProjs.map(p=>`<option value="${escAttr(p)}">${esc(p)}</option>`).join('');df.value=cur;}try{renderProgress();}catch(e){}renderOverviewDash();renderLeaderDashboard();renderStatusDonut(baseEntries);renderDailyChart(baseEntries);const baseMaster=(role==='leader'&&leaderProjs.length>0)?master.filter(m=>leaderProjs.includes(m.project)):master;fillDashEquipLocFilter(baseMaster);renderDashEquipTable(baseMaster);renderGanttChart();}
 let ganttChartInst=null;
 function fmtGanttDate(ts){const d=new Date(ts);return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;}
 function chartTheme(){
