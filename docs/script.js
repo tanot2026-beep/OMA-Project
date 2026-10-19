@@ -201,10 +201,10 @@ function confirmDlg(message, okLabel, onOk){
     dlg.id = 'confirmDlg';
     dlg.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(20,26,34,.55);display:none;align-items:center;justify-content:center;padding:20px';
     dlg.innerHTML = `<div style="background:var(--surface);border-radius:16px;max-width:360px;width:100%;padding:24px;box-shadow:0 12px 40px rgba(20,26,34,.18)">
-      <div id="confirmDlgMsg" style="font-size:15px;color:#161B22;margin-bottom:20px;line-height:1.5"></div>
+      <div id="confirmDlgMsg" style="font-size:15px;color:var(--ink);margin-bottom:20px;line-height:1.5"></div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button id="confirmDlgCancel" style="flex:1;padding:10px;border-radius:8px;background:#EBEEF2;color:#5B6573;font-weight:600;font-size:14px;cursor:pointer;border:none">Cancel</button>
-        <button id="confirmDlgOk" style="flex:1;padding:10px;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:14px;cursor:pointer;border:none">OK</button>
+        <button id="confirmDlgCancel" style="flex:1;padding:10px;border-radius:8px;background:var(--bg);color:var(--ink-soft);font-weight:600;font-size:14px;cursor:pointer;border:none">Cancel</button>
+        <button id="confirmDlgOk" style="flex:1;padding:10px;border-radius:8px;background:var(--accent-fill);color:#fff;font-weight:600;font-size:14px;cursor:pointer;border:none">OK</button>
       </div>
     </div>`;
     document.body.appendChild(dlg);
@@ -225,7 +225,7 @@ const PDPA_VERSION = '1.0';
 const DRIVE_THUMB = 'https:\x2f\x2fdrive.google.com/thumbnail?id=';
 const ACT = {
   login:'login', verifyToken:'verifyToken', pdpaStatus:'getPdpaStatus', pdpaAccept:'acceptPdpa',
-  createRecord:'createRecord', listRecords:'listRecords', deleteRecord:'deleteRecord', restoreRecord:'restoreRecord', listTrash:'listTrash', confirmRecordReviewed:'confirmRecordReviewed',
+  createRecord:'createRecord', listRecords:'listRecords', deleteRecord:'deleteRecord', restoreRecord:'restoreRecord', listTrash:'listTrash', purgeTrash:'purgeTrash', confirmRecordReviewed:'confirmRecordReviewed',
   createUser:'createUser', bulkCreateUsers:'bulkCreateUsers', listUsers:'listUsers',
   saveMaster:'saveMaster', masterUpsert:'masterUpsert', masterDelete:'masterDelete', masterImport:'masterImport', listMaster:'listMaster', getProgress:'getProgress',
   saveAssignment:'saveAssignment', listAssignments:'listAssignments', completeAssignment:'completeAssignment',
@@ -335,22 +335,27 @@ async function doLogin(){
   await afterLogin();
   if(r.warnDefaultPassword)setTimeout(()=>toast('Security warning: the admin account still uses the default password. Change it in Users now.',false),600);
 }
-function doLogout(){clearSession();$('#userChip').style.display='none';$('#authUser').value='';$('#authPass').value='';hidePdpa();showGate();}
+function doLogout(){clearSession();$('#userChip').style.display='none';$('#logoutBtn').style.display='none';$('#authUser').value='';$('#authPass').value='';hidePdpa();showGate();}
 async function afterLogin(){
-  await checkPdpa();await loadAll();await loadMasterFromBackend();
+  // แสดงข้อมูลที่แคชไว้ในเครื่องทันที แล้วเรียกเซิร์ฟเวอร์ทุกอย่าง "พร้อมกัน" (เดิมเรียกต่อกัน 2 รอบ ~2 วินาที/ครั้ง)
+  await loadAll();
+  const repaintMaster=async()=>{await loadMasterFromBackend();buildCombos();buildInspectorCombo();refreshDerived();renderMaster();};
   await Promise.all([
+    checkPdpa(),repaintMaster(),
     loadRecords(),loadProgress(),loadTargets(),loadAssignments(),loadAssignStats(),
     ...(AUTH.user?.role==='admin' ? [loadPagePerms()] : [])
   ]);
+  // วาดซ้ำหนึ่งรอบ เผื่อรายการ/ความคืบหน้ามาถึงก่อนข้อมูลหลัก
+  try{renderSaved();updateStats();renderDashboard();}catch(e){console.warn(e);}
 }
 
 function paintUser(){
-  const u=AUTH.user;if(!u){$('#userChip').style.display='none';return;}
+  const u=AUTH.user;if(!u){$('#userChip').style.display='none';$('#logoutBtn').style.display='none';return;}
   const name=u.name||u.username||'User';
   $('#uName').textContent=name;
-  $('#uRole').textContent=(u.role||'').toUpperCase();
+  $('#uRole').textContent=(u.role||'').toUpperCase();$('#uRole').setAttribute('data-role',u.role||'');
   $('#uAvatar').textContent=(name.trim()[0]||'?').toUpperCase();
-  $('#userChip').style.display='flex';
+  $('#userChip').style.display='flex';$('#logoutBtn').style.display='flex';
   applyRoleVisibility();
   updateAssignBtn();
 }
@@ -744,7 +749,7 @@ function ensurePendingFilterUI(){
   if(!toolbar)return;
   const wrap=document.createElement('label');
   wrap.style.cssText='display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-soft);cursor:pointer;white-space:nowrap';
-  wrap.innerHTML='<input type="checkbox" id="savedFPending" style="width:16px;height:16px;cursor:pointer"> Pending Review <span id="savedFPendingCount" style="background:#F97316;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:600;display:none"></span>';
+  wrap.innerHTML='<input type="checkbox" id="savedFPending" style="width:16px;height:16px;cursor:pointer"> Pending Review <span id="savedFPendingCount" style="background:var(--warn-fill);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:600;display:none"></span>';
   toolbar.appendChild(wrap);
   $('#savedFPending').addEventListener('change',renderSaved);
 }
@@ -788,7 +793,7 @@ function renderSaved(){
   const sig=[$('#savedSearch').value,...['savedFProject','savedFSystem','savedFLoc','savedFSub','savedFEquip','savedSort'].map(id=>document.getElementById(id)?.value||''),recordsDateFilter,recordsStatusFilter,!!$('#savedFPending')?.checked].join('|');
   if(sig!==_savedSig){_savedSig=sig;savedShown=SAVED_PAGE;}
   const fullList=list;list=fullList.slice(0,savedShown);
-  grid.innerHTML=list.map(e=>{const thumb=driveViewUrl(e.thumbMain||e.thumbSticker||e.imgMain||e.imgSticker||'',300);const n=(e.imgMain?1:0)+(e.imgSticker?1:0);const title=esc([e.equipment,e.brand,e.model].filter(Boolean).join(' · '))||'(Equipment not specified)';const loc=esc([e.project,e.locName,e.subName].filter(Boolean).join(' › '));const pendingBadge=e.pendingReview?`<div class="loc" style="color:#F97316;font-weight:600">Pending Review${e.newFields?': '+esc(e.newFields):''}</div>`:'';return `<div class="rrow" data-id="${e.id}"><div class="thumb" style="background-image:url(${thumb})">${n?`<span class="cnt">${n} photos</span>`:''}</div><div class="body"><div class="tt">${title}</div>${loc?`<div class="loc">${loc}</div>`:''}${pendingBadge}<div class="meta"><span>${esc(e.inspector||'-')}</span>${e.serial?`<span>SN: ${esc(e.serial)}</span>`:''}<span>${fmtDate(e.createdAt,true)}</span></div></div><div class="acts">${canEdit()?'<button data-act="edit">Edit</button>':''}<button data-act="img">Photos</button>${e.pendingReview&&canConfirm?'<button data-act="confirm" style="color:#F97316">Confirmed</button>':''}${canDelete()?'<button data-act="del" class="del">Delete</button>':''}</div></div>`;}).join('')+(fullList.length>list.length?`<div style="text-align:center;padding:14px"><button class="ghost-btn" id="savedLoadMore">Load more (${list.length}/${fullList.length})</button></div>`:`<div style="text-align:center;padding:10px;color:var(--ink-faint);font-size:12.5px">Showing all ${fullList.length} records</div>`);
+  grid.innerHTML=list.map(e=>{const thumb=driveViewUrl(e.thumbMain||e.thumbSticker||e.imgMain||e.imgSticker||'',300);const n=(e.imgMain?1:0)+(e.imgSticker?1:0);const title=esc([e.equipment,e.brand,e.model].filter(Boolean).join(' · '))||'(Equipment not specified)';const loc=esc([e.project,e.locName,e.subName].filter(Boolean).join(' › '));const pendingBadge=e.pendingReview?`<div class="loc" style="color:var(--warn-text);font-weight:600">Pending Review${e.newFields?': '+esc(e.newFields):''}</div>`:'';return `<div class="rrow" data-id="${e.id}"><div class="thumb" style="background-image:url(${thumb})">${n?`<span class="cnt">${n} photos</span>`:''}</div><div class="body"><div class="tt">${title}</div>${loc?`<div class="loc">${loc}</div>`:''}${pendingBadge}<div class="meta"><span>${esc(e.inspector||'-')}</span>${e.serial?`<span>SN: ${esc(e.serial)}</span>`:''}<span>${fmtDate(e.createdAt,true)}</span></div></div><div class="acts">${canEdit()?'<button data-act="edit">Edit</button>':''}<button data-act="img">Photos</button>${e.pendingReview&&canConfirm?'<button data-act="confirm" style="color:var(--warn-text)">Confirmed</button>':''}${canDelete()?'<button data-act="del" class="del">Delete</button>':''}</div></div>`;}).join('')+(fullList.length>list.length?`<div style="text-align:center;padding:14px"><button class="ghost-btn" id="savedLoadMore">Load more (${list.length}/${fullList.length})</button></div>`:`<div style="text-align:center;padding:10px;color:var(--ink-faint);font-size:12.5px">Showing all ${fullList.length} records</div>`);
   const lmBtn=$('#savedLoadMore');if(lmBtn)lmBtn.onclick=()=>{savedShown+=SAVED_PAGE;renderSaved();};
   grid.querySelectorAll('.rrow').forEach(c=>{const id=c.dataset.id;const be=c.querySelector('[data-act="edit"]');if(be)be.onclick=()=>editEntry(id);c.querySelector('[data-act="img"]').onclick=()=>viewImgs(id);const bc=c.querySelector('[data-act="confirm"]');if(bc)bc.onclick=()=>confirmRecordReviewed(id);const bd=c.querySelector('[data-act="del"]');if(bd)bd.onclick=()=>delEntry(id);});
 }
@@ -802,14 +807,18 @@ function delEntry(id){confirmDlg('Delete this record? Its photos are moved to th
 async function restoreFromTrash(id){const r=await api(ACT.restoreRecord,{id});if(r&&r.ok){await loadRecords();toast('Record restored',true);return true;}toast((r&&r.message)||'Restore failed',false);return false;}
 function openTrash(){
   let dlg=document.getElementById('trashDlg');
-  if(!dlg){dlg=document.createElement('div');dlg.id='trashDlg';dlg.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(20,26,34,.55);display:none;align-items:center;justify-content:center;padding:16px';
-    dlg.innerHTML='<div style="background:var(--surface);border-radius:16px;max-width:560px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(20,26,34,.18)"><div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px"><b style="font-size:16px">Trash (deleted records)</b><button id="trashClose" class="ghost-btn" style="padding:6px 12px">Close</button></div><div id="trashList" style="overflow:auto;padding:0 20px 18px"></div></div>';
+  if(!dlg){dlg=document.createElement('div');dlg.id='trashDlg';dlg.style.cssText='position:fixed;inset:0;z-index:450;background:rgba(20,26,34,.55);display:none;align-items:center;justify-content:center;padding:16px';
+    dlg.innerHTML='<div style="background:var(--surface);border-radius:16px;max-width:560px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(20,26,34,.18)"><div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px"><b style="font-size:16px">Trash (deleted records)</b><button id="trashClose" class="ghost-btn" style="padding:6px 12px">Close</button></div><div id="trashList" style="overflow:auto;padding:0 20px 8px"></div><div id="trashFoot" style="display:none;padding:10px 20px 16px;border-top:1px solid var(--line-soft);justify-content:space-between;align-items:center;gap:10px"><span style="font-size:12px;color:var(--ink-faint)">Delete forever moves the photos to the Google Drive bin (recoverable there for 30 days)</span><button id="trashEmpty" class="ghost-btn" style="color:var(--danger);border-color:var(--danger);white-space:nowrap">Empty Trash</button></div></div>';
     document.body.appendChild(dlg);dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.style.display='none';});dlg.querySelector('#trashClose').onclick=()=>{dlg.style.display='none';};}
   const box=dlg.querySelector('#trashList');box.innerHTML='<div style="padding:18px;color:var(--ink-faint)">Loading...</div>';dlg.style.display='flex';
   (async()=>{const r=await api(ACT.listTrash,{});
     if(!r||!r.ok){box.innerHTML='<div style="padding:18px;color:var(--danger)">'+esc((r&&r.message)||'Could not load the Trash')+'</div>';return;}
     if(!r.items.length){box.innerHTML='<div style="padding:18px;color:var(--ink-faint)">Trash is empty</div>';return;}
-    box.innerHTML=r.items.map(it=>'<div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line,#E3E7EC)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis">'+esc(it.equipment||'-')+(it.serial?' · '+esc(it.serial):'')+'</div><div style="font-size:12.5px;color:var(--ink-faint)">'+esc([it.project,it.location,it.sublocation].filter(Boolean).join(' › '))+'<br>Deleted by '+esc(it.deletedBy||'-')+(it.deletedAt?' · '+esc(new Date(it.deletedAt).toLocaleString()):'')+'</div></div><button class="ghost-btn" data-rid="'+esc(it.id)+'">Restore</button></div>').join('');
+    box.innerHTML=r.items.map(it=>'<div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line,#E3E7EC)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis">'+esc(it.equipment||'-')+(it.serial?' · '+esc(it.serial):'')+'</div><div style="font-size:12.5px;color:var(--ink-faint)">'+esc([it.project,it.location,it.sublocation].filter(Boolean).join(' › '))+'<br>Deleted by '+esc(it.deletedBy||'-')+(it.deletedAt?' · '+esc(new Date(it.deletedAt).toLocaleString()):'')+'</div></div><button class="ghost-btn" data-rid="'+esc(it.id)+'">Restore</button>'+(AUTH.user?.role==='admin'?'<button class="ghost-btn" data-pid="'+esc(it.id)+'" style="color:var(--danger-text)">Delete forever</button>':'')+'</div>').join('');
+    const foot=dlg.querySelector('#trashFoot');foot.style.display=AUTH.user?.role==='admin'?'flex':'none';
+    const purge=async(payload,okMsg)=>{const pr=await api(ACT.purgeTrash,payload);if(pr&&pr.ok){toast(okMsg,true);openTrash();}else toast((pr&&pr.message)||'Could not delete',false);};
+    box.querySelectorAll('[data-pid]').forEach(b=>b.onclick=()=>confirmDlg('Delete this record forever? The photos go to the Google Drive bin.','Delete forever',()=>purge({ids:[b.dataset.pid]},'Deleted forever')));
+    dlg.querySelector('#trashEmpty').onclick=()=>confirmDlg('Empty the whole Trash? All deleted records are removed permanently (photos go to the Google Drive bin).','Empty Trash',()=>purge({all:true},'Trash emptied'));
     box.querySelectorAll('[data-rid]').forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent='Restoring...';const ok=await restoreFromTrash(b.dataset.rid);if(ok)b.closest('div[style*="border-top"]').remove();else{b.disabled=false;b.textContent='Restore';}});
   })();
 }
@@ -1005,7 +1014,7 @@ function openImageViewer(imgs){
       nav.appendChild(mkBtn('▶',cur===imgs.length-1,()=>{cur++;render();}));
       ov.appendChild(nav);
     }
-    const hint=document.createElement('div');hint.style.cssText='color:rgba(255,255,255,.45);font-size:11px';hint.textContent='Double-click/double-tap to zoom, then drag to pan';
+    const hint=document.createElement('div');hint.style.cssText='color:rgba(255,255,255,.85);font-size:11px';hint.textContent='Double-click/double-tap to zoom, then drag to pan';
     ov.appendChild(hint);
   }
   render();document.body.appendChild(ov);
@@ -1022,14 +1031,20 @@ document.addEventListener('DOMContentLoaded',()=>{const df=$('#dashMainFilter');
 
 function renderDashboard(){if(!canSeeDashboard())return;const role=(AUTH.user&&AUTH.user.role)||'';const leaderProjs=(role==='leader')?(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean):[];const baseEntries=(role==='leader'&&leaderProjs.length>0)?entries.filter(e=>leaderProjs.includes(e.project)):entries;let withImg=0,days={};baseEntries.forEach(e=>{if(e.imgMain||e.imgSticker)withImg++;const d=new Date(e.createdAt);const key=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;days[key]=(days[key]||0)+1;});const total=baseEntries.length;const projCount=uniq(baseEntries.map(e=>e.project)).filter(Boolean).length;const td=new Date();const tkey=`${td.getFullYear()}-${pad(td.getMonth()+1)}-${pad(td.getDate())}`;const todayN=days[tkey]||0;
 $('#kpiRow').innerHTML=[
-  {lbl:'Total Records',n:total,color:'#D93A2B'},
-  {lbl:'Projects',n:projCount,color:'#2563EB'},
-  {lbl:'Today',n:todayN,color:'#16A34A'},
-  {lbl:'With Photos',n:withImg,color:'#D97706'},
+  {lbl:'Total Records',n:total,color:'var(--c-red)'},
+  {lbl:'Projects',n:projCount,color:'var(--c-blue)'},
+  {lbl:'Today',n:todayN,color:'var(--c-green)'},
+  {lbl:'With Photos',n:withImg,color:'var(--c-amber)'},
 ].map(k=>`<div class="kpi" style="border-left:4px solid ${k.color}"><div class="k-lbl">${k.lbl}</div><div class="k-num" style="color:${k.color}">${k.n}</div></div>`).join('');
 const allProjs=uniq(baseEntries.map(e=>e.project)).filter(Boolean).sort();const df=$('#dashMainFilter');if(df){const cur=df.value;df.innerHTML='<option value="__all">All Projects</option>'+allProjs.map(p=>`<option value="${escAttr(p)}">${esc(p)}</option>`).join('');df.value=cur;}renderOverviewDash();renderLeaderDashboard();renderStatusDonut(baseEntries);renderDailyChart(baseEntries);const baseMaster=(role==='leader'&&leaderProjs.length>0)?master.filter(m=>leaderProjs.includes(m.project)):master;fillDashEquipLocFilter(baseMaster);renderDashEquipTable(baseMaster);renderGanttChart();}
 let ganttChartInst=null;
 function fmtGanttDate(ts){const d=new Date(ts);return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;}
+function chartTheme(){
+  if(typeof Chart==='undefined')return;
+  const cs=getComputedStyle(document.documentElement);
+  Chart.defaults.color=cs.getPropertyValue('--ink-soft').trim()||'#4B5563';
+  Chart.defaults.borderColor=document.documentElement.getAttribute('data-theme')==='dark'?'rgba(255,255,255,.14)':(cs.getPropertyValue('--line').trim()||'#D7DCE4');
+}
 function renderGanttChart(){
   const card=$('#ganttCard'),canvas=$('#ganttCanvas');if(!card||!canvas||typeof Chart==='undefined')return;
   const role=(AUTH.user&&AUTH.user.role)||'';
@@ -1048,7 +1063,7 @@ function renderGanttChart(){
   card.style.display='';
   $('#ganttWrap').style.height=Math.max(120,rows.length*46+40)+'px';
   if(ganttChartInst)ganttChartInst.destroy();
-  ganttChartInst=new Chart(canvas,{
+  chartTheme();ganttChartInst=new Chart(canvas,{
     type:'bar',
     data:{labels:rows.map(r=>r.project),datasets:[{data:rows.map(r=>[r.start,r.end]),backgroundColor:rows.map(r=>r.color),borderRadius:4,barThickness:22}]},
     options:{
@@ -1073,9 +1088,9 @@ function renderGanttChart(){
         if(now<xScale.min||now>xScale.max)return;
         const x=xScale.getPixelForValue(now);
         const ctx=chart.ctx;
-        ctx.save();ctx.strokeStyle='#161B22';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+        ctx.save();ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim()||'#161B22';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
         ctx.beginPath();ctx.moveTo(x,yScale.top);ctx.lineTo(x,yScale.bottom);ctx.stroke();
-        ctx.setLineDash([]);ctx.fillStyle='#161B22';ctx.font='10px sans-serif';ctx.textAlign='center';
+        ctx.setLineDash([]);ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim()||'#161B22';ctx.font='10px sans-serif';ctx.textAlign='center';
         ctx.fillText('Today',x,yScale.top-4);
         ctx.restore();
       }
@@ -1087,7 +1102,7 @@ function renderStatusDonut(list){
   const canvas=$('#statusDonutCanvas');if(!canvas||typeof Chart==='undefined')return;
   const pending=list.filter(e=>e.pendingReview).length,confirmed=list.length-pending;
   if(statusDonutInst)statusDonutInst.destroy();
-  statusDonutInst=new Chart(canvas,{
+  chartTheme();statusDonutInst=new Chart(canvas,{
     type:'doughnut',
     data:{labels:['Confirmed','Pending Review'],datasets:[{data:[confirmed,pending],backgroundColor:['#2E9E6B','#F97316'],borderWidth:0}]},
     options:{
@@ -1141,7 +1156,7 @@ function renderDailyChart(filtered){
   const days={};(filtered||entries).forEach(e=>{days[dateKeyOf(e.createdAt)]=(days[dateKeyOf(e.createdAt)]||0)+1;});
   const vals=dateKeys.map(dk=>days[dk.key]||0);
   if(dailyChartInst)dailyChartInst.destroy();
-  dailyChartInst=new Chart(canvas,{
+  chartTheme();dailyChartInst=new Chart(canvas,{
     type:'bar',
     data:{labels:dateKeys.map(dk=>dk.lbl),datasets:[{data:vals,backgroundColor:'#D93A2B',borderRadius:4,maxBarThickness:36}]},
     options:{
@@ -1265,7 +1280,7 @@ async function loadAssignStats(){
   renderOverviewDash();
 }
 function daysLeft(dateStr){if(!dateStr)return null;const d=new Date(dateStr),now=new Date();now.setHours(0,0,0,0);return Math.ceil((d-now)/(1000*60*60*24));}
-function daysChip(dateStr){const d=daysLeft(dateStr);if(d===null)return '';if(d<0)return `<span style="background:#FEE2E2;color:#DC2626;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600">${Math.abs(d)} days overdue</span>`;if(d<=3)return `<span style="background:#FEF3C7;color:#D97706;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600">${d} days left</span>`;return `<span style="background:#DCFCE7;color:#16A34A;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600">${d} days</span>`;}
+function daysChip(dateStr){const d=daysLeft(dateStr);if(d===null)return '';if(d<0)return `<span style="background:#FEE2E2;color:#DC2626;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600">${Math.abs(d)} days overdue</span>`;if(d<=3)return `<span style="background:#FEF3C7;color:#92400E;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600">${d} days left</span>`;return `<span style="background:#DCFCE7;color:#16A34A;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600">${d} days</span>`;}
 
 function renderAssignStatsPanel(){
   const me=AUTH.user?.username||'';
@@ -1290,8 +1305,8 @@ function renderAssignStatsPanel(){
       const barColor=pct>=80?'#10B981':pct>=50?'#3B82F6':'#F59E0B';
       html=`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
         <div style="background:var(--bg);border:1px solid var(--line-soft);border-radius:10px;padding:8px 14px;text-align:center;min-width:64px"><div style="font-size:20px;font-weight:700;color:var(--ink)">${total}</div><div style="font-size:10px;color:var(--ink-soft)">Total</div></div>
-        <div style="background:var(--bg);border:1px solid var(--line-soft);border-radius:10px;padding:8px 14px;text-align:center;min-width:64px"><div style="font-size:20px;font-weight:700;color:#10B981">${done}</div><div style="font-size:10px;color:var(--ink-soft)">Done</div></div>
-        <div style="background:var(--bg);border:1px solid var(--line-soft);border-radius:10px;padding:8px 14px;text-align:center;min-width:64px"><div style="font-size:20px;font-weight:700;color:#F59E0B">${remain}</div><div style="font-size:10px;color:var(--ink-soft)">Remaining</div></div>
+        <div style="background:var(--bg);border:1px solid var(--line-soft);border-radius:10px;padding:8px 14px;text-align:center;min-width:64px"><div style="font-size:20px;font-weight:700;color:var(--ok-text)">${done}</div><div style="font-size:10px;color:var(--ink-soft)">Done</div></div>
+        <div style="background:var(--bg);border:1px solid var(--line-soft);border-radius:10px;padding:8px 14px;text-align:center;min-width:64px"><div style="font-size:20px;font-weight:700;color:var(--warn-text)">${remain}</div><div style="font-size:10px;color:var(--ink-soft)">Remaining</div></div>
         ${earliest?`<div style="display:flex;align-items:center;padding:0 8px">${daysChip(earliest)}</div>`:''}
       </div>
       ${total?`<div style="background:var(--line-soft);border-radius:8px;height:10px;overflow:hidden;margin-bottom:4px"><div style="width:${pct}%;height:100%;background:${barColor};border-radius:8px;transition:width .6s"></div></div><div style="font-size:11px;color:var(--ink-soft);text-align:right">${pct}%</div>`:''}`;
@@ -1402,7 +1417,7 @@ function renderLeaderDashboard(){
   if(canvas&&typeof Chart!=='undefined'){
     const colors=list.map((p,i)=>DONUT_COLORS[i%DONUT_COLORS.length]);
     if(leaderDonutInst)leaderDonutInst.destroy();
-    leaderDonutInst=new Chart(canvas,{
+    chartTheme();leaderDonutInst=new Chart(canvas,{
       type:'doughnut',
       data:{labels:list.map(p=>p.project),datasets:[{data:list.map(p=>p.total),backgroundColor:colors,borderWidth:0}]},
       options:{
@@ -1417,8 +1432,8 @@ function renderLeaderDashboard(){
   if($('#leaderDonutLegend'))$('#leaderDonutLegend').textContent=`${list.length} projects · ${doneAll}/${totalAll} records`;
 }
 
-function openProjDetail(proj){const p=progressCache.find(x=>x.project===proj);if(!p)return;const i=progressCache.indexOf(p);const color=DONUT_COLORS[i%DONUT_COLORS.length];const pct=p.total?Math.round(p.done/p.total*100):0;const remain=Math.max(0,p.total-p.done);const t=getTargetForProject(proj);const statusColor=pct>=80?'#22C55E':pct>=40?'#F97316':'#EF4444';$('#projDetailContent').innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div style="width:14px;height:14px;border-radius:50%;background:${color};flex:none"></div><h3>${esc(proj)}</h3></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px"><div style="background:#F7F9FB;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700">${p.total}</div><div style="font-size:11px;color:var(--ink-soft)">Total Work</div></div><div style="background:#F7F9FB;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#22C55E">${p.done}</div><div style="font-size:11px;color:var(--ink-soft)">Done</div></div><div style="background:#F7F9FB;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#EF4444">${remain}</div><div style="font-size:11px;color:var(--ink-soft)">Remaining</div></div></div><div style="background:#F7F9FB;border-radius:10px;padding:14px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:13px;font-weight:600">Progress</span><span style="font-weight:700;color:${statusColor}">${pct}%</span></div><div style="background:var(--line-soft);border-radius:6px;height:14px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${statusColor};border-radius:6px;transition:width .5s"></div></div></div><div class="target-form"><div style="font-size:13px;font-weight:600;margin-bottom:10px">${t?'Edit':'Set'} Target Due Date</div><label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Due Date</label><input type="date" class="tin" id="targetDate" style="width:100%;margin-bottom:10px" value="${t?t.deadline.split('T')[0]:''}"><label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Note</label><input type="text" class="tin" id="targetNote" style="width:100%;margin-bottom:12px" placeholder="e.g. per contract..." value="${t?esc(t.note||''):''}"><button class="btn btn-primary" style="width:100%" onclick="saveTargetForProj(${jsArg(proj)})">Save Target</button><div id="targetSaveMsg" style="margin-top:8px;font-size:12px;text-align:center"></div></div>`;$('#projDetailModal').style.display='flex';}
-async function saveTargetForProj(proj){const deadline=$('#targetDate').value,note=$('#targetNote').value.trim(),msg=$('#targetSaveMsg');if(!deadline){msg.innerHTML='<span style="color:#EF4444">Please select a date</span>';return;}msg.innerHTML='<span style="color:var(--ink-soft)">Saving...</span>';const r=await api('saveTarget',{project:proj,deadline,note});if(r&&r.ok){msg.innerHTML='<span style="color:#22C55E">Saved</span>';await loadTargets();renderLeaderDashboard();setTimeout(()=>{$('#projDetailModal').style.display='none';},800);}else msg.innerHTML=`<span style="color:#EF4444">❌ ${esc((r&&r.message)||'An error occurred')}</span>`;}
+function openProjDetail(proj){const p=progressCache.find(x=>x.project===proj);if(!p)return;const i=progressCache.indexOf(p);const color=DONUT_COLORS[i%DONUT_COLORS.length];const pct=p.total?Math.round(p.done/p.total*100):0;const remain=Math.max(0,p.total-p.done);const t=getTargetForProject(proj);const statusColor=pct>=80?'#22C55E':pct>=40?'#F97316':'#EF4444';$('#projDetailContent').innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div style="width:14px;height:14px;border-radius:50%;background:${color};flex:none"></div><h3>${esc(proj)}</h3></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px"><div style="background:var(--bg);border:1px solid var(--line-soft);border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700">${p.total}</div><div style="font-size:11px;color:var(--ink-soft)">Total Work</div></div><div style="background:var(--bg);border:1px solid var(--line-soft);border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--ok-text)">${p.done}</div><div style="font-size:11px;color:var(--ink-soft)">Done</div></div><div style="background:var(--bg);border:1px solid var(--line-soft);border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#EF4444">${remain}</div><div style="font-size:11px;color:var(--ink-soft)">Remaining</div></div></div><div style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:13px;font-weight:600">Progress</span><span style="font-weight:700;color:${statusColor}">${pct}%</span></div><div style="background:var(--line-soft);border-radius:6px;height:14px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${statusColor};border-radius:6px;transition:width .5s"></div></div></div><div class="target-form"><div style="font-size:13px;font-weight:600;margin-bottom:10px">${t?'Edit':'Set'} Target Due Date</div><label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Due Date</label><input type="date" class="tin" id="targetDate" style="width:100%;margin-bottom:10px" value="${t?t.deadline.split('T')[0]:''}"><label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Note</label><input type="text" class="tin" id="targetNote" style="width:100%;margin-bottom:12px" placeholder="e.g. per contract..." value="${t?esc(t.note||''):''}"><button class="btn btn-primary" style="width:100%" onclick="saveTargetForProj(${jsArg(proj)})">Save Target</button><div id="targetSaveMsg" style="margin-top:8px;font-size:12px;text-align:center"></div></div>`;$('#projDetailModal').style.display='flex';}
+async function saveTargetForProj(proj){const deadline=$('#targetDate').value,note=$('#targetNote').value.trim(),msg=$('#targetSaveMsg');if(!deadline){msg.innerHTML='<span style="color:#EF4444">Please select a date</span>';return;}msg.innerHTML='<span style="color:var(--ink-soft)">Saving...</span>';const r=await api('saveTarget',{project:proj,deadline,note});if(r&&r.ok){msg.innerHTML='<span style="color:var(--ok-text)">Saved</span>';await loadTargets();renderLeaderDashboard();setTimeout(()=>{$('#projDetailModal').style.display='none';},800);}else msg.innerHTML=`<span style="color:#EF4444">❌ ${esc((r&&r.message)||'An error occurred')}</span>`;}
 
 function fillMasterFilters(){
   const fp=$('#masterFProject'); if(!fp) return;
@@ -1578,11 +1593,11 @@ function bulkDeleteMaster(){
   if(fsub)parts.push('Sub-location: '+fsub);
   if(feq)parts.push('Equipment: '+feq);
   if(q)parts.push('Search: "'+q+'"');
-  const criteriaHtml=parts.map(p=>'<div style="color:#EF4444;font-weight:600;font-size:14px">'+esc(p)+'</div>').join('');
+  const criteriaHtml=parts.map(p=>'<div style="color:var(--danger-text);font-weight:600;font-size:14px">'+esc(p)+'</div>').join('');
   showConfirmDialog(
     'Confirm Deletion',
     criteriaHtml+
-    '<div style="margin-top:10px;font-size:14px;color:#374151">This will permanently delete <b>'+list.length+' records</b><br><span style="color:#9CA3AF;font-size:13px">This cannot be undone</span></div>',
+    '<div style="margin-top:10px;font-size:14px;color:var(--ink-soft)">This will permanently delete <b>'+list.length+' records</b><br><span style="color:var(--ink-faint);font-size:13px">This cannot be undone</span></div>',
     async()=>{
       const idList=list.map(m=>m.id);
       const r=await masterServer('masterDelete',{ids:idList});
@@ -1598,11 +1613,11 @@ function showConfirmDialog(title,bodyHtml,onOk){
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(20,26,34,.45);display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML=`<div style="background:var(--surface);border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18);width:100%;max-width:400px;padding:28px 28px 22px">
-    <div style="font-size:17px;font-weight:700;color:#111827;margin-bottom:14px">${esc(title)}</div>
+    <div style="font-size:17px;font-weight:700;color:var(--ink);margin-bottom:14px">${esc(title)}</div>
     <div style="margin-bottom:20px;line-height:1.6">${bodyHtml}</div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button id="_cdCancel" style="padding:9px 22px;border-radius:9px;border:1px solid #D1D5DB;background:var(--surface);color:#374151;font-size:14px;cursor:pointer;font-weight:500">Cancel</button>
-      <button id="_cdOk" style="padding:9px 22px;border-radius:9px;border:none;background:#EF4444;color:#fff;font-size:14px;cursor:pointer;font-weight:600">Delete</button>
+      <button id="_cdCancel" style="padding:9px 22px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:14px;cursor:pointer;font-weight:500">Cancel</button>
+      <button id="_cdOk" style="padding:9px 22px;border-radius:9px;border:none;background:#DC2626;color:#fff;font-size:14px;cursor:pointer;font-weight:600">Delete</button>
     </div>
   </div>`;
   document.body.appendChild(ov);
@@ -2244,8 +2259,8 @@ function showPdfGenOverlay(show,msg){
   if(!ov){
     ov=document.createElement('div');
     ov.id='pdfGenOverlay';
-    ov.style.cssText='position:fixed;inset:0;z-index:10000;background:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px';
-    ov.innerHTML=`<div id="pgoArt">${PGO_SVG_WORKING}</div><div id="pgoMsg" style="font-size:14.5px;font-weight:600;color:var(--ink-soft)"></div>`;
+    ov.style.cssText='position:fixed;inset:0;z-index:10000;background:#fff;color-scheme:light;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px';
+    ov.innerHTML=`<div id="pgoArt">${PGO_SVG_WORKING}</div><div id="pgoMsg" style="font-size:14.5px;font-weight:600;color:#4B5563"></div>`;
     document.body.appendChild(ov);
   }
   if(ov.dataset.state!=='done'){ $('#pgoArt').innerHTML=PGO_SVG_WORKING; ov.dataset.state='working'; }
@@ -2294,15 +2309,15 @@ function openEditUser(username){
     d.innerHTML=`<div style="background:var(--surface);border-radius:18px;padding:28px;width:400px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.18)">
       <h3 style="margin:0 0 18px;font-size:17px;font-weight:700">Edit User</h3>
       <div style="display:flex;flex-direction:column;gap:12px">
-        <div><label style="font-size:12px;font-weight:600;color:#6B7C93;display:block;margin-bottom:4px">Username</label>
-          <input class="tin" id="euUsername" disabled style="background:#f5f7fa;color:#9DB0C4"></div>
-        <div><label style="font-size:12px;font-weight:600;color:#6B7C93;display:block;margin-bottom:4px">New password <span style="font-weight:400">(leave blank to keep unchanged)</span></label>
+        <div><label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px">Username</label>
+          <input class="tin" id="euUsername" disabled style="background:#f5f7fa;color:var(--ink-soft)"></div>
+        <div><label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px">New password <span style="font-weight:400">(leave blank to keep unchanged)</span></label>
           <input class="tin" id="euPassword" type="text" placeholder="New password" autocomplete="off"></div>
-        <div><label style="font-size:12px;font-weight:600;color:#6B7C93;display:block;margin-bottom:4px">Full Name</label>
+        <div><label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px">Full Name</label>
           <input class="tin" id="euName" placeholder="Display name" list="dl_euName" autocomplete="off"></div>
-        <div><label style="font-size:12px;font-weight:600;color:#6B7C93;display:block;margin-bottom:4px">Email</label>
+        <div><label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px">Email</label>
           <input class="tin" id="euEmail" type="email" placeholder="For notifications" autocomplete="off"></div>
-        <div><label style="font-size:12px;font-weight:600;color:#6B7C93;display:block;margin-bottom:4px">Role</label>
+        <div><label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px">Role</label>
           <select class="tin" id="euRole">
             <option value="manager">manager — Manager</option>
             <option value="leader">leader — Team Lead</option>
@@ -2310,7 +2325,7 @@ function openEditUser(username){
             <option value="observer">observer — Observer</option>
           </select></div>
         <div id="euProjectChips" class="chips-box"></div>
-        <div><label style="font-size:12px;font-weight:600;color:#6B7C93;display:block;margin-bottom:4px">Project <span style="font-weight:400;color:var(--ink-faint)">(select then press + for each project)</span></label>
+        <div><label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px">Project <span style="font-weight:400;color:var(--ink-faint)">(select then press + for each project)</span></label>
           <div style="display:flex;align-items:center;gap:8px">
             <input class="tin" id="euProject" placeholder="e.g. Gold Line Skytrain" list="dl_euProject" autocomplete="off" style="flex:1">
             <button type="button" class="round-add-btn" id="euProjectAdd" title="Add this project">+</button>
@@ -2460,6 +2475,7 @@ function applyDark(on){
   document.documentElement.setAttribute('data-theme',on?'dark':'light');
   const btn=$('#darkToggleBtn');if(btn)btn.innerHTML=on?ICON_SUN:ICON_MOON;
   localStorage.setItem('darkMode',on?'1':'0');
+  try{if(typeof Chart!=='undefined'&&AUTH&&AUTH.token){renderDashboard();}}catch(e){}
 }
 {const _dm=localStorage.getItem('darkMode');if(_dm==='1')applyDark(true);}
 $('#darkToggleBtn')?.addEventListener('click',()=>applyDark(document.documentElement.getAttribute('data-theme')!=='dark'));
@@ -2803,5 +2819,253 @@ document.addEventListener('change',e=>{if(e.target.id==='ptProject')_ptUpdateCur
 function syncFilterDrawers(){if(window.matchMedia('(min-width:601px)').matches)document.querySelectorAll('.flt-drawer').forEach(d=>{d.open=true;});}
 syncFilterDrawers();
 window.matchMedia('(min-width:601px)').addEventListener('change',syncFilterDrawers);
+
+/* ═══ Phase 5: ตัวกรองในป๊อปอัป + เมนู ⋯ ═══
+   ย้าย "กล่องตัวกรอง" เดิม (element เดิม id เดิม) ไปแสดงในป๊อปอัป — ฟังก์ชันกรอง/เรียงเดิมทำงานเหมือนเดิมทุกอย่าง
+   บนหน้าเหลือ: ช่องค้นหา + ปุ่ม "ตัวกรอง (n)" + ป้ายสรุปตัวกรองที่เปิดอยู่ (กด × เพื่อปิดทีละอัน) */
+const FLT_LABELS={savedFProject:'Project',savedFSystem:'System',savedFLoc:'Location',savedFSub:'Sub-location',savedFEquip:'Equipment',
+  masterFProject:'Project',masterFSystem:'System',masterFLoc:'Location',masterFSub:'Sub-location',masterFEquip:'Equipment',masterFMissing:'Missing Data',masterFSort:'Sort by',savedSort:'Sort by'};
+const FLT_SETS={};
+function fltIsSort(id){return /Sort$/.test(id);}
+function initFilterPopup(key,searchId,title){
+  const search=$('#'+searchId);if(!search)return;
+  const toolbar=search.closest('.flt-toolbar');const drawer=toolbar&&toolbar.querySelector('.flt-drawer');if(!drawer)return;
+  const body=drawer.querySelector('.flt-drawer-body');if(!body)return;
+  if(key==='records'){
+    try{ensurePendingFilterUI();}catch(e){}
+    const sortSel=$('#savedSort');if(sortSel){sortSel.style.minWidth='150px';drawer.insertAdjacentElement('afterend',sortSel);}  // เรียงลำดับ อยู่บนหน้า
+  }
+  const btn=document.createElement('button');btn.type='button';btn.className='ghost-btn flt-btn';btn.id='fltOpen_'+key;btn.setAttribute('aria-haspopup','dialog');
+  btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span>Filters</span><span class="flt-count" style="display:none">0</span>';
+  drawer.insertAdjacentElement('beforebegin',btn);
+  drawer.style.display='none';
+  // ป้ายกำกับของแต่ละช่อง
+  Array.from(body.querySelectorAll('select')).forEach(sel=>{
+    if(sel.parentElement.classList.contains('flt-field'))return;
+    const w=document.createElement('div');w.className='flt-field';
+    const sp=document.createElement('span');sp.textContent=FLT_LABELS[sel.id]||'';
+    sel.replaceWith(w);w.appendChild(sp);w.appendChild(sel);
+  });
+  body.classList.add('flt-pop-grid');
+  const ov=document.createElement('div');ov.id='fltPop_'+key;ov.className='flt-pop';
+  ov.style.cssText='position:fixed;inset:0;z-index:420;background:rgba(20,26,34,.55);display:none;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML='<div class="flt-pop-box"><div class="flt-pop-head"><b>'+title+'</b><button type="button" id="fltClose_'+key+'" class="icon-btn" aria-label="Close">&times;</button></div><div class="flt-pop-body"></div><div class="flt-pop-foot"><button type="button" class="ghost-btn" id="fltClear_'+key+'">Clear filters</button><button type="button" class="btn btn-primary" id="fltDone_'+key+'">Show results</button></div></div>';
+  document.body.appendChild(ov);
+  const holder=ov.querySelector('.flt-pop-body');holder.appendChild(body);
+  if(key==='records'){const pl=$('#savedFPending');if(pl)holder.appendChild(pl.closest('label'));}
+  const chips=document.createElement('div');chips.className='flt-chips';chips.id='fltChips_'+key;toolbar.insertAdjacentElement('afterend',chips);
+  const close=()=>{ov.style.display='none';};
+  ov.addEventListener('click',e=>{if(e.target===ov)close();});
+  ov.querySelector('#fltClose_'+key).onclick=close;ov.querySelector('#fltDone_'+key).onclick=close;
+  btn.onclick=()=>{
+    if(key==='records'){const pl=$('#savedFPending');if(pl&&!holder.contains(pl))holder.appendChild(pl.closest('label'));}
+    ov.style.display='flex';
+  };
+  ov.querySelector('#fltClear_'+key).onclick=()=>fltClear(key);
+  FLT_SETS[key]={body,holder,btn,chips,ov};
+  fltUpdate(key);
+}
+function fltSelects(key){const s=FLT_SETS[key];return s?Array.from(s.body.querySelectorAll('select')).filter(x=>!fltIsSort(x.id)):[];}
+function fltClear(key){
+  const sels=fltSelects(key);sels.forEach(s=>{s.value='';});
+  if(key==='records'){recordsDateFilter=null;recordsStatusFilter=null;const p=$('#savedFPending');if(p)p.checked=false;}
+  if(sels[0])sels[0].dispatchEvent(new Event('change',{bubbles:true}));
+  if(key==='records')renderSaved();
+  fltUpdate(key);
+}
+function fltUpdate(key){
+  const s=FLT_SETS[key];if(!s)return;
+  const act=[];
+  fltSelects(key).forEach(sel=>{if(sel.value!==''){const o=sel.options[sel.selectedIndex];act.push({label:FLT_LABELS[sel.id]||'',text:o?o.textContent:sel.value,clear:()=>{sel.value='';sel.dispatchEvent(new Event('change',{bubbles:true}));}});}});
+  if(key==='records'){
+    const p=$('#savedFPending');if(p&&p.checked)act.push({label:'',text:'Pending Review',clear:()=>{p.checked=false;p.dispatchEvent(new Event('change',{bubbles:true}));}});
+    if(recordsDateFilter||recordsStatusFilter)act.push({label:'',text:recordsDateFilter?recordsDateFilter:(recordsStatusFilter==='pending'?'Pending Review':'Confirmed'),clear:()=>{recordsDateFilter=null;recordsStatusFilter=null;renderSaved();}});
+  }
+  const cnt=s.btn.querySelector('.flt-count');cnt.textContent=act.length;cnt.style.display=act.length?'':'none';
+  s.btn.classList.toggle('has-filters',act.length>0);
+  s.chips.innerHTML='';
+  act.forEach(a=>{
+    const c=document.createElement('span');c.className='chip flt-chip';
+    const t=document.createElement('span');t.textContent=(a.label?a.label+': ':'')+a.text;
+    const x=document.createElement('button');x.type='button';x.className='chip-x';x.setAttribute('aria-label','Remove filter');x.innerHTML='&times;';
+    x.onclick=()=>{a.clear();setTimeout(()=>fltUpdate(key),0);};
+    c.appendChild(t);c.appendChild(x);s.chips.appendChild(c);
+  });
+  s.chips.style.display=act.length?'flex':'none';
+}
+function fltUpdateAll(){Object.keys(FLT_SETS).forEach(fltUpdate);}
+['change','input','click'].forEach(ev=>document.addEventListener(ev,()=>setTimeout(fltUpdateAll,0),true));
+initFilterPopup('records','savedSearch','Filters');
+initFilterPopup('master','masterSearch','Filters');
+// เมนู ⋯ / Tools
+document.querySelectorAll('.menu-wrap').forEach(w=>{
+  const b=w.querySelector('.menu-btn'),m=w.querySelector('.menu-pop');if(!b||!m)return;
+  const set=o=>{m.classList.toggle('open',o);b.setAttribute('aria-expanded',o?'true':'false');};
+  b.addEventListener('click',e=>{e.stopPropagation();const o=!m.classList.contains('open');document.querySelectorAll('.menu-pop.open').forEach(x=>x.classList.remove('open'));set(o);if(o){const f=m.querySelector('.menu-item:not([style*="display: none"])');if(f)try{f.focus({preventScroll:true});}catch(er){}}});
+  m.addEventListener('click',()=>set(false));
+  m.addEventListener('keydown',e=>{const items=Array.from(m.querySelectorAll('.menu-item')).filter(x=>x.offsetParent!==null);const i=items.indexOf(document.activeElement);if(e.key==='ArrowDown'){e.preventDefault();(items[i+1]||items[0]).focus();}else if(e.key==='ArrowUp'){e.preventDefault();(items[i-1]||items[items.length-1]).focus();}});
+});
+document.addEventListener('click',()=>document.querySelectorAll('.menu-pop.open').forEach(x=>x.classList.remove('open')));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const o=document.querySelector('.menu-pop.open');if(o){o.classList.remove('open');const b=o.parentElement.querySelector('.menu-btn');if(b)b.focus();e.stopPropagation();}}},true);
+
+/* ═══ Phase 3: TH / EN language switch ═══
+   แปลข้อความหน้าจอตามพจนานุกรม (ไม่แก้ฟังก์ชันใดๆ): ข้อความที่อยู่ใน HTML และที่สร้างภายหลัง (toast/dialog/ตาราง)
+   ถูกแปลอัตโนมัติผ่าน MutationObserver. ข้อมูลของผู้ใช้ (ชื่อโครงการ ฯลฯ) ไม่ถูกแตะ.
+   ข้อความที่ยังไม่มีในพจนานุกรมจะแสดงเป็นอังกฤษตามเดิม — เพิ่มคำได้ที่ I18N_TH / I18N_RE */
+const I18N_TH={
+'Overview':'ภาพรวม','Add Record':'เพิ่มรายการ','Records':'รายการที่บันทึก','Master Data':'ข้อมูลหลัก','Users':'ผู้ใช้','Trash':'ถังขยะ',
+'Sign In':'เข้าสู่ระบบ','Sign Out':'ออกจากระบบ','Username':'ชื่อผู้ใช้','Password':'รหัสผ่าน','Accept':'ยอมรับ','Cancel':'ยกเลิก','Close':'ปิด','Save':'บันทึก','Delete':'ลบ','Edit':'แก้ไข','Restore':'กู้คืน','Undo':'เลิกทำ','OK':'ตกลง',
+'Recorded':'บันทึกแล้ว','Equipment':'อุปกรณ์','Project':'โครงการ','Project *':'โครงการ *','System':'ระบบ','Location':'สถานที่','Location Type':'ประเภทสถานที่','Sub-location':'พื้นที่ย่อย','Brand':'ยี่ห้อ','Model':'รุ่น','Serial':'ซีเรียล','Serial Number':'หมายเลขซีเรียล','Note':'หมายเหตุ','Status':'สถานะ','Role':'บทบาท','Email':'อีเมล','Order':'ลำดับ','Total':'ทั้งหมด','Details':'รายละเอียด','Photos':'รูปภาพ','Done':'เสร็จแล้ว','Remaining':'คงเหลือ','Progress':'ความคืบหน้า','Pending':'รอดำเนินการ','Enabled':'เปิดใช้งาน','Date':'วันที่','Photo':'รูป',
+'Brand AUTO':'ยี่ห้อ (อัตโนมัติ)','Model AUTO':'รุ่น (อัตโนมัติ)','(optional)':'(ไม่บังคับ)','Equipment Type':'ประเภทอุปกรณ์',
+'All Projects':'ทุกโครงการ','All Systems':'ทุกระบบ','All Locations':'ทุกสถานที่','All Sub-locations':'ทุกพื้นที่ย่อย','All Equipment':'ทุกอุปกรณ์','All Location Types':'ทุกประเภทสถานที่',
+'Newest→Oldest':'ใหม่→เก่า','Oldest→Newest':'เก่า→ใหม่','Equipment A→Z':'อุปกรณ์ A→Z','Equipment Z→A':'อุปกรณ์ Z→A','Project A→Z':'โครงการ A→Z','Project Z→A':'โครงการ Z→A','Project ก→ฮ':'โครงการ ก→ฮ','Project ฮ→ก':'โครงการ ฮ→ก','Order Low→High':'ลำดับ น้อย→มาก','Order High→Low':'ลำดับ มาก→น้อย',
+'Export Excel':'ส่งออก Excel','Report':'รายงาน','Refresh':'รีเฟรช','Refresh Data':'รีเฟรชข้อมูล','Filters':'ตัวกรอง','Show':'แสดง','Show:':'แสดง:','Show All':'แสดงทั้งหมด','Pending Review':'รอตรวจสอบ',
+'Recording Progress':'ความคืบหน้าการบันทึก','Assigned Work':'งานที่มอบหมาย','Assign Work':'มอบหมายงาน','Target':'เป้าหมาย','Save Target':'บันทึกเป้าหมาย','Set Project Target':'ตั้งเป้าหมายโครงการ','Assignment Progress':'ความคืบหน้างานที่มอบหมาย','Work Scope':'ขอบเขตงาน','Whole Project':'ทั้งโครงการ','Due Date':'กำหนดส่ง','Due Date *':'กำหนดส่ง *','Assignee *':'ผู้รับงาน *','Overdue':'เกินกำหนด','On track':'ตามแผน','Due within 14 days':'ครบกำหนดใน 14 วัน','Last 14 days':'14 วันที่ผ่านมา','Daily Uploads':'อัปโหลดรายวัน','Equipment by Location':'อุปกรณ์ตามสถานที่','Status Breakdown':'สัดส่วนสถานะ','Project Timeline':'ไทม์ไลน์โครงการ','Project Equipment Overview':'ภาพรวมอุปกรณ์ของโครงการ','My Projects Overview':'ภาพรวมโครงการของฉัน','View details':'ดูรายละเอียด','Fill Missing Data':'เติมข้อมูลที่ขาด','Missing Data':'ข้อมูลที่ขาด','Missing Fields':'ช่องที่ขาด','Missing Any Field':'ขาดช่องใดช่องหนึ่ง','Missing Brand':'ไม่มียี่ห้อ','Missing Model':'ไม่มีรุ่น','Missing Serial':'ไม่มีซีเรียล','Records Missing Data':'รายการที่ข้อมูลไม่ครบ',
+'Add New Record':'เพิ่มรายการใหม่','Edit Record':'แก้ไขรายการ','Save Record':'บันทึกรายการ','Clear Form':'ล้างฟอร์ม','Attach Photos':'แนบรูปภาพ','Photo 1':'รูป 1','Photo 2':'รูป 2','Photo 3':'รูป 3','Photo 4':'รูป 4','Additional photo 1':'รูปเพิ่มเติม 1','Additional photo 2':'รูปเพิ่มเติม 2','Choose main photo':'เลือกรูปหลัก','Choose sticker photo':'เลือกรูปสติกเกอร์','Choose additional photo':'เลือกรูปเพิ่มเติม','Full equipment photo':'รูปอุปกรณ์เต็มตัว','Full view of the equipment':'ภาพรวมของอุปกรณ์','Equipment label/sticker':'ป้าย/สติกเกอร์อุปกรณ์','Sticker photo':'รูปสติกเกอร์','Tap to replace':'แตะเพื่อเปลี่ยน','Inspector Name':'ชื่อผู้ตรวจ','Inspection Details':'รายละเอียดการตรวจ','Select Equipment':'เลือกอุปกรณ์','Add Equipment':'เพิ่มอุปกรณ์','or':'หรือ','Choose File':'เลือกไฟล์',
+'Scan QR / Barcode':'สแกน QR / บาร์โค้ด','Scan QR/Barcode to Open Form':'สแกน QR/บาร์โค้ดเพื่อเปิดฟอร์ม','Attach a photo to scan':'แนบรูปเพื่อสแกน','Enter manually':'กรอกเอง','Opening camera…':'กำลังเปิดกล้อง…','Opening camera...':'กำลังเปิดกล้อง...','Point the camera at a QR code or barcode':'ส่องกล้องไปที่ QR code หรือบาร์โค้ด','QR Code':'คิวอาร์โค้ด','Generate QR Codes':'สร้าง QR Code',
+'Import from Excel':'นำเข้าจาก Excel','Import Equipment Data (Excel)':'นำเข้าข้อมูลอุปกรณ์ (Excel)','Choose or drag an Excel file':'เลือกหรือลากไฟล์ Excel มาวาง','Download Blank Form':'ดาวน์โหลดแบบฟอร์มเปล่า','Download Current Data':'ดาวน์โหลดข้อมูลปัจจุบัน','Download User Data':'ดาวน์โหลดข้อมูลผู้ใช้','Delete by Filter':'ลบตามตัวกรอง','Supported columns':'คอลัมน์ที่รองรับ','Supports .xlsx · .xls · .csv':'รองรับ .xlsx · .xls · .csv','Narrow down with filters, or leave as "All" to include everything':'เลือกตัวกรองเพื่อจำกัดขอบเขต หรือปล่อยเป็น "ทั้งหมด" เพื่อรวมทุกรายการ',
+'Manage Users':'จัดการผู้ใช้','Add User':'เพิ่มผู้ใช้','Edit User':'แก้ไขผู้ใช้','Full Name':'ชื่อ-นามสกุล','Page Permissions':'สิทธิ์การเข้าถึงหน้า','Save Access Permissions':'บันทึกสิทธิ์การเข้าถึง','Save Changes':'บันทึกการเปลี่ยนแปลง','Page/Feature':'หน้า/ฟังก์ชัน','admin — Administrator':'admin — ผู้ดูแลระบบ','manager — Manager':'manager — ผู้จัดการ','leader — Team Lead':'leader — หัวหน้าทีม','inspector — Inspector':'inspector — ผู้ตรวจ','observer — Observer':'observer — ผู้สังเกตการณ์','Your account (observer) is view-only':'บัญชีของคุณ (ผู้สังเกตการณ์) ดูข้อมูลได้อย่างเดียว','Change admin password':'เปลี่ยนรหัสผ่านผู้ดูแลระบบ','New password':'รหัสผ่านใหม่','Display name':'ชื่อที่แสดง',
+'Privacy & Personal Data':'ความเป็นส่วนตัวและข้อมูลส่วนบุคคล','This system records your usage data for auditing and maintenance purposes.':'ระบบนี้บันทึกข้อมูลการใช้งานของคุณเพื่อการตรวจสอบและบำรุงรักษา','Data collected: username, role, login time, inspection records and equipment photos, in accordance with the Personal Data Protection Act B.E. 2562 (2019).':'ข้อมูลที่เก็บ: ชื่อผู้ใช้ บทบาท เวลาเข้าสู่ระบบ บันทึกการตรวจ และรูปอุปกรณ์ ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562',
+'Report generated ✨':'สร้างรายงานเสร็จแล้ว ✨','Generate PDF':'สร้าง PDF','Generate PDF Report':'สร้างรายงาน PDF','Report Name':'ชื่อรายงาน','Contract Name/Project':'ชื่อสัญญา/โครงการ','Contract Number':'เลขที่สัญญา','Client Organization':'หน่วยงานผู้ว่าจ้าง','Submitted To':'เสนอต่อ','Clause':'ข้อสัญญา',
+'Search records…':'ค้นหารายการ…','Search records...':'ค้นหารายการ...','Search master data…':'ค้นหาข้อมูลหลัก…','Search users…':'ค้นหาผู้ใช้…','Add project…':'เพิ่มโครงการ…','Add location…':'เพิ่มสถานที่…','Add sub-location…':'เพิ่มพื้นที่ย่อย…','Add equipment…':'เพิ่มอุปกรณ์…','Add this project':'เพิ่มโครงการนี้','Additional details':'รายละเอียดเพิ่มเติม','Dark / Light mode':'โหมดมืด / สว่าง','For notifications (optional)':'สำหรับแจ้งเตือน (ไม่บังคับ)','For notifications':'สำหรับแจ้งเตือน','Note (optional)':'หมายเหตุ (ไม่บังคับ)','Order used for generating Word/PDF':'ลำดับที่ใช้สร้าง Word/PDF','Select a project then press +':'เลือกโครงการแล้วกด +','Set an initial password':'ตั้งรหัสผ่านเริ่มต้น','Show/hide':'แสดง/ซ่อน','Sign out':'ออกจากระบบ','Type or select a project…':'พิมพ์หรือเลือกโครงการ…','Type or select assignee…':'พิมพ์หรือเลือกผู้รับงาน…','Type inspector name':'พิมพ์ชื่อผู้ตรวจ','Display name ':'ชื่อที่แสดง',
+'Loading...':'กำลังโหลด...','Saving...':'กำลังบันทึก...','Saving…':'กำลังบันทึก…','Signing in...':'กำลังเข้าสู่ระบบ...','Restoring...':'กำลังกู้คืน...','Loading library...':'กำลังโหลดไลบรารี...','Reading photo...':'กำลังอ่านรูป...','Connection lost, retrying...':'การเชื่อมต่อหลุด กำลังลองใหม่...','Save Record ':'บันทึกรายการ',
+'Trash (deleted records)':'ถังขยะ (รายการที่ลบแล้ว)','Tools':'เครื่องมือ','Tools ▾':'เครื่องมือ ▾','More':'เพิ่มเติม','Clear filters':'ล้างตัวกรอง','Show results':'ดูผลลัพธ์','Sort by':'เรียงตาม','Missing Data':'ข้อมูลที่ขาด','Remove filter':'เอาตัวกรองออก','Delete forever':'ลบถาวร','Empty Trash':'ล้างถังขยะ','Deleted forever':'ลบถาวรแล้ว','Trash emptied':'ล้างถังขยะแล้ว','Could not delete':'ลบไม่สำเร็จ','Only an admin can empty the Trash':'เฉพาะผู้ดูแลระบบ (admin) เท่านั้นที่ล้างถังขยะได้','Delete forever moves the photos to the Google Drive bin (recoverable there for 30 days)':'ลบถาวรจะย้ายรูปไปถังขยะของ Google Drive (กู้คืนได้ที่นั่นภายใน 30 วัน)','Delete this record forever? The photos go to the Google Drive bin.':'ลบรายการนี้ถาวร? รูปภาพจะถูกย้ายไปถังขยะของ Google Drive','Empty the whole Trash? All deleted records are removed permanently (photos go to the Google Drive bin).':'ล้างถังขยะทั้งหมด? รายการที่ลบแล้วทั้งหมดจะหายถาวร (รูปภาพไปอยู่ถังขยะของ Google Drive)','Trash is empty':'ถังขยะว่างเปล่า','Record deleted':'ลบรายการแล้ว','Record restored':'กู้คืนรายการแล้ว','Delete this record? Its photos are moved to the _Trash folder and you can undo this.':'ลบรายการนี้? รูปภาพจะถูกย้ายไปโฟลเดอร์ _Trash และเลิกทำได้','Restore failed':'กู้คืนไม่สำเร็จ','Delete failed':'ลบไม่สำเร็จ',
+'Please select a project':'กรุณาเลือกโครงการ','Please select a location':'กรุณาเลือกสถานที่','Please select equipment':'กรุณาเลือกอุปกรณ์','Please attach at least one photo':'กรุณาแนบรูปอย่างน้อย 1 รูป','Please enter the inspector name':'กรุณากรอกชื่อผู้ตรวจ','Please enter username and password':'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน','Please select a date':'กรุณาเลือกวันที่','Please select an assignee':'กรุณาเลือกผู้รับงาน','Please select at least one project':'กรุณาเลือกอย่างน้อย 1 โครงการ','Please select at least one location':'กรุณาเลือกอย่างน้อย 1 สถานที่','Please select at least one sub-location':'กรุณาเลือกอย่างน้อย 1 พื้นที่ย่อย','Please select at least one equipment':'กรุณาเลือกอย่างน้อย 1 อุปกรณ์','Please select the items you want to fill in':'กรุณาเลือกรายการที่ต้องการเติม','Please set at least one filter condition before deleting':'กรุณาตั้งเงื่อนไขตัวกรองอย่างน้อย 1 อย่างก่อนลบ','Project and equipment are required':'ต้องระบุโครงการและอุปกรณ์',
+'A photo is still being processed, please wait a moment':'กำลังประมวลผลรูปอยู่ กรุณารอสักครู่','Could not read this photo. Please try another image (JPG or PNG)':'อ่านรูปนี้ไม่ได้ กรุณาลองรูปอื่น (JPG หรือ PNG)','Save failed, please try again':'บันทึกไม่สำเร็จ กรุณาลองใหม่','Saved & uploaded to server':'บันทึกและอัปโหลดขึ้นเซิร์ฟเวอร์แล้ว','Edited & uploaded to server':'แก้ไขและอัปโหลดขึ้นเซิร์ฟเวอร์แล้ว','Could not connect to server':'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้','Invalid response format':'รูปแบบข้อมูลตอบกลับไม่ถูกต้อง','Failed to load data':'โหลดข้อมูลไม่สำเร็จ','Failed to load form':'โหลดฟอร์มไม่สำเร็จ','Failed to read file':'อ่านไฟล์ไม่สำเร็จ','Failed to read code':'อ่านรหัสไม่สำเร็จ','Failed to generate PDF':'สร้าง PDF ไม่สำเร็จ','Import failed':'นำเข้าไม่สำเร็จ',
+'Could not load the Excel library. Check your connection and try again':'โหลดไลบรารี Excel ไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่','Could not load the PDF library. Check your connection and try again':'โหลดไลบรารี PDF ไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่','Could not load the Word library. Check your connection and try again':'โหลดไลบรารี Word ไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่','Could not load the scanner library. Check your connection and try again':'โหลดไลบรารีสแกนเนอร์ไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่','Could not find a QR/barcode in this photo — try another one':'ไม่พบ QR/บาร์โค้ดในรูปนี้ ลองรูปอื่น','No camera access or no camera found':'เข้าถึงกล้องไม่ได้หรือไม่พบกล้อง','No camera found':'ไม่พบกล้อง','Double-click/double-tap to zoom, then drag to pan':'ดับเบิลคลิก/แตะสองครั้งเพื่อซูม แล้วลากเพื่อเลื่อน',
+'Found an existing saved record — opening the edit form':'พบรายการที่บันทึกไว้แล้ว กำลังเปิดฟอร์มแก้ไข','Found in Master Data — filled in the details':'พบในข้อมูลหลัก เติมรายละเอียดให้แล้ว',
+'No records yet':'ยังไม่มีรายการ','No records match the condition':'ไม่มีรายการตรงตามเงื่อนไข','No data to export yet':'ยังไม่มีข้อมูลให้ส่งออก','No Master Data yet':'ยังไม่มีข้อมูลหลัก','No user data yet':'ยังไม่มีข้อมูลผู้ใช้','No data':'ไม่มีข้อมูล','No data yet':'ยังไม่มีข้อมูล','No data matches the current filter':'ไม่มีข้อมูลตรงกับตัวกรอง','No equipment':'ไม่มีอุปกรณ์','No options':'ไม่มีตัวเลือก','No photo':'ไม่มีรูป','No records to save':'ไม่มีรายการให้บันทึก','No completed work yet':'ยังไม่มีงานที่เสร็จ','No work assigned in this project yet':'โครงการนี้ยังไม่มีงานที่มอบหมาย','Not set':'ยังไม่ตั้ง','Target not set':'ยังไม่ตั้งเป้าหมาย','Total Work':'งานทั้งหมด','Work Assigned to Inspector':'งานที่มอบหมายให้ผู้ตรวจ','Current deadline:':'กำหนดส่งปัจจุบัน:',
+'Data saved':'บันทึกข้อมูลแล้ว','Data updated':'อัปเดตข้อมูลแล้ว','Saved':'บันทึกแล้ว','Deleted':'ลบแล้ว','Confirmed':'ยืนยันแล้ว','Permissions saved':'บันทึกสิทธิ์แล้ว','Project target saved':'บันทึกเป้าหมายโครงการแล้ว','User added':'เพิ่มผู้ใช้แล้ว','User updated':'อัปเดตผู้ใช้แล้ว','User deleted':'ลบผู้ใช้แล้ว','User data downloaded':'ดาวน์โหลดข้อมูลผู้ใช้แล้ว','Master Data downloaded':'ดาวน์โหลดข้อมูลหลักแล้ว','PDF generated':'สร้าง PDF แล้ว','Word document generated':'สร้างเอกสาร Word แล้ว','Done!':'เสร็จแล้ว!',
+'Delete this equipment?':'ลบอุปกรณ์นี้?','This cannot be undone':'การกระทำนี้ย้อนกลับไม่ได้','This will permanently delete':'การกระทำนี้จะลบถาวร','Sign out?':'ออกจากระบบ?',
+'Security warning: the admin account still uses the default password. Change it in Users now.':'คำเตือนความปลอดภัย: บัญชี admin ยังใช้รหัสผ่านเริ่มต้น กรุณาเปลี่ยนที่หน้า Users ทันที',
+'Total Records':'รายการทั้งหมด','Projects':'โครงการ','Today':'วันนี้','With Photos':'มีรูปภาพ','Delete Button':'ปุ่มลบ','Scan/Print QR':'สแกน/พิมพ์ QR','Active':'ใช้งานอยู่',
+'Uploading':'กำลังอัปโหลด','Uploading...':'กำลังอัปโหลด...','Uploading to server...':'กำลังอัปโหลดขึ้นเซิร์ฟเวอร์...'
+};
+const I18N_RE=[
+[/^Uploading \((.+)\)\.\.\.$/,m=>`กำลังอัปโหลด (${m[1]})...`],
+[/^Load more \((\d+)\/(\d+)\)$/,m=>`โหลดเพิ่ม (${m[1]}/${m[2]})`],
+[/^Showing all (\d+) records$/,m=>`แสดงครบทั้ง ${m[1]} รายการ`],
+[/^Added (\d+) users$/,m=>`เพิ่มผู้ใช้ ${m[1]} ราย`],
+[/^Assigned Work (\d+)$/,m=>`งานที่มอบหมาย ${m[1]}`],
+[/^Exported to Excel \((\d+) records\)$/,m=>`ส่งออก Excel แล้ว (${m[1]} รายการ)`],
+[/^Deleted by (.+?)( · .*)?$/,m=>`ลบโดย ${m[1]}${m[2]||''}`],
+[/^Delete user "(.+)"\?$/,m=>`ลบผู้ใช้ "${m[1]}" ?`],
+[/^Failed to generate report: (.*)$/,m=>`สร้างรายงานไม่สำเร็จ: ${m[1]}`],
+[/^Failed to open camera: (.*)$/,m=>`เปิดกล้องไม่สำเร็จ: ${m[1]}`],
+[/^Serial "(.+)" not found in the system — filled in the Serial, please complete the rest$/,m=>`ไม่พบซีเรียล "${m[1]}" ในระบบ เติมซีเรียลให้แล้ว กรุณากรอกส่วนที่เหลือ`],
+[/^Serial "(.+)" has already been recorded \((.*)\) — please edit the existing record instead of adding a new one$/,m=>`ซีเรียล "${m[1]}" ถูกบันทึกแล้ว (${m[2]}) กรุณาแก้ไขรายการเดิมแทนการเพิ่มใหม่`],
+[/^Too many failed attempts · please wait (\d+) minutes and try again$/,m=>`ใส่รหัสผิดหลายครั้งเกินไป กรุณารอ ${m[1]} นาทีแล้วลองใหม่`],
+[/^Username not found in the system$/,()=>'ไม่พบชื่อผู้ใช้ในระบบ'],
+[/^Incorrect password$/,()=>'รหัสผ่านไม่ถูกต้อง'],
+[/^Session expired, please sign in again$/,()=>'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่'],
+[/^No permission.*$/,()=>'ไม่มีสิทธิ์ดำเนินการ']
+];
+let LANG='en';
+(function(){try{const s=localStorage.getItem('oma_lang');if(s==='th'||s==='en')LANG=s;else if(/^th/i.test(navigator.language||''))LANG='th';}catch(e){if(/^th/i.test(navigator.language||''))LANG='th';}})();
+const _i18nNodeOrig=new WeakMap(),_i18nNodeOut=new WeakMap();
+const I18N_ATTRS=['placeholder','title','aria-label'];
+Object.assign(I18N_TH,{'ADMIN':'ผู้ดูแลระบบ','MANAGER':'ผู้จัดการ','OBSERVER':'ผู้สังเกตการณ์','LEADER':'หัวหน้า','INSPECTOR':'ผู้ตรวจ','AMR ASIA CO., LTD.':'AMR ASIA CO., LTD.'});
+function i18nLookup(t){let r=I18N_TH[t];if(r!==undefined)return r;for(const[re,fn]of I18N_RE){const m=t.match(re);if(m)return fn(m);}return undefined;}
+// ไม่แปลข้อมูลของผู้ใช้ (เซลล์ในตารางข้อมูล / การ์ดรายการ) กันข้อมูลที่บังเอิญตรงกับคำในพจนานุกรมถูกเปลี่ยน; ปุ่มและหัวตารางยังแปลตามปกติ
+function i18nSkip(n){const p=n.parentElement;if(!p)return false;if(p.closest('button,a,th,label,.pill'))return false;return !!p.closest('tbody td,.rrow');}
+function i18nText(n){
+  if(i18nSkip(n))return;
+  const cur=n.data,out=_i18nNodeOut.get(n);
+  if(out!==undefined&&cur===out)return;            // already our translation
+  if(LANG!=='th'){return;}
+  const t=cur.trim();if(!t)return;
+  const r=i18nLookup(t);if(r===undefined)return;
+  const res=cur.replace(t,()=>r);
+  _i18nNodeOrig.set(n,cur);_i18nNodeOut.set(n,res);n.data=res;
+}
+function i18nAttrs(el){
+  if(!el.getAttribute)return;
+  I18N_ATTRS.forEach(a=>{
+    const v=el.getAttribute(a);if(v==null)return;
+    const st=el.__i18n||(el.__i18n={});
+    if(st[a]&&st[a].out===v)return;
+    if(LANG!=='th')return;
+    const r=i18nLookup(v.trim());if(r===undefined)return;
+    st[a]={orig:v,out:r};el.setAttribute(a,r);
+  });
+}
+function i18nWalk(root){
+  if(!root)return;
+  if(root.nodeType===3){if(root.parentNode&&!/^(SCRIPT|STYLE|TEXTAREA)$/.test(root.parentNode.nodeName))i18nText(root);return;}
+  if(root.nodeType!==1||/^(SCRIPT|STYLE)$/.test(root.nodeName))return;
+  i18nAttrs(root);
+  const tw=document.createTreeWalker(root,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,null);let n;
+  while((n=tw.nextNode())){
+    if(n.nodeType===3){if(!/^(SCRIPT|STYLE|TEXTAREA)$/.test(n.parentNode.nodeName))i18nText(n);}
+    else if(!/^(SCRIPT|STYLE)$/.test(n.nodeName))i18nAttrs(n);
+  }
+}
+function i18nRevert(){
+  const tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,null);let n;
+  while((n=tw.nextNode())){
+    if(n.nodeType===3){const o=_i18nNodeOrig.get(n);if(o!==undefined&&n.data===_i18nNodeOut.get(n)){n.data=o;}_i18nNodeOrig.delete(n);_i18nNodeOut.delete(n);}
+    else if(n.__i18n){for(const a in n.__i18n){const s=n.__i18n[a];if(s&&n.getAttribute(a)===s.out)n.setAttribute(a,s.orig);}n.__i18n=null;}
+  }
+}
+let _i18nObs=null;
+function i18nObserve(on){
+  if(!_i18nObs)_i18nObs=new MutationObserver(ms=>{
+    _i18nObs.disconnect();
+    try{ms.forEach(m=>{
+      if(m.type==='characterData')i18nText(m.target);
+      else if(m.type==='attributes')i18nAttrs(m.target);
+      else m.addedNodes.forEach(i18nWalk);
+    });}finally{i18nObserve(true);}
+  });
+  if(on)_i18nObs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:I18N_ATTRS});
+  else _i18nObs.disconnect();
+}
+function paintLangToggle(){
+  document.querySelectorAll('.lang-toggle').forEach(b=>{
+    b.setAttribute('aria-pressed',LANG==='th'?'true':'false');
+    b.querySelectorAll('[data-l]').forEach(s=>s.classList.toggle('on',s.dataset.l===LANG));
+  });
+}
+function setLang(l,persist=true){
+  LANG=(l==='th')?'th':'en';
+  if(persist){try{localStorage.setItem('oma_lang',LANG);}catch(e){}}
+  document.documentElement.lang=LANG;
+  i18nObserve(false);
+  if(LANG==='th')i18nWalk(document.body);else i18nRevert();
+  i18nObserve(true);
+  paintLangToggle();
+}
+document.querySelectorAll('.lang-toggle').forEach(b=>b.addEventListener('click',()=>setLang(LANG==='th'?'en':'th')));
+setLang(LANG,false);
+
+/* ═══ Phase 3: dialog accessibility (Esc to close, focus in/out, role=dialog) ═══ */
+function _isOverlay(el){return el&&el.nodeType===1&&el.style&&el.style.position==='fixed'&&/inset:\s*0/.test(el.getAttribute('style')||'')&&el.id!=='warpOverlay'&&el.id!=='authGate';}
+function _overlayList(){return Array.from(document.querySelectorAll('[style*="inset:0"],[style*="inset: 0"]')).filter(_isOverlay);}
+function _ovVisible(el){return el.style.display!=='none'&&el.offsetParent!==null||getComputedStyle(el).display!=='none';}
+const _ovPrevFocus=new WeakMap();
+function a11yTagOverlay(el){
+  if(!_isOverlay(el)||el.__a11y)return;el.__a11y=true;
+  const box=el.firstElementChild;if(box){box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');const h=box.querySelector('b,h2,h3,h4,.title,[id$="Title"]');if(h&&h.textContent.trim())box.setAttribute('aria-label',h.textContent.trim().slice(0,80));}
+  let wasOpen=_ovVisible(el);
+  new MutationObserver(()=>{
+    const open=_ovVisible(el);
+    if(open&&!wasOpen){_ovPrevFocus.set(el,document.activeElement);setTimeout(()=>{if(!_ovVisible(el))return;const f=el.querySelector('input:not([type=hidden]):not([disabled]),select,textarea,button:not([disabled])');if(f&&!el.contains(document.activeElement))try{f.focus({preventScroll:true});}catch(e){}},60);}
+    else if(!open&&wasOpen){const p=_ovPrevFocus.get(el);if(p&&document.contains(p))try{p.focus({preventScroll:true});}catch(e){}}
+    wasOpen=open;
+  }).observe(el,{attributes:true,attributeFilter:['style','class']});
+}
+function a11yTagAll(){_overlayList().forEach(a11yTagOverlay);}
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  const open=_overlayList().filter(el=>_ovVisible(el)&&(parseInt(el.style.zIndex,10)||0)<=9999&&getComputedStyle(el).backgroundColor!=='rgb(255, 255, 255)');
+  if(!open.length)return;
+  open.sort((a,b)=>(parseInt(b.style.zIndex,10)||0)-(parseInt(a.style.zIndex,10)||0));
+  const top=open[0];
+  const btn=top.querySelector('[id$="Close"],[id$="Cancel"],[id$="CancelBtn"],[id$="Cancel"],.modal-close');
+  e.preventDefault();
+  if(btn)btn.click();else top.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+});
+a11yTagAll();
+new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(a11yTagOverlay))).observe(document.body,{childList:true});
 
 initAuth();
