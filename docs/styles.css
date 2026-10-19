@@ -743,3 +743,10 @@ input:disabled,textarea:disabled,select:disabled{color:var(--ink-soft);-webkit-t
   caret-color:#161B22;
   transition:background-color 9999s ease-out 0s;
 }
+/* Phase 13: ปุ่ม TH/EN ในหน้า login เป็นพื้นขาวเสมอ (หน้า login บังคับโหมดสว่าง) */
+#authGate .lang-toggle,
+:root[data-theme="dark"] #authGate .lang-toggle{background:#FFFFFF !important;border-color:#D7DCE4 !important}
+#authGate .lang-toggle span,
+:root[data-theme="dark"] #authGate .lang-toggle span{color:#4B5563}
+#authGate .lang-toggle span.on,
+:root[data-theme="dark"] #authGate .lang-toggle span.on{color:#fff;background:var(--accent-fill)}
