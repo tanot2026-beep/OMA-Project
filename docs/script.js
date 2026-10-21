@@ -2081,7 +2081,7 @@ async function generateWordTemplate(){
     console.error('generateWordTemplate error:',err);
   }
 }
-$('#openWordReportBtn').addEventListener('click',generateWordTemplate);
+$('#openWordReportBtn').addEventListener('click',()=>openDocPicker(false));
 if($('#dashRefresh'))$('#dashRefresh').addEventListener('click',async()=>{await loadRecords();toast('Data updated',true);});
 
 if($('#makeReport'))$('#makeReport').addEventListener('click',()=>{
@@ -3039,6 +3039,7 @@ Object.assign(I18N_TH,{'History':'ประวัติ','Created':'สร้า
 Object.assign(I18N_TH,{'Returned:':'ตีกลับ:','Return':'ตีกลับ','Returned':'ตีกลับแล้ว','Return for fixing':'ตีกลับให้แก้ไข','Returned for fixing':'ตีกลับให้แก้ไขแล้ว','Return cancelled':'ยกเลิกการตีกลับแล้ว','Cancel return':'ยกเลิกการตีกลับ','Return to inspector':'ส่งกลับให้ช่าง','Reason (the inspector will see this)':'เหตุผล (ช่างจะเห็นข้อความนี้)','Please enter a reason':'กรุณาใส่เหตุผล','Photo is blurry or dark':'รูปเบลอหรือมืด','Serial number does not match the label':'Serial ไม่ตรงกับป้าย','Missing sticker photo':'ไม่มีรูปสติกเกอร์','Wrong location or equipment':'สถานที่หรืออุปกรณ์ไม่ถูกต้อง','Fixed and resubmitted':'แก้ไขและส่งใหม่แล้ว','This record was returned for fixing':'รายการนี้ถูกตีกลับให้แก้ไข','Fix the problem and tap Save Changes - the return flag clears automatically.':'แก้ไขแล้วกด Save Changes - ป้ายตีกลับจะหายเอง','Returned for fixing':'ตีกลับให้แก้ไข','Filtered by status: Returned for fixing':'กรองตามสถานะ: ตีกลับให้แก้ไข','Show':'แสดง','Photo is too dark':'รูปมืดเกินไป','Photo is too bright':'รูปสว่างเกินไป','Photo may be blurry':'รูปอาจเบลอ','tap the photo to retake it':'แตะที่รูปเพื่อถ่ายใหม่','Read serial from photo':'อ่าน Serial จากรูป','Reading...':'กำลังอ่าน...','Serial from photo':'Serial จากรูป','Serial filled in - please verify it':'ใส่ Serial แล้ว - โปรดตรวจสอบอีกครั้ง','Attach the sticker photo first (a new photo, not an existing saved one)':'แนบรูปสติกเกอร์ก่อน (รูปใหม่ ไม่ใช่รูปที่บันทึกไว้แล้ว)','Could not read the photo (needs an internet connection the first time). Type the serial instead':'อ่านรูปไม่ได้ (ครั้งแรกต้องใช้อินเทอร์เน็ต) กรุณาพิมพ์ Serial เอง','No serial number found in the photo. Retake a closer, sharper photo of the label or type it manually.':'ไม่พบ Serial ในรูป ถ่ายป้ายให้ใกล้และคมชัดขึ้น หรือพิมพ์เอง','Read from the photo':'อ่านได้จากรูป','Nothing in the photo matches a serial in Master data. Retake a closer, sharper photo of the label or select the serial manually.':'ไม่พบข้อความในรูปที่ตรงกับ Serial ใน Master ถ่ายป้ายให้ใกล้และคมชัดขึ้น หรือเลือก Serial เอง','Tap the value that matches the label. Please double-check before using it.':'แตะค่าที่ตรงกับป้าย และตรวจสอบอีกครั้งก่อนใช้','Returned for fixing':'ตีกลับให้แก้ไข'});
 Object.assign(I18N_TH,{'Photos ZIP':'รูปทั้งหมด (ZIP)','Export photos (ZIP)':'Export รูปเป็น ZIP','Create ZIP':'สร้างไฟล์ ZIP','Creating ZIP':'กำลังสร้าง ZIP','Download part':'ดาวน์โหลดส่วนที่','photos':'รูป','photo(s) could not be read and were skipped':'รูปที่อ่านไม่ได้และถูกข้าม','Files are grouped by Project / Location / Sub-location. Links expire after 1 day.':'ไฟล์จัดโฟลเดอร์ตาม Project / Location / Sub-location ลิงก์หมดอายุใน 1 วัน','Done - tap each part to download':'เสร็จแล้ว - แตะแต่ละส่วนเพื่อดาวน์โหลด','No photos found':'ไม่พบรูป','No photos to export in the current list':'ไม่มีรูปให้ export ในรายการปัจจุบัน','No records yet':'ยังไม่มีรายการ','Equipment by Location':'อุปกรณ์ตามสถานที่'});
 Object.assign(I18N_TH,{'Station photo report (Word)':'รายงานรูปรายสถานี (Word)','DOC (Station photos)':'DOC รูปรายสถานี','Period':'ช่วงเวลา','All records in the current list':'ทุกรายการในรายการปัจจุบัน','Report title':'หัวเรื่องรายงาน','Sub-title':'หัวเรื่องรอง','Station title from':'ชื่อสถานีจาก','Location':'สถานที่','Location + Sub-location':'สถานที่ + สถานที่ย่อย','Sub-location':'สถานที่ย่อย','Standard text under each station':'ข้อความมาตรฐานใต้ชื่อสถานี','Date in the station title':'วันที่ในชื่อสถานี','Date and time':'วันที่และเวลา','Date only':'วันที่อย่างเดียว','No date':'ไม่แสดงวันที่','Remember the title and standard text for this project':'จำหัวเรื่องและข้อความมาตรฐานของโปรเจกต์นี้','A record with a Note uses its Note instead of the standard text. You can also edit each station below (this report only).':'รายการที่มี Note จะใช้ Note แทนข้อความมาตรฐาน และแก้รายสถานีด้านล่างได้ (เฉพาะรายงานนี้)','Edit text per station':'แก้ข้อความรายสถานี','stations':'สถานี','with photos':'มีรูป','Create Word report':'สร้างรายงาน Word'});
+Object.assign(I18N_TH,{'DOC (choose layout…)':'DOC (เลือกรูปแบบ…)','Use this layout for these projects from now on':'ใช้รูปแบบนี้กับโครงการเหล่านี้ต่อไป','Which report?':'สร้างรายงานแบบไหน?','Station photo report':'รายงานรูปรายสถานี','Equipment report':'รายงานอุปกรณ์','Monthly report like the Excel template: title, one block per station with date and 4 photos (2x2).':'รายงานรายเดือนแบบเทมเพลต Excel: หัวเรื่อง แต่ละสถานีมีวันที่และรูป 4 รูป (2x2)','With table of contents, grouped by location type and location, one equipment per block.':'มีสารบัญ จัดกลุ่มตามประเภทสถานที่และสถานที่ แต่ละอุปกรณ์หนึ่งบล็อก'});
 Object.assign(I18N_TH,{'Needs attention':'ต้องจัดการ','Pending review':'รอตรวจสอบ','Overdue projects':'โปรเจกต์เลยกำหนด','Due within 14 days':'ใกล้กำหนดใน 14 วัน','Open assignments':'งานมอบหมายที่ค้าง','My open assignments':'งานของฉันที่ค้าง','✓ Nothing needs attention':'✓ ไม่มีรายการที่ต้องจัดการ','Last 7 days':'7 วันที่ผ่านมา','Last 14 days':'14 วันที่ผ่านมา','Last 30 days':'30 วันที่ผ่านมา','Last 60 days':'60 วันที่ผ่านมา','Completion':'ความสำเร็จ','Period:':'ช่วงเวลา:','Show:':'แสดง:','Set due dates':'ตั้งวันครบกำหนด','No due dates set yet. Set a target due date for each project to see the timeline and overdue alerts.':'ยังไม่ได้ตั้งวันครบกำหนด ตั้งวันครบกำหนดให้แต่ละโปรเจกต์เพื่อดู Timeline และแจ้งเตือนเลยกำหนด'});
 Object.assign(I18N_TH,{'ADMIN':'ผู้ดูแลระบบ','MANAGER':'ผู้จัดการ','OBSERVER':'ผู้สังเกตการณ์','LEADER':'หัวหน้า','INSPECTOR':'ผู้ตรวจ','AMR ASIA CO., LTD.':'AMR ASIA CO., LTD.'});
 function i18nLookup(t){let r=I18N_TH[t];if(r!==undefined)return r;for(const[re,fn]of I18N_RE){const m=t.match(re);if(m)return fn(m);}return undefined;}
@@ -3576,6 +3577,33 @@ async function generateStationReport(opt,projects){
   }
 }
 document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('openStationReportBtn');if(b)b.addEventListener('click',openStationReport);});
+
+
+/* ═══ Phase 23: ปุ่ม DOC ถามก่อนว่าจะสร้างรายงานแบบไหน ═══ */
+async function openDocPicker(force){
+  const list=getSavedFilteredList();
+  if(!list.length){toast('No data matches the current filter',false);return;}
+  const projects=uniq(list.map(e=>e.project).filter(Boolean));
+  let info=[];try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)info=r.info||[];}catch(e){}
+  const saved=uniq(projects.map(p=>String((info.find(x=>x.project===p)||{}).reportTemplate||'')));
+  const run=k=>{if(k==='station')openStationReport();else generateWordTemplate();};
+  /* แต่ละโครงการใช้เทมเพลตต่างกัน: ถ้าทุกโครงการในรายการจำค่าไว้ตรงกัน → สร้างเลย (เมนู ⋯ → "DOC (choose layout…)" เปลี่ยนได้) */
+  if(!force&&saved.length===1&&(saved[0]==='station'||saved[0]==='equip')){run(saved[0]);return;}
+  let last='';try{last=(await sGet('docPickLast'))||'';}catch(e){}
+  const {dlg,body,foot}=simpleDlg('docPick',_tx('Which report?'),520);
+  foot.style.display='none';
+  body.innerHTML=`<div class="dp-list">
+    <button type="button" class="dp-opt${last==='station'?' is-last':''}" data-k="station"><b>${esc(_tx('Station photo report'))}</b><span>${esc(_tx('Monthly report like the Excel template: title, one block per station with date and 4 photos (2x2).'))}</span></button>
+    <button type="button" class="dp-opt${last==='equip'?' is-last':''}" data-k="equip"><b>${esc(_tx('Equipment report'))}</b><span>${esc(_tx('With table of contents, grouped by location type and location, one equipment per block.'))}</span></button></div>
+    ${projects.length?`<label class="st-chk" style="padding-bottom:12px"><input type="checkbox" id="dpRemember" checked> ${esc(_tx('Use this layout for these projects from now on'))}</label>`:''}`;
+  body.querySelectorAll('.dp-opt').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k,rem=body.querySelector('#dpRemember');
+    try{sSet('docPickLast',k);}catch(e){}
+    if(rem&&rem.checked)projects.forEach(p=>{api(ACT.saveReportInfo,{row:{project:p,reportTemplate:k}});});
+    dlg.style.display='none';run(k);
+  });
+}
+document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('openDocChooseBtn');if(b)b.addEventListener('click',()=>openDocPicker(true));});
 
 /* ═══ Phase 3: dialog accessibility (Esc to close, focus in/out, role=dialog) ═══ */
 function _isOverlay(el){return el&&el.nodeType===1&&el.style&&el.style.position==='fixed'&&/inset:\s*0/.test(el.getAttribute('style')||'')&&el.id!=='warpOverlay'&&el.id!=='authGate';}
