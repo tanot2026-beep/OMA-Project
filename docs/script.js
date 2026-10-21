@@ -225,7 +225,7 @@ const PDPA_VERSION = '1.0';
 const DRIVE_THUMB = 'https:\x2f\x2fdrive.google.com/thumbnail?id=';
 const ACT = {
   login:'login', verifyToken:'verifyToken', pdpaStatus:'getPdpaStatus', pdpaAccept:'acceptPdpa',
-  createRecord:'createRecord', listRecords:'listRecords', deleteRecord:'deleteRecord', restoreRecord:'restoreRecord', listTrash:'listTrash', purgeTrash:'purgeTrash', confirmRecordReviewed:'confirmRecordReviewed',
+  createRecord:'createRecord', listRecords:'listRecords', deleteRecord:'deleteRecord', restoreRecord:'restoreRecord', listRecordHistory:'listRecordHistory', listTrash:'listTrash', purgeTrash:'purgeTrash', confirmRecordReviewed:'confirmRecordReviewed', returnRecord:'returnRecord', exportPhotosZip:'exportPhotosZip', listReportInfo:'listReportInfo', saveReportInfo:'saveReportInfo',
   createUser:'createUser', bulkCreateUsers:'bulkCreateUsers', listUsers:'listUsers',
   saveMaster:'saveMaster', masterUpsert:'masterUpsert', masterDelete:'masterDelete', masterImport:'masterImport', listMaster:'listMaster', getProgress:'getProgress',
   saveAssignment:'saveAssignment', listAssignments:'listAssignments', completeAssignment:'completeAssignment',
@@ -276,9 +276,10 @@ const LIB_SRC={
   xlsx:'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   docx:'https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js',
   html2pdf:'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
-  qrscan:'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js'
+  qrscan:'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js',
+  tesseract:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'
 };
-const LIB_READY={xlsx:()=>typeof XLSX!=='undefined',docx:()=>typeof docx!=='undefined',html2pdf:()=>typeof html2pdf!=='undefined',qrscan:()=>typeof Html5Qrcode!=='undefined'};
+const LIB_READY={xlsx:()=>typeof XLSX!=='undefined',docx:()=>typeof docx!=='undefined',html2pdf:()=>typeof html2pdf!=='undefined',qrscan:()=>typeof Html5Qrcode!=='undefined',tesseract:()=>typeof Tesseract!=='undefined'};
 const _libP={};
 // โหลดไลบรารีหนักเมื่อต้องใช้จริง (ครั้งแรกเท่านั้น) — ทำให้หน้าแรกเปิดเร็วขึ้นมาก
 function loadLib(k){
@@ -337,6 +338,7 @@ async function doLogin(){
 }
 function doLogout(){clearSession();$('#userChip').style.display='none';$('#logoutBtn').style.display='none';$('#authUser').value='';$('#authPass').value='';hidePdpa();showGate();}
 async function afterLogin(){
+  try{oqLoad().then(()=>oqSync(false));}catch(e){}
   // แสดงข้อมูลที่แคชไว้ในเครื่องทันที แล้วเรียกเซิร์ฟเวอร์ทุกอย่าง "พร้อมกัน" (เดิมเรียกต่อกัน 2 รอบ ~2 วินาที/ครั้ง)
   await loadAll();
   const repaintMaster=async()=>{await loadMasterFromBackend();buildCombos();buildInspectorCombo();refreshDerived();renderMaster();};
@@ -382,6 +384,7 @@ function applyRoleVisibility(){
   document.body.classList.toggle('can-records',hasPagePerm('records'));
   document.body.classList.toggle('readonly',!edit);
   document.body.classList.toggle('is-admin',(AUTH.user&&AUTH.user.role)==='admin');
+  document.body.dataset.role=(AUTH.user&&AUTH.user.role)||'';
   document.body.classList.toggle('can-pdf',canPdf());
   document.body.classList.toggle('can-word-report',['admin','manager','leader'].includes(AUTH.user&&AUTH.user.role));
   document.body.classList.toggle('can-qr',hasPagePerm('qrScan'));
@@ -492,7 +495,7 @@ function buildCombos(){
   });
   setDisabledStates();
 }
-function choose(level,val){val=String(val||'').trim();if(sel[level]===val){combos[level].input.value=val;combos[level].el.classList.toggle('has-val',!!val);combos[level].el.classList.remove('open');return;}sel[level]=val;combos[level].input.value=val;combos[level].el.classList.toggle('has-val',!!val);combos[level].el.classList.remove('open');const idx=LEVELS.indexOf(level);for(let i=idx+1;i<LEVELS.length;i++){const lv=LEVELS[i];sel[lv]='';if(combos[lv]){combos[lv].input.value='';combos[lv].el.classList.remove('has-val');}}setDisabledStates();updateBrandModel();if(level==='equip'&&val){setTimeout(()=>{const s=optionsFor('serial');if(s.length===1&&!sel.serial)choose('serial',s[0]);},50);}}
+function choose(level,val){try{setTimeout(checkSerialWarn,0);}catch(e){}val=String(val||'').trim();if(sel[level]===val){combos[level].input.value=val;combos[level].el.classList.toggle('has-val',!!val);combos[level].el.classList.remove('open');return;}sel[level]=val;combos[level].input.value=val;combos[level].el.classList.toggle('has-val',!!val);combos[level].el.classList.remove('open');const idx=LEVELS.indexOf(level);for(let i=idx+1;i<LEVELS.length;i++){const lv=LEVELS[i];sel[lv]='';if(combos[lv]){combos[lv].input.value='';combos[lv].el.classList.remove('has-val');}}setDisabledStates();updateBrandModel();if(level==='equip'&&val){setTimeout(()=>{const s=optionsFor('serial');if(s.length===1&&!sel.serial)choose('serial',s[0]);},50);}}
 function setDisabledStates(){
   const REQUIRED_ANCESTOR={project:null,system:'project',typeloc:'project',loc:'project',sub:'loc',equip:'loc',serial:'equip'};
   LEVELS.forEach((lv)=>{
@@ -608,7 +611,7 @@ function wireImg(inputId,dropId,setter){$('#'+inputId).addEventListener('change'
   const lbl=$('#'+dropId);imgBusy++;lbl.classList.add('img-busy');
   try{
     const data=await compressImage(f);
-    setter(data);lbl.classList.add('has-img');lbl.style.backgroundImage=`url(${data})`;const ph=lbl.querySelector('.ph-content');if(ph)ph.style.display='none';
+    setter(data);try{showPhotoQuality(lbl,await photoQuality(data));}catch(e){}lbl.classList.add('has-img');lbl.style.backgroundImage=`url(${data})`;const ph=lbl.querySelector('.ph-content');if(ph)ph.style.display='none';
   }catch(err){
     e.target.value='';toast('Could not read this photo. Please try another image (JPG or PNG)',false);
   }finally{imgBusy--;lbl.classList.remove('img-busy');}
@@ -645,26 +648,31 @@ $('#saveBtn').addEventListener('click',async()=>{
   if(imgBusy>0){toast('A photo is still being processed, please wait a moment',false);return;}
   if(!imgMain&&!imgSticker){toast('Please attach at least one photo',false);return;}
   if(!insp){toast('Please enter the inspector name',false);return;}
+  if(localSerialDup(sel.serial,editingId)){checkSerialWarn();toast('This serial number is already recorded - edit the existing record instead',false);return;}
   const btn=$('#saveBtn');btn.disabled=true;btn.textContent='Saving...';
   const newFields=detectNewFields();
   const e={id:editingId||uid(),project:sel.project,system:sel.system,typeLocation:sel.typeloc,locName:sel.loc,subName:sel.sub,equipment:sel.equip,serial:String(sel.serial||'').trim(),brand:$('#inpBrand').value.trim(),model:$('#inpModel').value.trim(),asset:cleanName($('#inpAsset').value),inspector:insp,note:$('#inpNote').value.trim(),imgMain,imgSticker,img3,img4,pendingReview:newFields.length>0,newFields:newFields.join(', '),createdAt:editingId?(entries.find(x=>x.id===editingId)?.createdAt||Date.now()):Date.now()};
-  let synced=false,errMsg='';
-  if(AUTH.token){const mb=((e.imgMain||'').length+(e.imgSticker||'').length+(e.img3||'').length+(e.img4||'').length)*0.75/1048576;btn.textContent='Uploading'+(mb>0.05?' ('+mb.toFixed(1)+' MB)':'')+'...';const payload={record:{id:e.id,project:e.project,system:e.system,typeLocation:e.typeLocation,location:e.locName,sublocation:e.subName,equipment:e.equipment,serial:e.serial,brand:e.brand,model:e.model,asset:e.asset,inspector:e.inspector,note:e.note,createdAt:e.createdAt,pendingReview:e.pendingReview?'true':'',newFields:e.newFields||''},images:{main:e.imgMain||'',sticker:e.imgSticker||'',img3:e.img3||'',img4:e.img4||''}};let r=await api(ACT.createRecord,payload);if(r&&r.error==='NETWORK'){btn.textContent='Connection lost, retrying...';await new Promise(z=>setTimeout(z,1500));r=await api(ACT.createRecord,payload);}synced=!!(r&&r.ok);errMsg=(r&&r.message)||'';}
+  let synced=false,errMsg='',queued=false;
+  if(AUTH.token){const mb=((e.imgMain||'').length+(e.imgSticker||'').length+(e.img3||'').length+(e.img4||'').length)*0.75/1048576;btn.textContent='Uploading'+(mb>0.05?' ('+mb.toFixed(1)+' MB)':'')+'...';const payload={record:{id:e.id,project:e.project,system:e.system,typeLocation:e.typeLocation,location:e.locName,sublocation:e.subName,equipment:e.equipment,serial:e.serial,brand:e.brand,model:e.model,asset:e.asset,inspector:e.inspector,note:e.note,createdAt:e.createdAt,pendingReview:e.pendingReview?'true':'',newFields:e.newFields||''},images:{main:e.imgMain||'',sticker:e.imgSticker||'',img3:e.img3||'',img4:e.img4||''}};let r=navigator.onLine?await api(ACT.createRecord,payload):{ok:false,error:'NETWORK'};if(r&&r.error==='NETWORK'&&navigator.onLine){btn.textContent='Connection lost, retrying...';await new Promise(z=>setTimeout(z,1500));r=await api(ACT.createRecord,payload);}if(r&&r.error==='NETWORK'){queued=await oqEnqueue(payload);}synced=!!(r&&r.ok);errMsg=(r&&r.message)||'';}
   btn.disabled=false;btn.textContent='Save Record';
   if(synced){
     resetForm();refreshDerived();updateStats();
     toast(editingId?'Edited & uploaded to server':'Saved & uploaded to server',true);
     editingId=null;goTab('saved');
     await loadRecords();
+  }else if(queued){
+    resetForm();refreshDerived();updateStats();
+    toast('No connection - saved on this device. It will upload automatically when you are back online.',true);
+    editingId=null;goTab('saved');
   }else{
 
     toast(errMsg||'Save failed, please try again',false);
   }
 });
 $('#resetBtn').addEventListener('click',resetForm);
-function resetForm(){imgMain='';imgSticker='';editingId=null;img3='';img4='';['fileMain','fileSticker','fileImg3','fileImg4'].forEach(id=>$('#'+id).value='');['dropMain','dropSticker','dropImg3','dropImg4'].forEach(id=>{const l=$('#'+id);l.classList.remove('has-img');l.style.backgroundImage='';const ph=l.querySelector('.ph-content');if(ph)ph.style.display='';});['inpInspector','inpAsset','inpNote'].forEach(id=>$('#'+id).value='');$('#inspCombo').classList.remove('has-val');syncComboVal('inpAsset');LEVELS.forEach(lv=>{sel[lv]='';if(combos[lv]){combos[lv].input.value='';combos[lv].el.classList.remove('has-val');}});setDisabledStates();updateBrandModel();const role=AUTH.user?.role||'';const userProjs=(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean);if(role==='leader'||role==='inspector'){$('#inpInspector').value=cleanName(AUTH.user?.name||AUTH.user?.username||'');$('#inpInspector').disabled=true;$('#inspCombo').classList.add('has-val');$('#inspCombo').style.background='#EEF1F4';if(userProjs.length===1){setTimeout(()=>choose('project',userProjs[0]),50);if(combos.project){combos.project.input.disabled=true;combos.project.el.style.background='#EEF1F4';}}}else{$('#inpInspector').disabled=false;$('#inspCombo').style.background='';if(role&&role!=='admin'){const n=cleanName(AUTH.user?.name||AUTH.user?.username||'');if(n){$('#inpInspector').value=n;$('#inspCombo').classList.add('has-val');}}if(combos.project){combos.project.input.disabled=false;combos.project.el.style.background='';}}$('#addTitle').textContent='Add New Record';$('#saveBtn').textContent='Save Record';}
+function resetForm(){try{setTimeout(checkSerialWarn,0);}catch(e){}imgMain='';imgSticker='';editingId=null;img3='';img4='';['fileMain','fileSticker','fileImg3','fileImg4'].forEach(id=>$('#'+id).value='');['dropMain','dropSticker','dropImg3','dropImg4'].forEach(id=>{const l=$('#'+id);l.classList.remove('has-img');l.style.backgroundImage='';const ph=l.querySelector('.ph-content');if(ph)ph.style.display='';});['inpInspector','inpAsset','inpNote'].forEach(id=>$('#'+id).value='');$('#inspCombo').classList.remove('has-val');syncComboVal('inpAsset');LEVELS.forEach(lv=>{sel[lv]='';if(combos[lv]){combos[lv].input.value='';combos[lv].el.classList.remove('has-val');}});setDisabledStates();updateBrandModel();const role=AUTH.user?.role||'';const userProjs=(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean);if(role==='leader'||role==='inspector'){$('#inpInspector').value=cleanName(AUTH.user?.name||AUTH.user?.username||'');$('#inpInspector').disabled=true;$('#inspCombo').classList.add('has-val');$('#inspCombo').style.background='#EEF1F4';if(userProjs.length===1){setTimeout(()=>choose('project',userProjs[0]),50);if(combos.project){combos.project.input.disabled=true;combos.project.el.style.background='#EEF1F4';}}}else{$('#inpInspector').disabled=false;$('#inspCombo').style.background='';if(role&&role!=='admin'){const n=cleanName(AUTH.user?.name||AUTH.user?.username||'');if(n){$('#inpInspector').value=n;$('#inspCombo').classList.add('has-val');}}if(combos.project){combos.project.input.disabled=false;combos.project.el.style.background='';}}$('#addTitle').textContent='Add New Record';$('#saveBtn').textContent='Save Record';paintReturnBanner(null);clearPhotoQuality();}
 
-async function loadRecords(){if(!AUTH.token)return;const r=await api(ACT.listRecords,{});if(r&&r.ok&&Array.isArray(r.records)){entries=r.records.map(x=>({id:x.id,project:x.project,system:x.system,typeLocation:x.typeLocation,locName:x.location,subName:x.sublocation,equipment:x.equipment,serial:x.serial,brand:x.brand,model:x.model,asset:x.asset,inspector:x.inspector,note:x.note,imgMain:x.imgMain,imgSticker:x.imgSticker,img3:x.img3,img4:x.img4,thumbMain:x.thumbMain,thumbSticker:x.thumbSticker,thumb3:x.thumb3,thumb4:x.thumb4,pendingReview:!!x.pendingReview,newFields:x.newFields||'',createdAt:x.createdAt||Date.now(),synced:true}));entries.sort((a,b)=>b.createdAt-a.createdAt);renderSaved();updateStats();renderDashboard();}}
+async function loadRecords(){if(!AUTH.token)return;const r=await api(ACT.listRecords,{});if(r&&r.ok&&Array.isArray(r.records)){entries=r.records.map(x=>({id:x.id,project:x.project,system:x.system,typeLocation:x.typeLocation,locName:x.location,subName:x.sublocation,equipment:x.equipment,serial:x.serial,brand:x.brand,model:x.model,asset:x.asset,inspector:x.inspector,note:x.note,imgMain:x.imgMain,imgSticker:x.imgSticker,img3:x.img3,img4:x.img4,thumbMain:x.thumbMain,thumbSticker:x.thumbSticker,thumb3:x.thumb3,thumb4:x.thumb4,pendingReview:!!x.pendingReview,newFields:x.newFields||'',returnReason:x.returnReason||'',returnedBy:x.returnedBy||'',returnedAt:x.returnedAt||0,createdAt:x.createdAt||Date.now(),synced:true}));entries.sort((a,b)=>b.createdAt-a.createdAt);renderSaved();updateStats();renderDashboard();}}
 
 $('#savedSearch').addEventListener('input',renderSaved);
 {const tb=document.getElementById('openTrashBtn');if(tb)tb.addEventListener('click',openTrash);}
@@ -724,8 +732,9 @@ function getSavedFilteredList(){
   if(feq)list=list.filter(e=>e.equipment===feq);
   if(pendingOnly)list=list.filter(e=>e.pendingReview);
   if(recordsDateFilter)list=list.filter(e=>dateKeyOf(e.createdAt)===recordsDateFilter);
-  if(recordsStatusFilter==='pending')list=list.filter(e=>e.pendingReview);
-  else if(recordsStatusFilter==='confirmed')list=list.filter(e=>!e.pendingReview);
+  if(recordsStatusFilter==='pending')list=list.filter(e=>e.pendingReview&&!e.returnReason);
+  else if(recordsStatusFilter==='confirmed')list=list.filter(e=>!e.pendingReview&&!e.returnReason);
+  else if(recordsStatusFilter==='returned')list=list.filter(e=>e.returnReason);
   if(sortVal==='newest')list.sort((a,b)=>b.createdAt-a.createdAt);
   else if(sortVal==='oldest')list.sort((a,b)=>a.createdAt-b.createdAt);
   else if(sortVal==='az')list.sort((a,b)=>(a.equipment||'').localeCompare(b.equipment||''));
@@ -770,7 +779,7 @@ function updateChartFilterChip(){
     const [y,m,d]=recordsDateFilter.split('-');
     chip.style.display='flex';chip.innerHTML=`Filtered by date: ${d}/${m}/${y} &times;`;
   }else if(recordsStatusFilter){
-    chip.style.display='flex';chip.innerHTML=`Filtered by status: ${recordsStatusFilter==='pending'?'Pending Review':'Confirmed'} &times;`;
+    chip.style.display='flex';chip.innerHTML=`Filtered by status: ${recordsStatusFilter==='pending'?'Pending Review':recordsStatusFilter==='returned'?'Returned for fixing':'Confirmed'} &times;`;
   }else{
     chip.style.display='none';
   }
@@ -779,6 +788,7 @@ const SAVED_PAGE=60;let savedShown=SAVED_PAGE,_savedSig='';
 function renderSaved(){
   fillSavedFilters();
   {const tb=document.getElementById('openTrashBtn');if(tb)tb.style.display=canDelete()?'':'none';}
+  {const zb=document.getElementById('exportZipBtn');if(zb)zb.style.display=['admin','manager','leader'].includes((AUTH.user&&AUTH.user.role)||'')?'':'none';}
   ensurePendingFilterUI();
   ensureChartFilterChip();
   updateChartFilterChip();
@@ -788,21 +798,23 @@ function renderSaved(){
   const cntEl=$('#savedFPendingCount');
   if(cntEl){cntEl.textContent=pendingCount;cntEl.style.display=pendingCount?'':'none';}
   const canConfirm=AUTH.user&&(AUTH.user.role==='admin'||AUTH.user.role==='manager');
+  const canReturn=!!(AUTH.user&&['admin','manager','leader'].includes(AUTH.user.role));
   const grid=$('#savedGrid');
   if(!list.length){grid.innerHTML=`<div class="empty"><b>${entries.length?'No records match the condition':'No records yet'}</b></div>`;return;}
   const sig=[$('#savedSearch').value,...['savedFProject','savedFSystem','savedFLoc','savedFSub','savedFEquip','savedSort'].map(id=>document.getElementById(id)?.value||''),recordsDateFilter,recordsStatusFilter,!!$('#savedFPending')?.checked].join('|');
   if(sig!==_savedSig){_savedSig=sig;savedShown=SAVED_PAGE;}
-  const fullList=list;list=fullList.slice(0,savedShown);
-  grid.innerHTML=list.map(e=>{const thumb=driveViewUrl(e.thumbMain||e.thumbSticker||e.imgMain||e.imgSticker||'',300);const n=(e.imgMain?1:0)+(e.imgSticker?1:0);const title=esc([e.equipment,e.brand,e.model].filter(Boolean).join(' · '))||'(Equipment not specified)';const loc=esc([e.project,e.locName,e.subName].filter(Boolean).join(' › '));const pendingBadge=e.pendingReview?`<div class="loc" style="color:var(--warn-text);font-weight:600">Pending Review${e.newFields?': '+esc(e.newFields):''}</div>`:'';return `<div class="rrow" data-id="${e.id}"><div class="thumb" style="background-image:url(${thumb})">${n?`<span class="cnt">${n} photos</span>`:''}</div><div class="body"><div class="tt">${title}</div>${loc?`<div class="loc">${loc}</div>`:''}${pendingBadge}<div class="meta"><span>${esc(e.inspector||'-')}</span>${e.serial?`<span>SN: ${esc(e.serial)}</span>`:''}<span>${fmtDate(e.createdAt,true)}</span></div></div><div class="acts">${canEdit()?'<button data-act="edit">Edit</button>':''}<button data-act="img">Photos</button>${e.pendingReview&&canConfirm?'<button data-act="confirm" style="color:var(--warn-text)">Confirmed</button>':''}${canDelete()?'<button data-act="del" class="del">Delete</button>':''}</div></div>`;}).join('')+(fullList.length>list.length?`<div style="text-align:center;padding:14px"><button class="ghost-btn" id="savedLoadMore">Load more (${list.length}/${fullList.length})</button></div>`:`<div style="text-align:center;padding:10px;color:var(--ink-faint);font-size:12.5px">Showing all ${fullList.length} records</div>`);
+  const fullList=list;lastSavedList=fullList;list=fullList.slice(0,savedShown);
+  grid.innerHTML=list.map(e=>{const thumb=driveViewUrl(e.thumbMain||e.thumbSticker||e.imgMain||e.imgSticker||'',300);const n=(e.imgMain?1:0)+(e.imgSticker?1:0);const title=esc([e.equipment,e.brand,e.model].filter(Boolean).join(' · '))||'(Equipment not specified)';const loc=esc([e.project,e.locName,e.subName].filter(Boolean).join(' › '));const pendingBadge=e.pendingReview?`<div class="loc" style="color:var(--warn-text);font-weight:600">Pending Review${e.newFields?': '+esc(e.newFields):''}</div>`:'';const retBadge=e.returnReason?`<div class="loc rr-ret"><label class="rr-ret-lbl">Returned:</label> ${esc(e.returnReason)}${e.returnedBy?` <span class="rr-ret-by">(${esc(e.returnedBy)})</span>`:''}</div>`:'';return `<div class="rrow${e.returnReason?' is-returned':''}" data-id="${e.id}"><div class="thumb" style="background-image:url(${thumb})">${n?`<span class="cnt">${n} photos</span>`:''}</div><div class="body"><div class="tt">${title}</div>${loc?`<div class="loc">${loc}</div>`:''}${pendingBadge}${retBadge}<div class="meta"><span>${esc(e.inspector||'-')}</span>${e.serial?`<span>SN: ${esc(e.serial)}</span>`:''}<span>${fmtDate(e.createdAt,true)}</span>${['admin','manager','leader'].includes((AUTH.user&&AUTH.user.role)||'')?'<button type="button" class="rr-hist" data-act="hist">History</button>':''}</div></div><div class="acts">${canEdit()?'<button data-act="edit">Edit</button>':''}<button data-act="img">Photos</button>${canReturn?`<button data-act="ret">${e.returnReason?'Returned':'Return'}</button>`:''}${e.pendingReview&&canConfirm?'<button data-act="confirm" style="color:var(--warn-text)">Confirmed</button>':''}${canDelete()?'<button data-act="del" class="del">Delete</button>':''}</div></div>`;}).join('')+(fullList.length>list.length?`<div style="text-align:center;padding:14px"><button class="ghost-btn" id="savedLoadMore">Load more (${list.length}/${fullList.length})</button></div>`:`<div style="text-align:center;padding:10px;color:var(--ink-faint);font-size:12.5px">Showing all ${fullList.length} records</div>`);
+  paintReturnedBanner();
   const lmBtn=$('#savedLoadMore');if(lmBtn)lmBtn.onclick=()=>{savedShown+=SAVED_PAGE;renderSaved();};
-  grid.querySelectorAll('.rrow').forEach(c=>{const id=c.dataset.id;const be=c.querySelector('[data-act="edit"]');if(be)be.onclick=()=>editEntry(id);c.querySelector('[data-act="img"]').onclick=()=>viewImgs(id);const bc=c.querySelector('[data-act="confirm"]');if(bc)bc.onclick=()=>confirmRecordReviewed(id);const bd=c.querySelector('[data-act="del"]');if(bd)bd.onclick=()=>delEntry(id);});
+  grid.querySelectorAll('.rrow').forEach(c=>{const id=c.dataset.id;const be=c.querySelector('[data-act="edit"]');if(be)be.onclick=()=>editEntry(id);c.querySelector('[data-act="img"]').onclick=()=>viewImgs(id);const bc=c.querySelector('[data-act="confirm"]');if(bc)bc.onclick=()=>confirmRecordReviewed(id);const bd=c.querySelector('[data-act="del"]');if(bd)bd.onclick=()=>delEntry(id);const br=c.querySelector('[data-act="ret"]');if(br)br.onclick=()=>openReturnDlg(id);const bh=c.querySelector('[data-act="hist"]');if(bh)bh.onclick=ev=>{ev.stopPropagation();openHistory(id);};});
 }
 async function confirmRecordReviewed(id){
   const r=await api(ACT.confirmRecordReviewed,{id});
   if(r&&r.ok){toast('Confirmed',true);await loadRecords();}
   else toast((r&&r.message)||'Confirmation failed',false);
 }
-function editEntry(id){const e=entries.find(x=>x.id===id);if(!e)return;resetForm();editingId=id;imgMain=e.imgMain||'';imgSticker=e.imgSticker||'';img3=e.img3||'';img4=e.img4||'';setImgPreview('dropMain',e.thumbMain||e.imgMain);setImgPreview('dropSticker',e.thumbSticker||e.imgSticker);setImgPreview('dropImg3',e.thumb3||e.img3);setImgPreview('dropImg4',e.thumb4||e.img4);choose('project',e.project||'');choose('system',e.system||'');choose('loc',e.locName||'');choose('sub',e.subName||'');choose('equip',e.equipment||'');choose('serial',e.serial||'');if($('#inpBrand'))$('#inpBrand').value=e.brand||'';if($('#inpModel'))$('#inpModel').value=e.model||'';$('#inpAsset').value=e.asset||'';syncComboVal('inpAsset');$('#inpInspector').value=e.inspector||'';$('#inspCombo').classList.toggle('has-val',!!e.inspector);$('#inpNote').value=e.note||'';$('#addTitle').textContent='Edit Record';$('#saveBtn').textContent='Save Changes';goTab('add');window.scrollTo(0,0);}
+function editEntry(id){const e=entries.find(x=>x.id===id);if(!e)return;resetForm();editingId=id;imgMain=e.imgMain||'';imgSticker=e.imgSticker||'';img3=e.img3||'';img4=e.img4||'';setImgPreview('dropMain',e.thumbMain||e.imgMain);setImgPreview('dropSticker',e.thumbSticker||e.imgSticker);setImgPreview('dropImg3',e.thumb3||e.img3);setImgPreview('dropImg4',e.thumb4||e.img4);choose('project',e.project||'');choose('system',e.system||'');choose('loc',e.locName||'');choose('sub',e.subName||'');choose('equip',e.equipment||'');choose('serial',e.serial||'');if($('#inpBrand'))$('#inpBrand').value=e.brand||'';if($('#inpModel'))$('#inpModel').value=e.model||'';$('#inpAsset').value=e.asset||'';syncComboVal('inpAsset');$('#inpInspector').value=e.inspector||'';$('#inspCombo').classList.toggle('has-val',!!e.inspector);$('#inpNote').value=e.note||'';$('#addTitle').textContent='Edit Record';$('#saveBtn').textContent='Save Changes';paintReturnBanner(e);goTab('add');window.scrollTo(0,0);}
 function delEntry(id){confirmDlg('Delete this record? Its photos are moved to the _Trash folder and you can undo this.','Delete',async()=>{if(AUTH.token){const r=await api(ACT.deleteRecord,{id});if(r&&r.ok){await loadRecords();loadProgress();toast('Record deleted',true,{label:'Undo',ms:10000,fn:()=>restoreFromTrash(id)});}else toast((r&&r.message)||'Delete failed',false);}});}
 async function restoreFromTrash(id){const r=await api(ACT.restoreRecord,{id});if(r&&r.ok){await loadRecords();loadProgress();toast('Record restored',true);return true;}toast((r&&r.message)||'Restore failed',false);return false;}
 function openTrash(){
@@ -1026,17 +1038,64 @@ function viewImgs(id){
 }
 
 let progressCache=[];
-async function loadProgress(){if(!AUTH.token)return;const r=await api(ACT.getProgress,{});if(r&&r.ok&&Array.isArray(r.progress)){progressCache=r.progress;renderSavedProgress();try{renderProgress();}catch(e){}renderOverviewDash();renderLeaderDashboard();}}
+async function loadProgress(){if(!AUTH.token)return;const r=await api(ACT.getProgress,{});if(r&&r.ok&&Array.isArray(r.progress)){progressCache=r.progress;renderSavedProgress();try{renderProgress();}catch(e){}renderOverviewDash();renderLeaderDashboard();refreshDashSoon();}}
 document.addEventListener('DOMContentLoaded',()=>{const df=$('#dashMainFilter');if(df)df.addEventListener('change',renderDashboard);});
 
-function renderDashboard(){if(!canSeeDashboard())return;const role=(AUTH.user&&AUTH.user.role)||'';const leaderProjs=(role==='leader')?(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean):[];const baseEntries=(role==='leader'&&leaderProjs.length>0)?entries.filter(e=>leaderProjs.includes(e.project)):entries;let withImg=0,days={};baseEntries.forEach(e=>{if(e.imgMain||e.imgSticker)withImg++;const d=new Date(e.createdAt);const key=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;days[key]=(days[key]||0)+1;});const total=baseEntries.length;const projCount=uniq(baseEntries.map(e=>e.project)).filter(Boolean).length;const td=new Date();const tkey=`${td.getFullYear()}-${pad(td.getMonth()+1)}-${pad(td.getDate())}`;const todayN=days[tkey]||0;
+function renderDashboard(){if(!canSeeDashboard())return;const role=(AUTH.user&&AUTH.user.role)||'';const leaderProjs=(role==='leader')?(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean):[];const baseAll=(role==='leader'&&leaderProjs.length>0)?entries.filter(e=>leaderProjs.includes(e.project)):entries;const _pk=($('#dashMainFilter')||{}).value;const baseEntries=(_pk&&_pk!=='__all')?baseAll.filter(e=>e.project===_pk):baseAll;let withImg=0,days={};baseEntries.forEach(e=>{if(e.imgMain||e.imgSticker)withImg++;const d=new Date(e.createdAt);const key=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;days[key]=(days[key]||0)+1;});const total=baseEntries.length;const projCount=uniq(baseEntries.map(e=>e.project)).filter(Boolean).length;const td=new Date();const tkey=`${td.getFullYear()}-${pad(td.getMonth()+1)}-${pad(td.getDate())}`;const todayN=days[tkey]||0;
+const wk0=new Date();wk0.setHours(0,0,0,0);wk0.setDate(wk0.getDate()-6);const last7=baseEntries.filter(e=>e.createdAt>=wk0.getTime()).length;
+const _pl=progressCache.filter(p=>(!_pk||_pk==='__all'||p.project===_pk)&&(!leaderProjs.length||leaderProjs.includes(p.project)));const _pt=_pl.reduce((a,p)=>a+p.total,0),_pd=_pl.reduce((a,p)=>a+p.done,0);const complPct=_pt?Math.round(_pd/_pt*100)+'%':'—';
 $('#kpiRow').innerHTML=[
   {lbl:'Total Records',n:total,color:'var(--c-red)'},
-  {lbl:'Projects',n:projCount,color:'var(--c-blue)'},
   {lbl:'Today',n:todayN,color:'var(--c-green)'},
-  {lbl:'With Photos',n:withImg,color:'var(--c-amber)'},
+  {lbl:'Last 7 days',n:last7,color:'var(--c-blue)'},
+  {lbl:'Completion',n:complPct,color:'var(--c-amber)'},
 ].map(k=>`<div class="kpi" style="border-left:4px solid ${k.color}"><div class="k-lbl">${k.lbl}</div><div class="k-num" style="color:${k.color}">${k.n}</div></div>`).join('');
-const allProjs=uniq(baseEntries.map(e=>e.project)).filter(Boolean).sort();const df=$('#dashMainFilter');if(df){const cur=df.value;df.innerHTML='<option value="__all">All Projects</option>'+allProjs.map(p=>`<option value="${escAttr(p)}">${esc(p)}</option>`).join('');df.value=cur;}try{renderProgress();}catch(e){}renderOverviewDash();renderLeaderDashboard();renderStatusDonut(baseEntries);renderDailyChart(baseEntries);const baseMaster=(role==='leader'&&leaderProjs.length>0)?master.filter(m=>leaderProjs.includes(m.project)):master;fillDashEquipLocFilter(baseMaster);renderDashEquipTable(baseMaster);renderGanttChart();}
+const allProjs=uniq(baseAll.map(e=>e.project)).filter(Boolean).sort();const df=$('#dashMainFilter');if(df){const cur=df.value;df.innerHTML='<option value="__all">All Projects</option>'+allProjs.map(p=>`<option value="${escAttr(p)}">${esc(p)}</option>`).join('');df.value=cur;}try{renderProgress();}catch(e){}try{renderActionBar(baseEntries);}catch(e){}renderOverviewDash();renderLeaderDashboard();renderStatusDonut(baseEntries);renderDailyChart(baseEntries);const baseMaster=(role==='leader'&&leaderProjs.length>0)?master.filter(m=>leaderProjs.includes(m.project)):master;fillDashEquipLocFilter(baseMaster);renderDashEquipTable(baseMaster);renderGanttChart();}
+
+/* ─── Phase 14: แถบ "ต้องจัดการ" + ช่วงเวลา ─── */
+let dashRangeDays=14;
+try{const _v=parseInt(localStorage.getItem('oma_dash_range'),10);if([7,14,30,60].includes(_v))dashRangeDays=_v;}catch(e){}
+let _dashSoonT=null;
+function refreshDashSoon(){clearTimeout(_dashSoonT);_dashSoonT=setTimeout(()=>{try{if(AUTH&&AUTH.token&&typeof canSeeDashboard==='function'&&canSeeDashboard())renderDashboard();}catch(e){}},80);}
+function dashOverdueInfo(pick,leaderProjs){
+  const done={};progressCache.forEach(p=>{done[p.project]=p.total>0&&p.done>=p.total;});
+  let overdue=0,soon=0,any=0;
+  targetsCache.filter(t=>t.username==='__project__'&&t.deadline&&(!pick||pick==='__all'||t.project===pick)&&(!leaderProjs.length||leaderProjs.includes(t.project))).forEach(t=>{
+    any++;if(done[t.project])return;
+    const d=Math.ceil((new Date(t.deadline).getTime()-Date.now())/86400000);
+    if(d<0)overdue++;else if(d<=14)soon++;
+  });
+  return {overdue,soon,any};
+}
+function renderActionBar(base){
+  const bar=$('#actionBar');if(!bar)return;
+  const role=(AUTH.user&&AUTH.user.role)||'',me=AUTH.user?.username||'';
+  const leaderProjs=(role==='leader')?(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean):[];
+  const pick=($('#dashMainFilter')||{}).value;
+  const pending=base.filter(e=>e.pendingReview).length;
+  const od=dashOverdueInfo(pick,leaderProjs);
+  const open=assignments.filter(a=>a.status==='pending'&&(!pick||pick==='__all'||a.project===pick)&&(role==='inspector'?a.assignedTo===me:(role==='leader'&&leaderProjs.length?leaderProjs.includes(a.project):true))).length;
+  const chips=[
+    {k:'pending',n:pending,cls:'t-warn',lbl:'Pending review'},
+    {k:'overdue',n:od.overdue,cls:'t-danger',lbl:'Overdue projects'},
+    {k:'soon',n:od.soon,cls:'t-warn',lbl:'Due within 14 days'},
+    {k:'open',n:open,cls:'t-info',lbl:role==='inspector'?'My open assignments':'Open assignments'}
+  ].filter(c=>c.n>0);
+  bar.innerHTML=chips.length?chips.map(c=>`<button type="button" class="act-chip ${c.cls}" data-act="${c.k}"><b>${c.n}</b><span>${c.lbl}</span></button>`).join(''):`<span class="act-ok">✓ Nothing needs attention</span>`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('#actionBar .act-chip');if(!b)return;
+  const k=b.dataset.act;
+  const scrollTo=id=>{const el=document.getElementById(id);if(el&&el.offsetParent!==null)el.scrollIntoView({behavior:'smooth',block:'start'});};
+  if(k==='pending')filterRecordsByStatus('pending');
+  else if(k==='overdue'||k==='soon')scrollTo('ganttCard');
+  else if(k==='open'){if(AUTH.user&&AUTH.user.role==='inspector'){goTab('saved');setTimeout(()=>scrollTo('myAssignmentsSection'),150);}else scrollTo('assignDashCard');}
+});
+document.addEventListener('DOMContentLoaded',()=>{
+  const rf=$('#dashRangeFilter');
+  if(rf){rf.value=String(dashRangeDays);rf.addEventListener('change',()=>{dashRangeDays=parseInt(rf.value,10)||14;try{localStorage.setItem('oma_dash_range',String(dashRangeDays));}catch(e){}renderDashboard();});}
+  const hb=$('#ganttHintBtn');if(hb)hb.addEventListener('click',()=>{try{showProjectTargetModal();}catch(e){}});
+});
 let ganttChartInst=null;
 function fmtGanttDate(ts){const d=new Date(ts);return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;}
 function chartTheme(){
@@ -1049,7 +1108,7 @@ function renderGanttChart(){
   const card=$('#ganttCard'),canvas=$('#ganttCanvas');if(!card||!canvas||typeof Chart==='undefined')return;
   const role=(AUTH.user&&AUTH.user.role)||'';
   const leaderProjs=(role==='leader')?(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean):[];
-  const deadlines=targetsCache.filter(t=>t.username==='__project__'&&t.deadline);
+  const _gp=($('#dashMainFilter')||{}).value;const deadlines=targetsCache.filter(t=>t.username==='__project__'&&t.deadline&&(!_gp||_gp==='__all'||t.project===_gp));
   const rows=deadlines.filter(t=>!leaderProjs.length||leaderProjs.includes(t.project)).map(t=>{
     const projEntries=entries.filter(e=>e.project===t.project);
     const starts=projEntries.map(e=>e.createdAt).filter(Boolean);
@@ -1059,7 +1118,9 @@ function renderGanttChart(){
     const color=daysLeft<0?'#EF4444':daysLeft<=14?'#F97316':'#2E9E6B';
     return {project:t.project,start:Math.min(start,end),end,color,daysLeft};
   }).sort((a,b)=>a.end-b.end);
-  if(!rows.length){card.style.display='none';return;}
+  const _gh=$('#ganttHint');
+  if(!rows.length){card.style.display='none';if(_gh)_gh.style.display=(canAssign()&&!targetsCache.some(t=>t.username==='__project__'&&t.deadline))?'':'none';return;}
+  if(_gh)_gh.style.display='none';
   card.style.display='';
   $('#ganttWrap').style.height=Math.max(120,rows.length*46+40)+'px';
   if(ganttChartInst)ganttChartInst.destroy();
@@ -1097,24 +1158,22 @@ function renderGanttChart(){
     }]
   });
 }
+let lastSavedList=[];
 let statusDonutInst=null;
 function renderStatusDonut(list){
-  const canvas=$('#statusDonutCanvas');if(!canvas||typeof Chart==='undefined')return;
-  const pending=list.filter(e=>e.pendingReview).length,confirmed=list.length-pending;
-  if(statusDonutInst)statusDonutInst.destroy();
-  chartTheme();statusDonutInst=new Chart(canvas,{
-    type:'doughnut',
-    data:{labels:['Confirmed','Pending Review'],datasets:[{data:[confirmed,pending],backgroundColor:['#2E9E6B','#F97316'],borderWidth:0}]},
-    options:{
-      cutout:'62%',responsive:false,
-      onClick:(evt,els)=>{if(els.length)filterRecordsByStatus(els[0].index===0?'confirmed':'pending');},
-      onHover:(evt,els)=>{evt.native.target.style.cursor=els.length?'pointer':'default';},
-      plugins:{legend:{display:false}}
-    }
-  });
-  const rows=[{label:'Confirmed',n:confirmed,color:'#2E9E6B',status:'confirmed'},{label:'Pending Review',n:pending,color:'#F97316',status:'pending'}];
+  /* Phase 18: โดนัท → แท่งเดียวแบ่งสัดส่วน (อ่านง่ายกว่า กดที่แท่ง/คำอธิบายเพื่อกรอง) — ชื่อฟังก์ชันเดิม */
+  const ret=list.filter(e=>e.returnReason).length,pending=list.filter(e=>e.pendingReview&&!e.returnReason).length,confirmed=list.length-ret-pending;
+  if(statusDonutInst){try{statusDonutInst.destroy();}catch(e){}statusDonutInst=null;}
+  const rows=[{label:'Confirmed',n:confirmed,color:'#2E9E6B',status:'confirmed'},{label:'Pending Review',n:pending,color:'#F97316',status:'pending'},{label:'Returned for fixing',n:ret,color:'#EF4444',status:'returned'}];
+  const total=list.length;
+  const bar=$('#statusBar');
+  if(bar){
+    bar.innerHTML=total?rows.filter(r=>r.n).map(r=>`<button type="button" class="sb-seg" data-status="${r.status}" style="flex:${r.n};background:${r.color}" title="${escAttr(r.label)}: ${r.n}" aria-label="${escAttr(r.label)}: ${r.n}"></button>`).join(''):'<div class="sb-empty">No records yet</div>';
+    bar.querySelectorAll('.sb-seg').forEach(b=>b.onclick=()=>filterRecordsByStatus(b.dataset.status));
+  }
   const wrap=$('#statusDonutList');
-  if(wrap)wrap.innerHTML=rows.map(r=>`<div onclick="filterRecordsByStatus(${jsArg(r.status)})" style="display:flex;align-items:center;gap:8px;cursor:pointer"><div style="width:10px;height:10px;border-radius:50%;background:${r.color};flex:none"></div><div style="font-size:13px">${r.label}</div><div style="font-size:14px;font-weight:700">${r.n}</div></div>`).join('');
+  if(wrap)wrap.innerHTML=rows.map(r=>`<button type="button" class="sb-leg" data-status="${r.status}"><span class="sb-dot" style="background:${r.color}"></span><span class="sb-lbl">${r.label}</span><b>${r.n}</b>${total?`<span class="sb-pct">${Math.round(r.n/total*100)}%</span>`:''}</button>`).join('');
+  if(wrap)wrap.querySelectorAll('.sb-leg').forEach(b=>b.onclick=()=>filterRecordsByStatus(b.dataset.status));
 }
 function filterRecordsByProjectStatus(project,status){
   recordsStatusFilter=status||null;recordsDateFilter=null;
@@ -1144,14 +1203,14 @@ function renderDashEquipTable(scopedMaster){
 }
 $('#dashEquipLocFilter')?.addEventListener('change',()=>renderDashEquipTable());
 
-function renderProgress(){const df=$('#dashMainFilter');const pick=df?df.value:'__all';const list=(!pick||pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;$('#progSummary').innerHTML=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--danger)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--accent)">${pct}%</div><div>Progress</div></div></div>`;const pctEl=$('#progTotalPct');if(pctEl)pctEl.textContent=tot?pct+'%':'—';const chart=$('#progChart');if(!list.length){chart.innerHTML='';return;}chart.innerHTML=list.map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;const color=w>=80?'#22C55E':w>=40?'#F97316':'#EF4444';return `<div class="prog-row"><span class="pl">${esc(p.project)}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%;background:${color}"></div></div><span class="pn" style="color:${color};font-weight:600">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');}
+function renderProgress(){const df=$('#dashMainFilter');const pick=df?df.value:'__all';const list=(!pick||pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;$('#progSummary').innerHTML=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--danger)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--accent)">${pct}%</div><div>Progress</div></div></div>`;const pctEl=$('#progTotalPct');if(pctEl)pctEl.textContent=tot?pct+'%':'—';const chart=$('#progChart');if(!list.length){chart.innerHTML='';return;}chart.innerHTML=list.slice().sort((a,b)=>(a.total?a.done/a.total:0)-(b.total?b.done/b.total:0)||String(a.project).localeCompare(String(b.project),'th')).map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;const color=w>=80?'#22C55E':w>=40?'#F97316':'#EF4444';return `<div class="prog-row"><span class="pl">${esc(p.project)}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%;background:${color}"></div></div><span class="pn" style="color:${w>=80?'var(--ok-text)':w>=40?'var(--warn-text)':'var(--danger-text)'};font-weight:600">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');}
 
 function filterRecordsByDate(dateKey){recordsDateFilter=dateKey;recordsStatusFilter=null;goTab('saved');renderSaved();}
 function filterRecordsByStatus(status){recordsStatusFilter=status;recordsDateFilter=null;goTab('saved');renderSaved();}
 let dailyChartInst=null;
 function renderDailyChart(filtered){
   const canvas=$('#chartDailyCanvas');if(!canvas||typeof Chart==='undefined')return;
-  const N=14,today=new Date();today.setHours(0,0,0,0);
+  const N=dashRangeDays||14,today=new Date();today.setHours(0,0,0,0);const _rl=$('#dayRangeLbl');if(_rl)_rl.textContent='Last '+N+' days';
   const dateKeys=[];for(let i=N-1;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);dateKeys.push({key:`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`,lbl:`${d.getDate()}/${d.getMonth()+1}`});}
   const days={};(filtered||entries).forEach(e=>{days[dateKeyOf(e.createdAt)]=(days[dateKeyOf(e.createdAt)]||0)+1;});
   const vals=dateKeys.map(dk=>days[dk.key]||0);
@@ -1269,7 +1328,7 @@ function renderSavedProgress(){const role=(AUTH.user&&AUTH.user.role)||'';const 
 
 const DONUT_COLORS=['#D93A2B','#3B82F6','#10B981','#8B5CF6','#EC4899','#F59E0B','#14B8A6','#6366F1','#EF4444','#84CC16'];
 let targetsCache=[];
-async function loadTargets(){if(!AUTH.token)return;const role=(AUTH.user&&AUTH.user.role)||'';if(!['admin','manager','leader'].includes(role))return;const r=await api('listTargets',{});if(r&&r.ok){targetsCache=r.targets||[];renderGanttChart();}}
+async function loadTargets(){if(!AUTH.token)return;const role=(AUTH.user&&AUTH.user.role)||'';if(!['admin','manager','leader'].includes(role))return;const r=await api('listTargets',{});if(r&&r.ok){targetsCache=r.targets||[];renderGanttChart();refreshDashSoon();}}
 function getTargetForProject(proj){const username=AUTH.user?.username||'',role=AUTH.user?.role||'';return targetsCache.find(t=>t.project===proj&&(role!=='leader'||t.username===username));}
 function getProjectDeadline(proj){return targetsCache.find(t=>t.project===proj&&t.username==='__project__')?.deadline||'';}
 async function loadAssignStats(){
@@ -1660,17 +1719,19 @@ if($('#fileXlsx'))$('#fileXlsx').addEventListener('change',async(ev)=>{
     const header=rowsAoa[0]||[];
     const colIdx={};MASTER_IMPORT_COLS.forEach(([key,label])=>{const idx=header.findIndex(h=>String(h).replace(/^﻿/,'').trim()===label);if(idx>=0)colIdx[key]=idx;});
     const normStr=s=>String(s||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim();
-    const rows=rowsAoa.slice(1).filter(r=>r&&r.length).map(r=>{
-      const obj={};Object.keys(colIdx).forEach(key=>{obj[key]=normStr(r[colIdx[key]]);});
+    const mapped=rowsAoa.slice(1).map((r,i)=>({r,rowNo:i+2})).filter(x=>x.r&&x.r.length).map(({r,rowNo})=>{
+      const obj={_row:rowNo};Object.keys(colIdx).forEach(key=>{obj[key]=normStr(r[colIdx[key]]);});
       return obj;
-    }).filter(o=>o.project&&o.equipment);
+    }).filter(o=>Object.keys(o).some(k=>k!=='_row'&&o[k]));
+    const rows=mapped.filter(o=>o.project&&o.equipment);
+    const clientInvalid=mapped.filter(o=>!(o.project&&o.equipment)).map(o=>({row:o._row,reason:'missing',firstRow:'',project:o.project||'',location:o.locName||'',sublocation:o.subName||'',equipment:o.equipment||'',brand:o.brand||'',model:o.model||'',serial:o.serial||''}));
     if(!rows.length){if(prev)prev.innerHTML=`<div class="empty">No importable data found (must have at least the "Project" and "Equipment" columns)</div>`;return;}
-    const payload=rows.map(r=>({id:uid(),project:r.project||'',system:r.system||'',typeLocation:r.typeLocation||'',location:r.locName||'',sublocation:r.subName||'',equipment:r.equipment||'',brand:r.brand||'',model:r.model||'',asset:r.asset||'',serial:r.serial||'',order:r.order||''}));
+    const payload=rows.map(r=>({id:uid(),project:r.project||'',system:r.system||'',typeLocation:r.typeLocation||'',location:r.locName||'',sublocation:r.subName||'',equipment:r.equipment||'',brand:r.brand||'',model:r.model||'',asset:r.asset||'',serial:r.serial||'',order:r.order||'',_row:r._row}));
     const res=await masterServer('masterImport',{rows:payload});
     if(res){
       await loadMasterFromBackend();
       const msg=`Imported ${res.added} new records`+(res.skipped?` · skipped ${res.skipped} duplicates`:'');
-      if(prev)prev.innerHTML=`<div class="empty" style="color:var(--ok)">${msg}</div>`;
+      renderImportReport(prev,res,clientInvalid,msg);
       toast(msg,true);
     }else if(prev)prev.innerHTML=`<div class="empty">Import failed</div>`;
   }catch(e){
@@ -2490,7 +2551,7 @@ async function loadAssignments(){
       await sSet(ASSIGN_KEY,JSON.stringify(assignments));
     }
   }
-  renderMyAssignments();
+  renderMyAssignments();refreshDashSoon();
 }
 function canAssign(){
   const role=AUTH.user?.role||'';
@@ -2942,6 +3003,16 @@ const I18N_TH={
 'Uploading':'กำลังอัปโหลด','Uploading...':'กำลังอัปโหลด...','Uploading to server...':'กำลังอัปโหลดขึ้นเซิร์ฟเวอร์...'
 };
 const I18N_RE=[
+[/^(\d+) record\(s\), about (\d+) photo\(s\) from the current list$/,m=>`${m[1]} รายการ รูปประมาณ ${m[2]} รูป จากรายการปัจจุบัน`],
+[/^(\d+) photo\(s\) could not be read and were skipped$/,m=>`รูปที่อ่านไม่ได้และถูกข้าม ${m[1]} รูป`],
+[/^Returned: (.+)$/,m=>`ตีกลับ: ${m[1]}`],
+[/^(\d+) record\(s\) returned for fixing$/,m=>`ถูกตีกลับให้แก้ไข ${m[1]} รายการ`],
+[/^Offline - (\d+) record\(s\) waiting to upload$/,m=>`ออฟไลน์ - รอส่ง ${m[1]} รายการ`],
+[/^(\d+) record\(s\) waiting to upload$/,m=>`รอส่ง ${m[1]} รายการ`],
+[/^Uploading (\d+) saved record\(s\)\.\.\.$/,m=>`กำลังส่ง ${m[1]} รายการที่บันทึกไว้...`],
+[/^(\d+) saved record\(s\) uploaded$/,m=>`ส่งรายการที่บันทึกไว้แล้ว ${m[1]} รายการ`],
+[/^History - (.+)$/,m=>`ประวัติ - ${m[1]}`],
+[/^(\d+) duplicate rows skipped$/,m=>`ข้ามแถวซ้ำ ${m[1]} แถว`],
 [/^Uploading \((.+)\)\.\.\.$/,m=>`กำลังอัปโหลด (${m[1]})...`],
 [/^Load more \((\d+)\/(\d+)\)$/,m=>`โหลดเพิ่ม (${m[1]}/${m[2]})`],
 [/^Showing all (\d+) records$/,m=>`แสดงครบทั้ง ${m[1]} รายการ`],
@@ -2964,6 +3035,11 @@ let LANG='en';
 (function(){try{const s=localStorage.getItem('oma_lang');if(s==='th'||s==='en')LANG=s;else if(/^th/i.test(navigator.language||''))LANG='th';}catch(e){if(/^th/i.test(navigator.language||''))LANG='th';}})();
 const _i18nNodeOrig=new WeakMap(),_i18nNodeOut=new WeakMap();
 const I18N_ATTRS=['placeholder','title','aria-label'];
+Object.assign(I18N_TH,{'History':'ประวัติ','Created':'สร้างรายการ','Edited':'แก้ไข','Deleted':'ลบ','Restored':'กู้คืน','Confirmed reviewed':'ยืนยันตรวจสอบแล้ว','No history yet':'ยังไม่มีประวัติ','Could not load the history':'โหลดประวัติไม่ได้','Waiting to upload':'รอส่งขึ้นเซิร์ฟเวอร์','Nothing is waiting to upload':'ไม่มีรายการที่รอส่ง','Waiting for connection':'รอสัญญาณอินเทอร์เน็ต','Serial already recorded - discard this one or edit the existing record':'Serial นี้มีบันทึกแล้ว - ลบรายการนี้ทิ้งหรือไปแก้รายการเดิม','Send now':'ส่งตอนนี้','View':'ดู','Discard':'ทิ้ง','Discard this saved record? It has not been uploaded and cannot be recovered.':'ทิ้งรายการที่บันทึกไว้นี้? ยังไม่ได้ส่งขึ้นเซิร์ฟเวอร์ และกู้คืนไม่ได้','No connection - saved on this device. It will upload automatically when you are back online.':'ไม่มีสัญญาณ - บันทึกไว้ในเครื่องแล้ว จะส่งให้อัตโนมัติเมื่อกลับมาออนไลน์','Offline - new records are saved on this device and uploaded automatically':'ออฟไลน์ - รายการใหม่จะบันทึกไว้ในเครื่องและส่งให้อัตโนมัติ','This serial number is already recorded':'Serial นี้มีบันทึกแล้ว','This serial number is already waiting to upload from this device':'Serial นี้รอส่งอยู่ในเครื่องนี้แล้ว','This serial number is already recorded - edit the existing record instead':'Serial นี้มีบันทึกแล้ว - ให้แก้ไขรายการเดิมแทน','Show record':'ดูรายการ','Already in Master data':'มีอยู่ใน Master แล้ว','Duplicate of row':'ซ้ำกับแถว','Missing Project or Equipment':'ไม่มี Project หรือ Equipment','Excel row':'แถวใน Excel','Reason':'เหตุผล','Same as row':'ซ้ำกับแถว','duplicate rows skipped':'แถวซ้ำที่ข้าม','rows missing Project/Equipment':'แถวที่ไม่มี Project/Equipment','more in the file':'แถวเพิ่มเติมในไฟล์','Download skipped rows (Excel)':'ดาวน์โหลดรายการที่ข้าม (Excel)','Could not create the file':'สร้างไฟล์ไม่ได้'});
+Object.assign(I18N_TH,{'Returned:':'ตีกลับ:','Return':'ตีกลับ','Returned':'ตีกลับแล้ว','Return for fixing':'ตีกลับให้แก้ไข','Returned for fixing':'ตีกลับให้แก้ไขแล้ว','Return cancelled':'ยกเลิกการตีกลับแล้ว','Cancel return':'ยกเลิกการตีกลับ','Return to inspector':'ส่งกลับให้ช่าง','Reason (the inspector will see this)':'เหตุผล (ช่างจะเห็นข้อความนี้)','Please enter a reason':'กรุณาใส่เหตุผล','Photo is blurry or dark':'รูปเบลอหรือมืด','Serial number does not match the label':'Serial ไม่ตรงกับป้าย','Missing sticker photo':'ไม่มีรูปสติกเกอร์','Wrong location or equipment':'สถานที่หรืออุปกรณ์ไม่ถูกต้อง','Fixed and resubmitted':'แก้ไขและส่งใหม่แล้ว','This record was returned for fixing':'รายการนี้ถูกตีกลับให้แก้ไข','Fix the problem and tap Save Changes - the return flag clears automatically.':'แก้ไขแล้วกด Save Changes - ป้ายตีกลับจะหายเอง','Returned for fixing':'ตีกลับให้แก้ไข','Filtered by status: Returned for fixing':'กรองตามสถานะ: ตีกลับให้แก้ไข','Show':'แสดง','Photo is too dark':'รูปมืดเกินไป','Photo is too bright':'รูปสว่างเกินไป','Photo may be blurry':'รูปอาจเบลอ','tap the photo to retake it':'แตะที่รูปเพื่อถ่ายใหม่','Read serial from photo':'อ่าน Serial จากรูป','Reading...':'กำลังอ่าน...','Serial from photo':'Serial จากรูป','Serial filled in - please verify it':'ใส่ Serial แล้ว - โปรดตรวจสอบอีกครั้ง','Attach the sticker photo first (a new photo, not an existing saved one)':'แนบรูปสติกเกอร์ก่อน (รูปใหม่ ไม่ใช่รูปที่บันทึกไว้แล้ว)','Could not read the photo (needs an internet connection the first time). Type the serial instead':'อ่านรูปไม่ได้ (ครั้งแรกต้องใช้อินเทอร์เน็ต) กรุณาพิมพ์ Serial เอง','No serial number found in the photo. Retake a closer, sharper photo of the label or type it manually.':'ไม่พบ Serial ในรูป ถ่ายป้ายให้ใกล้และคมชัดขึ้น หรือพิมพ์เอง','Read from the photo':'อ่านได้จากรูป','Nothing in the photo matches a serial in Master data. Retake a closer, sharper photo of the label or select the serial manually.':'ไม่พบข้อความในรูปที่ตรงกับ Serial ใน Master ถ่ายป้ายให้ใกล้และคมชัดขึ้น หรือเลือก Serial เอง','Tap the value that matches the label. Please double-check before using it.':'แตะค่าที่ตรงกับป้าย และตรวจสอบอีกครั้งก่อนใช้','Returned for fixing':'ตีกลับให้แก้ไข'});
+Object.assign(I18N_TH,{'Photos ZIP':'รูปทั้งหมด (ZIP)','Export photos (ZIP)':'Export รูปเป็น ZIP','Create ZIP':'สร้างไฟล์ ZIP','Creating ZIP':'กำลังสร้าง ZIP','Download part':'ดาวน์โหลดส่วนที่','photos':'รูป','photo(s) could not be read and were skipped':'รูปที่อ่านไม่ได้และถูกข้าม','Files are grouped by Project / Location / Sub-location. Links expire after 1 day.':'ไฟล์จัดโฟลเดอร์ตาม Project / Location / Sub-location ลิงก์หมดอายุใน 1 วัน','Done - tap each part to download':'เสร็จแล้ว - แตะแต่ละส่วนเพื่อดาวน์โหลด','No photos found':'ไม่พบรูป','No photos to export in the current list':'ไม่มีรูปให้ export ในรายการปัจจุบัน','No records yet':'ยังไม่มีรายการ','Equipment by Location':'อุปกรณ์ตามสถานที่'});
+Object.assign(I18N_TH,{'Station photo report (Word)':'รายงานรูปรายสถานี (Word)','DOC (Station photos)':'DOC รูปรายสถานี','Period':'ช่วงเวลา','All records in the current list':'ทุกรายการในรายการปัจจุบัน','Report title':'หัวเรื่องรายงาน','Sub-title':'หัวเรื่องรอง','Station title from':'ชื่อสถานีจาก','Location':'สถานที่','Location + Sub-location':'สถานที่ + สถานที่ย่อย','Sub-location':'สถานที่ย่อย','Standard text under each station':'ข้อความมาตรฐานใต้ชื่อสถานี','Remember the title and standard text for this project':'จำหัวเรื่องและข้อความมาตรฐานของโปรเจกต์นี้','A record with a Note uses its Note instead of the standard text. You can also edit each station below (this report only).':'รายการที่มี Note จะใช้ Note แทนข้อความมาตรฐาน และแก้รายสถานีด้านล่างได้ (เฉพาะรายงานนี้)','Edit text per station':'แก้ข้อความรายสถานี','stations':'สถานี','with photos':'มีรูป','Create Word report':'สร้างรายงาน Word'});
+Object.assign(I18N_TH,{'Needs attention':'ต้องจัดการ','Pending review':'รอตรวจสอบ','Overdue projects':'โปรเจกต์เลยกำหนด','Due within 14 days':'ใกล้กำหนดใน 14 วัน','Open assignments':'งานมอบหมายที่ค้าง','My open assignments':'งานของฉันที่ค้าง','✓ Nothing needs attention':'✓ ไม่มีรายการที่ต้องจัดการ','Last 7 days':'7 วันที่ผ่านมา','Last 14 days':'14 วันที่ผ่านมา','Last 30 days':'30 วันที่ผ่านมา','Last 60 days':'60 วันที่ผ่านมา','Completion':'ความสำเร็จ','Period:':'ช่วงเวลา:','Show:':'แสดง:','Set due dates':'ตั้งวันครบกำหนด','No due dates set yet. Set a target due date for each project to see the timeline and overdue alerts.':'ยังไม่ได้ตั้งวันครบกำหนด ตั้งวันครบกำหนดให้แต่ละโปรเจกต์เพื่อดู Timeline และแจ้งเตือนเลยกำหนด'});
 Object.assign(I18N_TH,{'ADMIN':'ผู้ดูแลระบบ','MANAGER':'ผู้จัดการ','OBSERVER':'ผู้สังเกตการณ์','LEADER':'หัวหน้า','INSPECTOR':'ผู้ตรวจ','AMR ASIA CO., LTD.':'AMR ASIA CO., LTD.'});
 function i18nLookup(t){let r=I18N_TH[t];if(r!==undefined)return r;for(const[re,fn]of I18N_RE){const m=t.match(re);if(m)return fn(m);}return undefined;}
 // ไม่แปลข้อมูลของผู้ใช้ (เซลล์ในตารางข้อมูล / การ์ดรายการ) กันข้อมูลที่บังเอิญตรงกับคำในพจนานุกรมถูกเปลี่ยน; ปุ่มและหัวตารางยังแปลตามปกติ
@@ -3037,6 +3113,453 @@ function setLang(l,persist=true){
 }
 document.querySelectorAll('.lang-toggle').forEach(b=>b.addEventListener('click',()=>setLang(LANG==='th'?'en':'th')));
 setLang(LANG,false);
+
+
+/* ═══ Phase 16: รายงาน import · เตือน Serial ซ้ำ · คิวออฟไลน์ · ประวัติรายการ ═══ */
+const _tx=s=>{try{return LANG==='th'&&typeof i18nLookup==='function'?(i18nLookup(s)||s):s;}catch(e){return s;}};
+function simpleDlg(id,title,maxW){
+  let dlg=document.getElementById(id);
+  if(!dlg){
+    dlg=document.createElement('div');dlg.id=id;
+    dlg.style.cssText='position:fixed;inset:0;z-index:450;background:rgba(20,26,34,.55);display:none;align-items:center;justify-content:center;padding:16px';
+    dlg.innerHTML='<div style="background:var(--surface);border-radius:16px;max-width:'+(maxW||560)+'px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(20,26,34,.18)"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 20px 10px"><b class="sd-title" style="font-size:16px"></b><button type="button" class="ghost-btn" id="'+id+'Close" style="padding:6px 14px">Close</button></div><div class="sd-body" style="padding:0 20px 8px;overflow:auto;flex:1"></div><div class="sd-foot" style="padding:12px 20px 18px;display:none;gap:10px;justify-content:flex-end;align-items:center;border-top:1px solid var(--line-soft)"></div></div>';
+    document.body.appendChild(dlg);
+    dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.style.display='none';});
+    dlg.querySelector('#'+id+'Close').onclick=()=>{dlg.style.display='none';};
+  }
+  dlg.querySelector('.sd-title').textContent=title;
+  dlg.style.display='flex';
+  return {dlg,body:dlg.querySelector('.sd-body'),foot:dlg.querySelector('.sd-foot')};
+}
+
+/* ── 1) รายงานแถวที่ถูกข้ามตอน import Master ── */
+function importReasonText(x){
+  if(x.reason==='existing')return _tx('Already in Master data');
+  if(x.reason==='in-file')return _tx('Duplicate of row')+' '+x.firstRow;
+  return _tx('Missing Project or Equipment');
+}
+async function downloadImportReport(rows){
+  await loadLib('xlsx');
+  const data=rows.map(x=>({[_tx('Excel row')]:x.row,[_tx('Reason')]:importReasonText(x),[_tx('Same as row')]:x.firstRow||'','Project':x.project,'Location':x.location,'Sub-location':x.sublocation,'Equipment':x.equipment,'Brand':x.brand,'Model':x.model,'Serial Number':x.serial}));
+  const ws=XLSX.utils.json_to_sheet(data);ws['!cols']=[10,34,12,28,24,24,22,14,16,18].map(w=>({wch:w}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Skipped rows');
+  const d=new Date();XLSX.writeFile(wb,'master_import_skipped_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'.xlsx');
+}
+function renderImportReport(prev,res,clientInvalid,msg){
+  if(!prev)return;
+  const rows=(res.skippedRows||[]).concat(clientInvalid||[]).sort((a,b)=>a.row-b.row);
+  let html=`<div class="empty" style="color:var(--ok-text)">${esc(msg)}</div>`;
+  if(rows.length){
+    const nDup=rows.filter(x=>x.reason!=='missing').length,nBad=rows.length-nDup;
+    html+=`<div class="imp-rep"><div class="imp-rep-sum">${nDup?esc(nDup+' '+_tx('duplicate rows skipped')):''}${nDup&&nBad?' · ':''}${nBad?esc(nBad+' '+_tx('rows missing Project/Equipment')):''}</div>`;
+    html+='<div class="imp-rep-tbl"><table><thead><tr><th>'+esc(_tx('Excel row'))+'</th><th>'+esc(_tx('Reason'))+'</th><th>Equipment</th><th>Serial Number</th></tr></thead><tbody>'+rows.slice(0,8).map(x=>`<tr><td>${x.row}</td><td>${esc(importReasonText(x))}</td><td>${esc(x.equipment)}</td><td>${esc(x.serial)}</td></tr>`).join('')+'</tbody></table></div>';
+    if(rows.length>8)html+=`<div class="imp-rep-more">${esc('+'+(rows.length-8)+' '+_tx('more in the file'))}</div>`;
+    html+=`<button type="button" class="btn btn-soft" id="impRepDl">${esc(_tx('Download skipped rows (Excel)'))}</button></div>`;
+  }
+  prev.innerHTML=html;
+  const b=prev.querySelector('#impRepDl');if(b)b.onclick=async()=>{b.disabled=true;try{await downloadImportReport(rows);}catch(e){toast('Could not create the file',false);}b.disabled=false;};
+}
+
+/* ── 2) เตือน Serial ซ้ำก่อนบันทึก ── */
+function localSerialDup(serial,exceptId){
+  const k=String(serial||'').trim().toLowerCase();if(!k)return null;
+  const hit=entries.find(x=>x.id!==exceptId&&String(x.serial||'').trim().toLowerCase()===k);
+  if(hit)return {src:'saved',rec:hit,title:hit.equipment,project:hit.project};
+  const q=oqItems.find(x=>x.id!==exceptId&&String((x.record&&x.record.serial)||'').trim().toLowerCase()===k);
+  if(q)return {src:'queued',rec:q.record,title:q.record.equipment,project:q.record.project};
+  return null;
+}
+function checkSerialWarn(){
+  const el=document.getElementById('serialWarn');if(!el)return;
+  const d=localSerialDup(sel.serial,editingId);
+  if(!d){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='block';
+  el.innerHTML='<span>'+esc(_tx(d.src==='queued'?'This serial number is already waiting to upload from this device':'This serial number is already recorded'))+' ('+esc([d.title,d.project].filter(Boolean).join(' · '))+')</span>'+(d.src==='saved'?' <button type="button" class="serial-warn-btn" id="serialWarnGo">'+esc(_tx('Show record'))+'</button>':'');
+  const g=el.querySelector('#serialWarnGo');
+  if(g)g.onclick=()=>{goTab('saved');const si=document.getElementById('savedSearch');if(si){si.value=sel.serial;si.dispatchEvent(new Event('input',{bubbles:true}));}try{renderSaved();}catch(e){}};
+}
+
+/* ── 3) คิวออฟไลน์ (IndexedDB) ── */
+const OQ_DB='oma_offline',OQ_STORE='queue';
+let oqItems=[],oqBusy=false,oqTimer=null,oqDbP=null;
+function oqOpenDb(){
+  if(oqDbP)return oqDbP;
+  oqDbP=new Promise(res=>{try{const rq=indexedDB.open(OQ_DB,1);rq.onupgradeneeded=()=>{rq.result.createObjectStore(OQ_STORE,{keyPath:'id'});};rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);rq.onblocked=()=>res(null);}catch(e){res(null);}});
+  return oqDbP;
+}
+async function oqTx(mode,fn){
+  const db=await oqOpenDb();if(!db)return null;
+  return new Promise(res=>{try{const tx=db.transaction(OQ_STORE,mode),st=tx.objectStore(OQ_STORE),rq=fn(st);tx.oncomplete=()=>res(rq&&'result' in rq?rq.result:true);tx.onerror=tx.onabort=()=>res(null);}catch(e){res(null);}});
+}
+const oqMine=()=>oqItems.filter(x=>x.user===((AUTH.user&&AUTH.user.username)||''));
+async function oqLoad(){const all=await oqTx('readonly',st=>st.getAll());oqItems=Array.isArray(all)?all:[];oqPaint();}
+async function oqPut(it){const ok=await oqTx('readwrite',st=>st.put(it));if(ok===null)return false;const i=oqItems.findIndex(x=>x.id===it.id);if(i>=0)oqItems[i]=it;else oqItems.push(it);oqPaint();return true;}
+async function oqDel(id){await oqTx('readwrite',st=>st.delete(id));oqItems=oqItems.filter(x=>x.id!==id);oqPaint();}
+async function oqEnqueue(payload){
+  const it={id:payload.record.id,user:(AUTH.user&&AUTH.user.username)||'',record:payload.record,images:payload.images,queuedAt:Date.now(),tries:0,status:'pending',lastError:''};
+  const ok=await oqPut(it);if(ok)oqSchedule(20000);
+  return ok;
+}
+function oqSchedule(ms){clearTimeout(oqTimer);if(oqMine().some(x=>x.status!=='conflict'))oqTimer=setTimeout(()=>oqSync(false),ms);}
+async function oqSync(manual){
+  if(oqBusy||!AUTH.token)return;
+  if(!navigator.onLine&&!manual)return;
+  const list=oqMine().filter(x=>x.status==='pending'||(x.status==='error'&&(manual||(x.tries||0)<3)));
+  if(!list.length){oqPaint();return;}
+  oqBusy=true;oqPaint();let okN=0,stop=false;
+  for(const it of list){
+    const r=await api(ACT.createRecord,{record:it.record,images:it.images});
+    if(r&&r.ok){await oqDel(it.id);okN++;continue;}
+    if(r&&(r.error==='NETWORK'||r.error==='UNAUTHORIZED')){stop=true;break;}
+    it.tries=(it.tries||0)+1;it.lastError=(r&&r.message)||'Error';
+    it.status=/already been recorded/.test(it.lastError)?'conflict':'error';
+    await oqPut(it);
+  }
+  oqBusy=false;oqPaint();
+  if(okN){toast(okN+' saved record(s) uploaded',true);try{await loadRecords();loadProgress();}catch(e){}}
+  oqSchedule(stop?30000:60000);
+}
+function oqPaint(){
+  const bar=document.getElementById('oqBar');if(!bar)return;
+  const n=oqMine().length,off=!navigator.onLine;
+  if(!n&&!off){bar.style.display='none';return;}
+  bar.style.display='flex';bar.classList.toggle('is-off',off);
+  const tx=document.getElementById('oqText');
+  tx.textContent=off?(n?'Offline - '+n+' record(s) waiting to upload':'Offline - new records are saved on this device and uploaded automatically'):(oqBusy?'Uploading '+n+' saved record(s)...':n+' record(s) waiting to upload');
+  document.getElementById('oqViewBtn').style.display=n?'':'none';
+  const sb=document.getElementById('oqSyncBtn');sb.style.display=n&&!off?'':'none';sb.disabled=oqBusy;
+}
+function openOfflineQueue(){
+  const {dlg,body,foot}=simpleDlg('oqDlg',_tx('Waiting to upload'),620);
+  const paint=()=>{
+    const items=oqMine().sort((a,b)=>a.queuedAt-b.queuedAt);
+    if(!items.length){body.innerHTML='<div style="padding:18px 0;color:var(--ink-faint)">'+esc(_tx('Nothing is waiting to upload'))+'</div>';foot.style.display='none';return;}
+    body.innerHTML=items.map(it=>{
+      const r=it.record||{},im=(it.images&&(it.images.main||it.images.sticker))||'';
+      const th=/^data:image|^https?:/.test(im)?`<img src="${im.startsWith('data:')?im:esc(driveViewUrl(im,120))}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;flex:none;background:var(--line-soft)">`:'<div style="width:52px;height:52px;border-radius:8px;background:var(--line-soft);flex:none"></div>';
+      const st=it.status==='conflict'?`<div class="oq-st oq-bad">${esc(_tx('Serial already recorded - discard this one or edit the existing record'))}</div>`:it.status==='error'?`<div class="oq-st oq-bad">${esc(it.lastError)}</div>`:`<div class="oq-st">${esc(_tx('Waiting for connection'))}</div>`;
+      return `<div class="oq-row" data-id="${esc(it.id)}">${th}<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.equipment||'-')}${r.serial?' · '+esc(r.serial):''}</div><div style="font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc([r.project,r.location,r.sublocation].filter(Boolean).join(' › '))}</div><div style="font-size:11.5px;color:var(--ink-faint)">${fmtDate(it.queuedAt,true)}</div>${st}</div><button type="button" class="ghost-btn" data-del="${esc(it.id)}" style="padding:6px 12px">Discard</button></div>`;
+    }).join('');
+    foot.style.display='flex';
+    foot.innerHTML='<button type="button" class="btn btn-primary" id="oqDlgSync">Send now</button>';
+    foot.querySelector('#oqDlgSync').onclick=async()=>{const b=foot.querySelector('#oqDlgSync');b.disabled=true;await oqSync(true);paint();};
+    body.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>confirmDlg('Discard this saved record? It has not been uploaded and cannot be recovered.','Discard',async()=>{await oqDel(b.dataset.del);paint();}));
+  };
+  paint();
+}
+
+/* ── 4) ประวัติการแก้ไขต่อรายการ ── */
+const HIST_ACTIONS={create:'Created',edit:'Edited',delete:'Deleted',restore:'Restored',purge:'Deleted forever',review:'Confirmed reviewed',return:'Returned for fixing','return-cancel':'Return cancelled',resubmit:'Fixed and resubmitted'};
+const HIST_FIELDS={project:'Project',system:'System',typeLocation:'Location Type',location:'Location',sublocation:'Sub-location',equipment:'Equipment',serial:'Serial Number',brand:'Brand',model:'Model',asset:'Equipment Type',inspector:'Inspector',note:'Note'};
+async function openHistory(id){
+  const e=entries.find(x=>x.id===id)||{};
+  const {body}=simpleDlg('histDlg',_tx('History')+(e.equipment?' - '+e.equipment:''),560);
+  body.innerHTML='<div style="padding:18px 0;color:var(--ink-faint)">Loading...</div>';
+  const r=await api(ACT.listRecordHistory,{id});
+  if(!r||!r.ok){body.innerHTML='<div style="padding:18px 0;color:var(--danger-text)">'+esc((r&&r.message)||_tx('Could not load the history'))+'</div>';return;}
+  if(!r.items.length){body.innerHTML='<div style="padding:18px 0;color:var(--ink-faint)">'+esc(_tx('No history yet'))+'</div>';return;}
+  body.innerHTML='<div class="hist-list">'+r.items.map(it=>{
+    const ch=Object.keys(it.changes||{}).map(k=>{const v=it.changes[k]||['',''];return `<li><b>${esc(_tx(HIST_FIELDS[k]||k))}</b>: <span class="hist-old">${esc(v[0]||'-')}</span> &rarr; <span class="hist-new">${esc(v[1]||'-')}</span></li>`;}).join('');
+    return `<div class="hist-item hist-${esc(it.action)}"><div class="hist-top"><span class="hist-act">${esc(_tx(HIST_ACTIONS[it.action]||it.action))}</span><span class="hist-by">${esc(it.by||'')}</span><span class="hist-at">${fmtDate(Date.parse(it.at),true)}</span></div>${ch?`<ul class="hist-ch">${ch}</ul>`:''}${it.note?`<div class="hist-note">${esc(it.note)}</div>`:''}</div>`;
+  }).join('')+'</div>';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const v=document.getElementById('oqViewBtn'),sb=document.getElementById('oqSyncBtn');
+  if(v)v.addEventListener('click',openOfflineQueue);
+  if(sb)sb.addEventListener('click',()=>oqSync(true));
+});
+window.addEventListener('online',()=>{oqPaint();oqSync(false);});
+window.addEventListener('offline',oqPaint);
+oqLoad();
+
+
+/* ═══ Phase 17: ตรวจคุณภาพรูป · อ่าน Serial จากรูป (OCR) · ตีกลับให้แก้ไข ═══ */
+/* ── 1) ตรวจคุณภาพรูป (เบลอ/มืด/สว่างเกิน) — เตือนเฉย ๆ ไม่บล็อกการบันทึก ── */
+async function photoQuality(dataUrl){
+  const img=await new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('decode'));im.src=dataUrl;});
+  const W=320,sc=Math.min(1,W/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.max(8,Math.round(img.naturalWidth*sc)),h=Math.max(8,Math.round(img.naturalHeight*sc));
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.drawImage(img,0,0,w,h);
+  const px=g.getImageData(0,0,w,h).data,gray=new Float32Array(w*h);let sum=0;
+  for(let i=0,j=0;i<px.length;i+=4,j++){const v=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];gray[j]=v;sum+=v;}
+  const mean=sum/gray.length;let lsum=0,lsq=0,n=0;
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x,l=4*gray[i]-gray[i-1]-gray[i+1]-gray[i-w]-gray[i+w];lsum+=l;lsq+=l*l;n++;}
+  const lap=n?lsq/n-(lsum/n)*(lsum/n):0;
+  c.width=c.height=0;
+  return {mean:Math.round(mean),sharp:Math.round(lap),dark:mean<45,bright:mean>225,blur:lap<45};
+}
+function clearPhotoQuality(){document.querySelectorAll('.q-warn').forEach(e=>e.remove());}
+function showPhotoQuality(lbl,q){
+  const slot=lbl.closest('.imgslot')||lbl.parentNode;slot.querySelectorAll('.q-warn').forEach(e=>e.remove());
+  const msgs=[];if(q.dark)msgs.push('Photo is too dark');if(q.bright)msgs.push('Photo is too bright');if(q.blur)msgs.push('Photo may be blurry');
+  if(!msgs.length)return;
+  const d=document.createElement('div');d.className='q-warn';d.setAttribute('role','alert');
+  d.textContent=msgs.map(_tx).join(' · ')+' — '+_tx('tap the photo to retake it');
+  slot.appendChild(d);
+}
+
+/* ── 2) อ่าน Serial จากรูปสติกเกอร์ (Tesseract.js ในเบราว์เซอร์) ── */
+function ocrCandidates(text){
+  const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean),seen={},out=[];
+  const add=(v,score)=>{v=String(v||'').replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g,'');if(v.length<4||v.length>30||!/\d/.test(v)||seen[v.toLowerCase()])return;seen[v.toLowerCase()]=1;out.push({v,score});};
+  lines.forEach(l=>{
+    const m=l.match(/(?:serial\s*(?:no\.?|number|#)?|s\/n|sn|ser\.?\s*no\.?)\s*[:#.\-]?\s*([A-Za-z0-9][A-Za-z0-9\-\/._]{3,29})/i);
+    if(m)add(m[1],3);
+  });
+  lines.forEach(l=>l.split(/[\s,;|]+/).forEach(t=>{const clean=t.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g,'');if(/[A-Za-z]/.test(clean)&&/\d/.test(clean)&&clean.length>=5)add(clean,2);else if(/^\d{6,}$/.test(clean))add(clean,1);}));
+  return out.sort((a,b)=>b.score-a.score).slice(0,8).map(x=>x.v);
+}
+async function readSerialFromPhoto(){
+  const src=imgSticker||imgMain;
+  if(!/^data:image/.test(src||'')){toast('Attach the sticker photo first (a new photo, not an existing saved one)',false);return;}
+  const btn=document.getElementById('ocrBtn');if(btn){btn.disabled=true;btn.textContent=_tx('Reading...');}
+  let text='';
+  try{
+    if(!navigator.onLine)throw new Error('offline');
+    await loadLib('tesseract');
+    const r=await Tesseract.recognize(src,'eng');
+    text=(r&&r.data&&r.data.text)||'';
+  }catch(e){
+    toast('Could not read the photo (needs an internet connection the first time). Type the serial instead',false);
+    if(btn){btn.disabled=false;btn.textContent=_tx('Read serial from photo');}return;
+  }
+  if(btn){btn.disabled=false;btn.textContent=_tx('Read serial from photo');}
+  const cands=ocrCandidates(text);
+  const nz=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/O/g,'0').replace(/[IL]/g,'1');
+  const full=nz(text);
+  const role=AUTH.user?.role||'';const up=(AUTH.user?.project||'').split(',').map(x=>x.trim()).filter(Boolean);
+  let pool=master;if((role==='leader'||role==='inspector')&&up.length)pool=pool.filter(r=>up.includes(r.project));
+  if(sel.equip){const ok=optionsFor('serial');pool=pool.filter(r=>ok.includes(String(r.serial||'')));}
+  const seen={},hits=[];
+  pool.forEach(r=>{const sn=String(r.serial||'').trim(),k=nz(sn);if(k.length<4||seen[sn.toLowerCase()])return;if(full.includes(k)){seen[sn.toLowerCase()]=1;hits.push(r);}});
+  const {body,foot}=simpleDlg('ocrDlg',_tx('Serial from photo'),460);
+  foot.style.display='none';
+  if(!hits.length){
+    body.innerHTML='<div style="padding:14px 0;color:var(--ink-soft)">'+esc(_tx(cands.length?'Nothing in the photo matches a serial in Master data. Retake a closer, sharper photo of the label or select the serial manually.':'No serial number found in the photo. Retake a closer, sharper photo of the label or type it manually.'))+'</div>'+(cands.length?'<div style="font-size:12px;color:var(--ink-faint);padding-bottom:12px">'+esc(_tx('Read from the photo'))+': '+cands.map(esc).join(', ')+'</div>':'');
+    return;
+  }
+  body.innerHTML='<div style="font-size:13px;color:var(--ink-soft);margin-bottom:10px">'+esc(_tx('Tap the value that matches the label. Please double-check before using it.'))+'</div><div class="ocr-list">'+hits.slice(0,8).map((r,i)=>`<button type="button" class="ocr-cand" data-i="${i}">${esc(r.serial)}<small>${esc([r.equipment,r.locName,r.subName].filter(Boolean).join(' › '))}</small></button>`).join('')+'</div>';
+  body.querySelectorAll('.ocr-cand').forEach(b=>b.onclick=()=>{
+    const m=hits[+b.dataset.i];document.getElementById('ocrDlg').style.display='none';
+    if(sel.equip){choose('serial',m.serial);}
+    else{
+      const keep={imgMain,imgSticker,img3,img4};
+      openAddFromMaster(m);
+      imgMain=keep.imgMain;imgSticker=keep.imgSticker;img3=keep.img3;img4=keep.img4;
+      [['dropMain',imgMain],['dropSticker',imgSticker],['dropImg3',img3],['dropImg4',img4]].forEach(([id,v])=>{if(v)setImgPreview(id,v);});
+    }
+    toast('Serial filled in - please verify it',true);
+  });
+}
+document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('ocrBtn');if(b)b.addEventListener('click',readSerialFromPhoto);});
+
+/* ── 3) ตีกลับให้แก้ไข ── */
+const RETURN_QUICK=['Photo is blurry or dark','Serial number does not match the label','Missing sticker photo','Wrong location or equipment'];
+function openReturnDlg(id){
+  const e=entries.find(x=>x.id===id);if(!e)return;
+  const {dlg,body,foot}=simpleDlg('retDlg',_tx('Return for fixing'),480);
+  body.innerHTML=`<div style="font-size:13px;color:var(--ink-soft);margin-bottom:8px">${esc([e.equipment,e.serial].filter(Boolean).join(' · '))}</div><div class="ret-quick">${RETURN_QUICK.map(q=>`<button type="button" class="ret-chip" data-q="${esc(q)}">${esc(_tx(q))}</button>`).join('')}</div><textarea id="retReason" rows="3" maxlength="500" placeholder="${esc(_tx('Reason (the inspector will see this)'))}" style="width:100%;margin-top:10px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font:inherit;color:var(--ink);resize:vertical"></textarea>`;
+  const ta=body.querySelector('#retReason');ta.value=e.returnReason||'';
+  body.querySelectorAll('.ret-chip').forEach(b=>b.onclick=()=>{ta.value=b.dataset.q;ta.focus();});
+  foot.style.display='flex';
+  foot.innerHTML=`${e.returnReason?'<button type="button" class="ghost-btn" id="retCancelBtn" style="margin-right:auto">Cancel return</button>':''}<button type="button" class="btn btn-primary" id="retSendBtn">Return to inspector</button>`;
+  const send=async(reason)=>{
+    const b=foot.querySelector('#retSendBtn');b.disabled=true;
+    const r=await api(ACT.returnRecord,{id,reason});
+    b.disabled=false;
+    if(r&&r.ok){dlg.style.display='none';toast(r.returned?'Returned for fixing':'Return cancelled',true);await loadRecords();}
+    else toast((r&&r.message)||'Could not update',false);
+  };
+  foot.querySelector('#retSendBtn').onclick=()=>{const v=ta.value.trim();if(!v){toast('Please enter a reason',false);ta.focus();return;}send(v);};
+  const cb=foot.querySelector('#retCancelBtn');if(cb)cb.onclick=()=>send('');
+  setTimeout(()=>ta.focus(),50);
+}
+function paintReturnBanner(e){
+  let el=document.getElementById('returnBanner');
+  if(!el){const t=document.getElementById('addTitle');if(!t)return;el=document.createElement('div');el.id='returnBanner';el.className='return-banner';el.setAttribute('role','alert');el.style.display='none';t.insertAdjacentElement('afterend',el);}
+  if(e&&e.returnReason){el.style.display='block';el.innerHTML='<b>'+esc(_tx('This record was returned for fixing'))+'</b><div>'+esc(e.returnReason)+(e.returnedBy?' <span class="rr-ret-by">('+esc(e.returnedBy)+')</span>':'')+'</div><div class="return-banner-hint">'+esc(_tx('Fix the problem and tap Save Changes - the return flag clears automatically.'))+'</div>';}
+  else{el.style.display='none';el.innerHTML='';}
+}
+function paintReturnedBanner(){
+  const grid=document.getElementById('savedGrid');if(!grid)return;
+  let el=document.getElementById('returnedBar');
+  if(!el){el=document.createElement('div');el.id='returnedBar';el.className='returned-bar';grid.insertAdjacentElement('beforebegin',el);}
+  const n=entries.filter(e=>e.returnReason).length;
+  if(!n||recordsStatusFilter==='returned'){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='flex';
+  el.innerHTML=`<span>${esc(n+' record(s) returned for fixing')}</span><button type="button" class="btn btn-soft" id="returnedShowBtn">${esc(_tx('Show'))}</button>`;
+  el.querySelector('#returnedShowBtn').onclick=()=>{recordsStatusFilter='returned';recordsDateFilter=null;renderSaved();};
+}
+
+
+/* ═══ Phase 18: Export รูปเป็น ZIP ═══ */
+let zipRun=null;
+async function exportPhotosZip(){
+  const list=(lastSavedList||[]).filter(e=>e.imgMain||e.imgSticker||e.img3||e.img4);
+  if(!list.length){toast('No photos to export in the current list',false);return;}
+  const nPhotos=list.reduce((a,e)=>a+(e.imgMain?1:0)+(e.imgSticker?1:0)+(e.img3?1:0)+(e.img4?1:0),0);
+  const {dlg,body,foot}=simpleDlg('zipDlg',_tx('Export photos (ZIP)'),520);
+  const BATCH=40;let cancelled=false;
+  const state={links:[],photos:0,missing:0,running:false};
+  const paint=(msg)=>{
+    body.innerHTML=`<div style="font-size:13.5px;margin-bottom:10px">${esc(list.length+' record(s), about '+nPhotos+' photo(s) from the current list')}</div>`+(msg?`<div class="zip-msg">${esc(msg)}</div>`:'')+(state.links.length?'<div class="zip-links">'+state.links.map((l,i)=>`<a class="btn btn-soft" href="${escAttr(l.url)}" target="_blank" rel="noopener">${esc(_tx('Download part'))} ${i+1} <small>(${l.photos} ${esc(_tx('photos'))})</small></a>`).join('')+'</div>':'')+(state.missing?`<div style="font-size:12px;color:var(--warn-text);margin-top:8px">${esc(state.missing+' '+_tx('photo(s) could not be read and were skipped'))}</div>`:'')+`<div style="font-size:12px;color:var(--ink-faint);margin-top:10px">${esc(_tx('Files are grouped by Project / Location / Sub-location. Links expire after 1 day.'))}</div>`;
+  };
+  foot.style.display='flex';
+  foot.innerHTML='<button type="button" class="btn btn-primary" id="zipStartBtn">Create ZIP</button>';
+  paint('');
+  dlg.querySelector('#zipDlgClose').addEventListener('click',()=>{cancelled=true;},{once:true});
+  const start=foot.querySelector('#zipStartBtn');
+  start.onclick=async()=>{
+    if(state.running)return;state.running=true;start.disabled=true;
+    let pending=list.map(e=>e.id),part=0,fails=0;
+    while(pending.length&&!cancelled){
+      part++;paint(_tx('Creating ZIP')+' '+part+'... '+(list.length-pending.length)+'/'+list.length);
+      const batch=pending.slice(0,BATCH),rest=pending.slice(BATCH);
+      const r=await api(ACT.exportPhotosZip,{ids:batch,part});
+      if(!(r&&r.ok)){if(r&&r.error==='NETWORK'&&fails<2){fails++;part--;continue;}paint('');toast((r&&r.message)||'Could not create the ZIP',false);state.running=false;start.disabled=false;return;}
+      fails=0;
+      if(r.url){state.links.push({url:r.url,photos:r.photos});state.photos+=r.photos;}else part--;
+      state.missing+=r.missing||0;
+      const left=(r.remaining||[]).filter(id=>batch.includes(id));
+      pending=left.concat(rest);
+    }
+    state.running=false;
+    if(cancelled)return;
+    start.style.display='none';
+    paint(state.links.length?_tx('Done - tap each part to download'):_tx('No photos found'));
+  };
+}
+document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('exportZipBtn');if(b)b.addEventListener('click',exportPhotosZip);});
+
+
+/* ═══ Phase 21: รายงานรูปรายสถานี (Word) — หน้าตาตามเทมเพลต Flood Detector ═══
+   A4 แนวตั้ง · โลโก้ AMR · หัวเรื่อง/ประจำเดือน · แต่ละรายการ: ชื่อสถานี (วัน-เวลา พ.ศ.) + ข้อความ + รูป 2×2 */
+const TH_MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const ST_DEFAULT_TITLE='สรุปรายงานผลการปฏิบัติงานบำรุงซ่อมแซม';
+function thDateTime(ms){const d=new Date(ms);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+(d.getFullYear()+543)+' '+pad(d.getHours())+':'+pad(d.getMinutes())+' น.';}
+function thMonthLabel(key){const [y,m]=String(key).split('-').map(Number);return 'ประจำเดือน '+TH_MONTHS[m-1]+' '+(y+543);}
+function monthKeyOf(ms){const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1);}
+function stationTitleOf(e,mode){
+  const loc=String(e.locName||'').trim(),sub=String(e.subName||'').trim();
+  const t=mode==='sub'?(sub||loc):mode==='both'?[loc,sub].filter(Boolean).join(' '):(loc||sub);
+  return (t||e.equipment||'-')+' ( '+thDateTime(e.createdAt)+' )';
+}
+function stationSort(a,b,mode){return String(stationTitleOf(a,mode)).localeCompare(String(stationTitleOf(b,mode)),'th',{numeric:true});}
+async function shrinkImage(buf,maxSide){
+  /* ย่อรูปก่อนฝังใน Word (ไฟล์ ~100 สถานี × 4 รูป จะได้ไม่ใหญ่เกิน) คืน {buf,w,h} */
+  const blob=new Blob([buf]);const url=URL.createObjectURL(blob);
+  try{
+    const img=await new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('decode'));im.src=url;});
+    let w=img.naturalWidth,h=img.naturalHeight;if(!w||!h)throw new Error('empty');
+    const k=Math.min(1,maxSide/Math.max(w,h));w=Math.max(1,Math.round(w*k));h=Math.max(1,Math.round(h*k));
+    const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,w,h);g.drawImage(img,0,0,w,h);
+    const out=await new Promise(res=>c.toBlob(res,'image/jpeg',0.72));
+    const ab=await out.arrayBuffer();c.width=c.height=0;
+    return {buf:ab,w,h};
+  }finally{URL.revokeObjectURL(url);}
+}
+async function runPool(items,n,fn){let i=0;const out=new Array(items.length);await Promise.all(Array.from({length:Math.min(n,items.length)},async()=>{while(i<items.length){const k=i++;out[k]=await fn(items[k],k);}}));return out;}
+
+async function openStationReport(){
+  const list0=getSavedFilteredList();
+  if(!list0.length){toast('No data matches the current filter',false);return;}
+  let info=[];try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)info=r.info||[];}catch(e){}
+  const projects=uniq(list0.map(e=>e.project).filter(Boolean));
+  const pInfo=info.find(x=>projects.includes(x.project))||{};
+  const months={};list0.forEach(e=>{const k=monthKeyOf(e.createdAt);months[k]=(months[k]||0)+1;});
+  const monthKeys=Object.keys(months).sort().reverse();
+  const {dlg,body,foot}=simpleDlg('stDlg',_tx('Station photo report (Word)'),680);
+  const ovr={};          // id -> ข้อความเฉพาะสถานี (เฉพาะรายงานนี้)
+  body.innerHTML=`<div class="st-form">
+    <label class="st-l">${esc(_tx('Period'))}<select id="stMonth" class="tin"><option value="">${esc(_tx('All records in the current list'))} (${list0.length})</option>${monthKeys.map(k=>`<option value="${k}">${esc(thMonthLabel(k))} (${months[k]})</option>`).join('')}</select></label>
+    <label class="st-l">${esc(_tx('Report title'))}<input id="stTitle" class="tin" value="${escAttr(pInfo.reportTitle||ST_DEFAULT_TITLE)}"></label>
+    <label class="st-l">${esc(_tx('Sub-title'))}<input id="stSub" class="tin" value="${escAttr(monthKeys.length===1?thMonthLabel(monthKeys[0]):'')}"></label>
+    <label class="st-l">${esc(_tx('Station title from'))}<select id="stMode" class="tin"><option value="loc">${esc(_tx('Location'))}</option><option value="both">${esc(_tx('Location + Sub-location'))}</option><option value="sub">${esc(_tx('Sub-location'))}</option></select></label>
+    <label class="st-l">${esc(_tx('Standard text under each station'))}<textarea id="stText" class="tin" rows="2">${esc(pInfo.stationText||'')}</textarea></label>
+    <label class="st-chk"><input type="checkbox" id="stSave" checked> ${esc(_tx('Remember the title and standard text for this project'))}</label>
+    <div class="st-hint">${esc(_tx('A record with a Note uses its Note instead of the standard text. You can also edit each station below (this report only).'))}</div>
+    <details class="st-det"><summary>${esc(_tx('Edit text per station'))}</summary><div id="stRows" class="st-rows"></div></details>
+    <div id="stCount" class="st-count"></div></div>`;
+  const q=s=>body.querySelector(s);
+  const current=()=>{const m=q('#stMonth').value;return list0.filter(e=>!m||monthKeyOf(e.createdAt)===m);};
+  const paintRows=()=>{
+    const mode=q('#stMode').value,std=q('#stText').value.trim();
+    const items=current().slice().sort((a,b)=>stationSort(a,b,mode));
+    const withPh=items.filter(e=>e.imgMain||e.imgSticker||e.img3||e.img4).length;
+    q('#stCount').textContent=items.length+' '+_tx('stations')+' · '+withPh+' '+_tx('with photos');
+    q('#stRows').innerHTML=items.map(e=>`<div class="st-row"><div class="st-rt">${esc(stationTitleOf(e,mode))}</div><input class="tin" data-id="${escAttr(e.id)}" placeholder="${escAttr(e.note||std||'')}" value="${escAttr(ovr[e.id]||'')}"></div>`).join('');
+    q('#stRows').querySelectorAll('input').forEach(i=>i.oninput=()=>{ovr[i.dataset.id]=i.value;});
+  };
+  q('#stMonth').onchange=()=>{const m=q('#stMonth').value;if(m)q('#stSub').value=thMonthLabel(m);paintRows();};
+  q('#stMode').onchange=paintRows;q('#stText').oninput=()=>{};
+  paintRows();
+  foot.style.display='flex';foot.innerHTML='<button type="button" class="btn btn-primary" id="stGo">Create Word report</button>';
+  foot.querySelector('#stGo').onclick=async()=>{
+    const opt={title:q('#stTitle').value.trim()||ST_DEFAULT_TITLE,sub:q('#stSub').value.trim(),mode:q('#stMode').value,std:q('#stText').value.trim(),items:current(),ovr:Object.assign({},ovr)};
+    if(!opt.items.length){toast('No data matches the current filter',false);return;}
+    if(q('#stSave').checked){projects.forEach(p=>{api(ACT.saveReportInfo,{row:{project:p,reportTitle:opt.title,stationText:opt.std}});});}
+    dlg.style.display='none';
+    await generateStationReport(opt,projects);
+  };
+}
+async function generateStationReport(opt,projects){
+  try{await loadLib('docx');}catch(e){toast('Could not load the Word library. Check your connection and try again',false);return;}
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,ImageRun,AlignmentType,BorderStyle,WidthType,Header,PageNumber,TableLayoutType,VerticalAlign}=docx;
+  const btn=$('#openStationReportBtn');if(btn)btn.disabled=true;
+  startWarpAnimation();setWarpStatus('Preparing data...');
+  try{
+    const PAGE={width:11906,height:16838},MARGIN={top:1300,bottom:900,left:1130,right:1130,header:500,footer:300};
+    const CONTENT=PAGE.width-MARGIN.left-MARGIN.right;
+    const FONT='TH Sarabun New';
+    const T=(t,o={})=>new TextRun({text:t,font:FONT,size:o.size||32,bold:!!o.bold,color:o.color||'000000'});
+    const none=()=>{const n={style:BorderStyle.NONE,size:0,color:'FFFFFF'};return{top:n,bottom:n,left:n,right:n,insideHorizontal:n,insideVertical:n};};
+    const items=opt.items.slice().sort((a,b)=>stationSort(a,b,opt.mode));
+    // โลโก้
+    let logo=null;
+    try{if(LOGO_SRC&&LOGO_SRC.startsWith('data:')){const b64=LOGO_SRC.split(',')[1];const bin=atob(b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);logo=u.buffer;}}catch(e){logo=null;}
+    // รูป: ดึงทีละกลุ่ม ย่อก่อนฝัง
+    const slotsOf=e=>[e.thumbMain||e.imgMain,e.thumbSticker||e.imgSticker,e.thumb3||e.img3,e.thumb4||e.img4].filter(Boolean);
+    const jobs=[];items.forEach((e,si)=>slotsOf(e).forEach(u=>jobs.push({si,u})));
+    let doneN=0;const imgs=items.map(()=>[]);
+    await runPool(jobs,5,async j=>{
+      let r=null;try{const b=await fetchImageBuffer(j.u);if(b)r=await shrinkImage(b,640);}catch(e){r=null;}
+      if(r)imgs[j.si].push(r);
+      doneN++;if(doneN%5===0||doneN===jobs.length)setWarpStatus('Loading images... '+doneN+'/'+jobs.length);
+    });
+    setWarpStatus('Building document...');
+    const BOX_W=250,BOX_H=188,COL=Math.round(CONTENT/2);
+    const fit=r=>{const k=Math.min(BOX_W/r.w,BOX_H/r.h);return{width:Math.round(r.w*k),height:Math.round(r.h*k)};};
+    const kids=[];
+    kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:0},children:[T(opt.title,{size:36,bold:true})]}));
+    if(opt.sub)kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:200},children:[T(opt.sub,{size:32})]}));
+    items.forEach((e,i)=>{
+      const text=String(opt.ovr[e.id]||'').trim()||String(e.note||'').trim()||opt.std;
+      kids.push(new Paragraph({alignment:AlignmentType.CENTER,keepNext:true,keepLines:true,spacing:{before:i?240:120,after:0},children:[T(stationTitleOf(e,opt.mode),{size:32})]}));
+      if(text)kids.push(new Paragraph({alignment:AlignmentType.CENTER,keepNext:true,keepLines:true,spacing:{after:80},children:[T(text,{size:32})]}));
+      const ph=imgs[i];
+      if(ph.length){
+        const cell=(r,keep)=>new TableCell({borders:none(),width:{size:COL,type:WidthType.DXA},verticalAlign:VerticalAlign.CENTER,children:[new Paragraph({alignment:AlignmentType.CENTER,keepNext:keep,spacing:{before:40,after:40},children:r?[new ImageRun({data:r.buf,type:'jpg',transformation:fit(r)})]:[]})]});
+        const rows=[];
+        for(let k=0;k<ph.length;k+=2)rows.push(new TableRow({cantSplit:true,children:[cell(ph[k],k+2<ph.length),cell(ph[k+1]||null,k+2<ph.length)]}));
+        kids.push(new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:[COL,CONTENT-COL],layout:TableLayoutType.FIXED,borders:none(),rows}));
+      }else kids.push(new Paragraph({alignment:AlignmentType.CENTER,children:[T('(no photos)',{size:26,color:'888888'})]}));
+    });
+    const LW=Math.round(CONTENT*0.3);
+    const header=new Header({children:[new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:[LW,CONTENT-LW],layout:TableLayoutType.FIXED,borders:none(),rows:[new TableRow({children:[
+      new TableCell({borders:none(),width:{size:LW,type:WidthType.DXA},children:[logo?new Paragraph({children:[new ImageRun({data:logo,type:'png',transformation:{width:90,height:56}})]}):new Paragraph({children:[T('AMR ASIA',{bold:true,color:'E2231A'})]})]}),
+      new TableCell({borders:none(),width:{size:CONTENT-LW,type:WidthType.DXA},verticalAlign:VerticalAlign.BOTTOM,children:[new Paragraph({alignment:AlignmentType.RIGHT,children:[new TextRun({text:'หน้าที่ ',font:FONT,size:24}),new TextRun({children:[PageNumber.CURRENT],font:FONT,size:24}),new TextRun({text:' / ',font:FONT,size:24}),new TextRun({children:[PageNumber.TOTAL_PAGES],font:FONT,size:24})]})]})
+    ]})]})]});
+    const doc=new Document({styles:{default:{document:{run:{font:FONT,size:32}}}},sections:[{properties:{page:{size:PAGE,margin:MARGIN}},headers:{default:header},children:kids}]});
+    const blob=await Packer.toBlob(doc);
+    const fn=`Station Photo Report_${projects.join('_').slice(0,40)||'report'}_${fileStamp(Date.now())}.docx`;
+    finishWarpAnimation();
+    setTimeout(()=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);if(btn)btn.disabled=false;toast('Word document generated',true);setTimeout(closeWarpAnimation,1500);},800);
+  }catch(err){
+    closeWarpAnimation();if(btn)btn.disabled=false;
+    toast('Failed to generate report: '+((err&&err.message)||'unknown error'),false);
+    console.error('generateStationReport error:',err);
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('openStationReportBtn');if(b)b.addEventListener('click',openStationReport);});
 
 /* ═══ Phase 3: dialog accessibility (Esc to close, focus in/out, role=dialog) ═══ */
 function _isOverlay(el){return el&&el.nodeType===1&&el.style&&el.style.position==='fixed'&&/inset:\s*0/.test(el.getAttribute('style')||'')&&el.id!=='warpOverlay'&&el.id!=='authGate';}

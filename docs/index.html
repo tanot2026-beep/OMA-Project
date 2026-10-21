@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=1792375075173">
+<link rel="stylesheet" href="styles.css?v=1792548732657">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D93A2B">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -96,11 +96,13 @@
   <button class="tab" data-tab="users" id="tabUsers">Users <span class="pill" id="usersPill">0</span></button>
 </nav>
 
+<div id="oqBar" class="oq-bar" style="display:none" role="status"><span id="oqText"></span><span class="oq-actions"><button type="button" class="btn btn-soft" id="oqViewBtn">View</button><button type="button" class="btn btn-primary" id="oqSyncBtn">Send now</button></span></div>
 <main>
 
 <!-- ══════ PANEL: DASHBOARD ══════ -->
 <section class="panel active" id="panel-dash">
   <div class="panel-title">Project Equipment Overview</div>
+  <div id="actionBar" class="action-bar" role="region" aria-label="Needs attention"></div>
 
   <div id="leaderDashSection" style="display:none;margin-bottom:18px">
     <div class="dash-card">
@@ -125,11 +127,15 @@
     </div>
   </div>
 
-  <div style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-    <label style="font-size:13px;font-weight:600;color:var(--ink-soft)">Show:</label>
+  <div id="dashFilterRow" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <label for="dashMainFilter" style="font-size:13px;font-weight:600;color:var(--ink-soft)">Show:</label>
     <select id="dashMainFilter" class="tin" style="width:auto;min-width:180px;font-size:13px;padding:8px 12px"><option value="__all">All Projects</option></select>
+    <label for="dashRangeFilter" style="font-size:13px;font-weight:600;color:var(--ink-soft)">Period:</label>
+    <select id="dashRangeFilter" class="tin" style="width:auto;min-width:120px;font-size:13px;padding:8px 12px"><option value="7">Last 7 days</option><option value="14" selected>Last 14 days</option><option value="30">Last 30 days</option><option value="60">Last 60 days</option></select>
+    <button class="btn btn-soft" id="dashRefresh" style="margin-left:auto">Refresh Data</button>
   </div>
   <div class="kpi-row" id="kpiRow"></div>
+  <div class="dash-card" id="ganttHint" style="margin-bottom:14px;display:none"><div class="dc-head"><b>Project Timeline</b></div><div style="font-size:13px;color:var(--ink-soft);margin-bottom:10px">No due dates set yet. Set a target due date for each project to see the timeline and overdue alerts.</div><button type="button" class="btn btn-soft" id="ganttHintBtn">Set due dates</button></div>
   <div class="dash-card" id="ganttCard" style="margin-bottom:14px;display:none">
     <div class="dc-head"><b>Project Timeline</b></div>
     <div id="ganttWrap" style="position:relative"><canvas id="ganttCanvas"></canvas></div>
@@ -139,29 +145,28 @@
       <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#EF4444;margin-right:5px"></span>Overdue</span>
     </div>
   </div>
-  <div class="dash-card" style="margin-bottom:14px">
+  <div class="dash-card" id="progCard" style="margin-bottom:14px">
     <div class="dc-head"><b>Recording Progress</b><span id="progTotalPct" style="font-size:20px;font-weight:700;color:var(--accent)"></span></div>
     <div id="progSummary"></div>
     <div id="progChart" style="margin-top:14px"></div>
   </div>
-  <div class="dash-card" style="margin-bottom:14px">
+  <div class="dash-card" id="dailyCard" style="margin-bottom:14px">
     <div class="dc-head"><b>Daily Uploads</b><span id="dayRangeLbl" style="font-size:12px;color:var(--ink-soft)">Last 14 days</span></div>
     <div id="chartDaily" style="position:relative;height:220px"><canvas id="chartDailyCanvas"></canvas></div>
     <div id="dailyTableWrap" style="margin-top:14px;overflow-x:auto"></div>
   </div>
-  <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
-    <div class="dash-card" style="flex:1;min-width:300px;height:340px;display:flex;flex-direction:column">
+  <div id="dashStatusRow" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+    <div class="dash-card" style="flex:1;min-width:300px">
       <div class="dc-head"><b>Status Breakdown</b></div>
-      <div id="statusDonutList" style="display:flex;gap:24px;flex-wrap:wrap"></div>
-      <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0">
-        <canvas id="statusDonutCanvas" width="140" height="140" style="cursor:pointer;width:140px;height:140px;flex:none"></canvas>
-      </div>
+      <div id="statusBar" class="status-bar"></div>
+      <div id="statusDonutList" class="sb-legend"></div>
+      <canvas id="statusDonutCanvas" width="1" height="1" style="display:none" aria-hidden="true"></canvas>
     </div>
-    <div class="dash-card" style="flex:1.4;min-width:340px;height:340px;display:flex;flex-direction:column">
-      <div class="dc-head"><b>Equipment by Location</b></div>
-      <select id="dashEquipLocFilter" class="tin" style="width:auto;min-width:160px;font-size:12.5px;padding:6px 10px;margin-bottom:10px"><option value="">All Locations</option></select>
-      <div id="dashEquipTableWrap" style="flex:1;overflow-y:auto"></div>
-    </div>
+    <details class="dash-card dash-fold" style="flex:1.4;min-width:340px">
+      <summary><b>Equipment by Location</b></summary>
+      <select id="dashEquipLocFilter" class="tin" style="width:auto;min-width:160px;font-size:12.5px;padding:6px 10px;margin:10px 0"><option value="">All Locations</option></select>
+      <div id="dashEquipTableWrap" style="max-height:320px;overflow-y:auto"></div>
+    </details>
   </div>
   <div class="dash-card" id="assignDashCard" style="display:none;margin-bottom:14px">
     <div class="dc-head">
@@ -170,7 +175,6 @@
     </div>
     <div id="assignDashChart" style="margin-top:10px"></div>
   </div>
-  <div style="text-align:center;margin-top:6px"><button class="btn btn-soft" id="dashRefresh">Refresh Data</button></div>
 </section>
 
 <!-- ══════ PANEL: ADD ══════ -->
@@ -188,7 +192,7 @@
         <div class="field"><label>Sub-location</label><div class="combo disabled" data-level="sub"></div></div>
         <div class="field"><label>Equipment Type</label><input type="text" id="inpAsset" placeholder="e.g. Firewall, Switch, Transceiver..." autocomplete="off"></div>
         <div class="field"><label>Equipment <span class="req">*</span></label><div class="combo disabled" data-level="equip"></div></div>
-        <div class="field"><label>Serial Number</label><div class="combo disabled" data-level="serial"></div></div>
+        <div class="field"><label>Serial Number</label><div class="combo disabled" data-level="serial"></div><div id="serialWarn" class="serial-warn" role="alert" style="display:none"></div><button type="button" class="ocr-btn" id="ocrBtn">Read serial from photo</button></div>
       </div>
       <div class="bm-row">
         <div class="bm-box"><div class="k">Brand AUTO</div><div class="v empty" id="bmBrand" data-empty="— Select equipment —"><input id="inpBrand" placeholder="—" style="display:none"></div></div>
@@ -269,7 +273,7 @@
       </div>
     </details>
     <button class="ghost-btn word-report-only" id="openWordReportBtn" disabled>DOC</button>
-    <div class="menu-wrap"><button type="button" class="ghost-btn menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="More" title="More">⋯</button><div class="menu-pop" role="menu"><button type="button" role="menuitem" class="menu-item" id="exportXlsx">EXCEL</button><button type="button" role="menuitem" class="menu-item" id="openTrashBtn" style="display:none">Trash</button></div></div>
+    <div class="menu-wrap"><button type="button" class="ghost-btn menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="More" title="More">⋯</button><div class="menu-pop" role="menu"><button type="button" role="menuitem" class="menu-item" id="exportXlsx">EXCEL</button><button type="button" role="menuitem" class="menu-item word-report-only" id="openStationReportBtn">DOC (Station photos)</button><button type="button" role="menuitem" class="menu-item" id="exportZipBtn" style="display:none">Photos ZIP</button><button type="button" role="menuitem" class="menu-item" id="openTrashBtn" style="display:none">Trash</button></div></div>
   </div>
   <div class="rlist" id="savedGrid"></div>
 </section>
@@ -565,7 +569,7 @@
   </div>
 </div>
 
-<script src="script.js?v=1792375075173"></script>
+<script src="script.js?v=1792548732657"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
