@@ -3038,7 +3038,7 @@ const I18N_ATTRS=['placeholder','title','aria-label'];
 Object.assign(I18N_TH,{'History':'ประวัติ','Created':'สร้างรายการ','Edited':'แก้ไข','Deleted':'ลบ','Restored':'กู้คืน','Confirmed reviewed':'ยืนยันตรวจสอบแล้ว','No history yet':'ยังไม่มีประวัติ','Could not load the history':'โหลดประวัติไม่ได้','Waiting to upload':'รอส่งขึ้นเซิร์ฟเวอร์','Nothing is waiting to upload':'ไม่มีรายการที่รอส่ง','Waiting for connection':'รอสัญญาณอินเทอร์เน็ต','Serial already recorded - discard this one or edit the existing record':'Serial นี้มีบันทึกแล้ว - ลบรายการนี้ทิ้งหรือไปแก้รายการเดิม','Send now':'ส่งตอนนี้','View':'ดู','Discard':'ทิ้ง','Discard this saved record? It has not been uploaded and cannot be recovered.':'ทิ้งรายการที่บันทึกไว้นี้? ยังไม่ได้ส่งขึ้นเซิร์ฟเวอร์ และกู้คืนไม่ได้','No connection - saved on this device. It will upload automatically when you are back online.':'ไม่มีสัญญาณ - บันทึกไว้ในเครื่องแล้ว จะส่งให้อัตโนมัติเมื่อกลับมาออนไลน์','Offline - new records are saved on this device and uploaded automatically':'ออฟไลน์ - รายการใหม่จะบันทึกไว้ในเครื่องและส่งให้อัตโนมัติ','This serial number is already recorded':'Serial นี้มีบันทึกแล้ว','This serial number is already waiting to upload from this device':'Serial นี้รอส่งอยู่ในเครื่องนี้แล้ว','This serial number is already recorded - edit the existing record instead':'Serial นี้มีบันทึกแล้ว - ให้แก้ไขรายการเดิมแทน','Show record':'ดูรายการ','Already in Master data':'มีอยู่ใน Master แล้ว','Duplicate of row':'ซ้ำกับแถว','Missing Project or Equipment':'ไม่มี Project หรือ Equipment','Excel row':'แถวใน Excel','Reason':'เหตุผล','Same as row':'ซ้ำกับแถว','duplicate rows skipped':'แถวซ้ำที่ข้าม','rows missing Project/Equipment':'แถวที่ไม่มี Project/Equipment','more in the file':'แถวเพิ่มเติมในไฟล์','Download skipped rows (Excel)':'ดาวน์โหลดรายการที่ข้าม (Excel)','Could not create the file':'สร้างไฟล์ไม่ได้'});
 Object.assign(I18N_TH,{'Returned:':'ตีกลับ:','Return':'ตีกลับ','Returned':'ตีกลับแล้ว','Return for fixing':'ตีกลับให้แก้ไข','Returned for fixing':'ตีกลับให้แก้ไขแล้ว','Return cancelled':'ยกเลิกการตีกลับแล้ว','Cancel return':'ยกเลิกการตีกลับ','Return to inspector':'ส่งกลับให้ช่าง','Reason (the inspector will see this)':'เหตุผล (ช่างจะเห็นข้อความนี้)','Please enter a reason':'กรุณาใส่เหตุผล','Photo is blurry or dark':'รูปเบลอหรือมืด','Serial number does not match the label':'Serial ไม่ตรงกับป้าย','Missing sticker photo':'ไม่มีรูปสติกเกอร์','Wrong location or equipment':'สถานที่หรืออุปกรณ์ไม่ถูกต้อง','Fixed and resubmitted':'แก้ไขและส่งใหม่แล้ว','This record was returned for fixing':'รายการนี้ถูกตีกลับให้แก้ไข','Fix the problem and tap Save Changes - the return flag clears automatically.':'แก้ไขแล้วกด Save Changes - ป้ายตีกลับจะหายเอง','Returned for fixing':'ตีกลับให้แก้ไข','Filtered by status: Returned for fixing':'กรองตามสถานะ: ตีกลับให้แก้ไข','Show':'แสดง','Photo is too dark':'รูปมืดเกินไป','Photo is too bright':'รูปสว่างเกินไป','Photo may be blurry':'รูปอาจเบลอ','tap the photo to retake it':'แตะที่รูปเพื่อถ่ายใหม่','Read serial from photo':'อ่าน Serial จากรูป','Reading...':'กำลังอ่าน...','Serial from photo':'Serial จากรูป','Serial filled in - please verify it':'ใส่ Serial แล้ว - โปรดตรวจสอบอีกครั้ง','Attach the sticker photo first (a new photo, not an existing saved one)':'แนบรูปสติกเกอร์ก่อน (รูปใหม่ ไม่ใช่รูปที่บันทึกไว้แล้ว)','Could not read the photo (needs an internet connection the first time). Type the serial instead':'อ่านรูปไม่ได้ (ครั้งแรกต้องใช้อินเทอร์เน็ต) กรุณาพิมพ์ Serial เอง','No serial number found in the photo. Retake a closer, sharper photo of the label or type it manually.':'ไม่พบ Serial ในรูป ถ่ายป้ายให้ใกล้และคมชัดขึ้น หรือพิมพ์เอง','Read from the photo':'อ่านได้จากรูป','Nothing in the photo matches a serial in Master data. Retake a closer, sharper photo of the label or select the serial manually.':'ไม่พบข้อความในรูปที่ตรงกับ Serial ใน Master ถ่ายป้ายให้ใกล้และคมชัดขึ้น หรือเลือก Serial เอง','Tap the value that matches the label. Please double-check before using it.':'แตะค่าที่ตรงกับป้าย และตรวจสอบอีกครั้งก่อนใช้','Returned for fixing':'ตีกลับให้แก้ไข'});
 Object.assign(I18N_TH,{'Photos ZIP':'รูปทั้งหมด (ZIP)','Export photos (ZIP)':'Export รูปเป็น ZIP','Create ZIP':'สร้างไฟล์ ZIP','Creating ZIP':'กำลังสร้าง ZIP','Download part':'ดาวน์โหลดส่วนที่','photos':'รูป','photo(s) could not be read and were skipped':'รูปที่อ่านไม่ได้และถูกข้าม','Files are grouped by Project / Location / Sub-location. Links expire after 1 day.':'ไฟล์จัดโฟลเดอร์ตาม Project / Location / Sub-location ลิงก์หมดอายุใน 1 วัน','Done - tap each part to download':'เสร็จแล้ว - แตะแต่ละส่วนเพื่อดาวน์โหลด','No photos found':'ไม่พบรูป','No photos to export in the current list':'ไม่มีรูปให้ export ในรายการปัจจุบัน','No records yet':'ยังไม่มีรายการ','Equipment by Location':'อุปกรณ์ตามสถานที่'});
-Object.assign(I18N_TH,{'Station photo report (Word)':'รายงานรูปรายสถานี (Word)','DOC (Station photos)':'DOC รูปรายสถานี','Period':'ช่วงเวลา','All records in the current list':'ทุกรายการในรายการปัจจุบัน','Report title':'หัวเรื่องรายงาน','Sub-title':'หัวเรื่องรอง','Station title from':'ชื่อสถานีจาก','Location':'สถานที่','Location + Sub-location':'สถานที่ + สถานที่ย่อย','Sub-location':'สถานที่ย่อย','Standard text under each station':'ข้อความมาตรฐานใต้ชื่อสถานี','Remember the title and standard text for this project':'จำหัวเรื่องและข้อความมาตรฐานของโปรเจกต์นี้','A record with a Note uses its Note instead of the standard text. You can also edit each station below (this report only).':'รายการที่มี Note จะใช้ Note แทนข้อความมาตรฐาน และแก้รายสถานีด้านล่างได้ (เฉพาะรายงานนี้)','Edit text per station':'แก้ข้อความรายสถานี','stations':'สถานี','with photos':'มีรูป','Create Word report':'สร้างรายงาน Word'});
+Object.assign(I18N_TH,{'Station photo report (Word)':'รายงานรูปรายสถานี (Word)','DOC (Station photos)':'DOC รูปรายสถานี','Period':'ช่วงเวลา','All records in the current list':'ทุกรายการในรายการปัจจุบัน','Report title':'หัวเรื่องรายงาน','Sub-title':'หัวเรื่องรอง','Station title from':'ชื่อสถานีจาก','Location':'สถานที่','Location + Sub-location':'สถานที่ + สถานที่ย่อย','Sub-location':'สถานที่ย่อย','Standard text under each station':'ข้อความมาตรฐานใต้ชื่อสถานี','Date in the station title':'วันที่ในชื่อสถานี','Date and time':'วันที่และเวลา','Date only':'วันที่อย่างเดียว','No date':'ไม่แสดงวันที่','Remember the title and standard text for this project':'จำหัวเรื่องและข้อความมาตรฐานของโปรเจกต์นี้','A record with a Note uses its Note instead of the standard text. You can also edit each station below (this report only).':'รายการที่มี Note จะใช้ Note แทนข้อความมาตรฐาน และแก้รายสถานีด้านล่างได้ (เฉพาะรายงานนี้)','Edit text per station':'แก้ข้อความรายสถานี','stations':'สถานี','with photos':'มีรูป','Create Word report':'สร้างรายงาน Word'});
 Object.assign(I18N_TH,{'Needs attention':'ต้องจัดการ','Pending review':'รอตรวจสอบ','Overdue projects':'โปรเจกต์เลยกำหนด','Due within 14 days':'ใกล้กำหนดใน 14 วัน','Open assignments':'งานมอบหมายที่ค้าง','My open assignments':'งานของฉันที่ค้าง','✓ Nothing needs attention':'✓ ไม่มีรายการที่ต้องจัดการ','Last 7 days':'7 วันที่ผ่านมา','Last 14 days':'14 วันที่ผ่านมา','Last 30 days':'30 วันที่ผ่านมา','Last 60 days':'60 วันที่ผ่านมา','Completion':'ความสำเร็จ','Period:':'ช่วงเวลา:','Show:':'แสดง:','Set due dates':'ตั้งวันครบกำหนด','No due dates set yet. Set a target due date for each project to see the timeline and overdue alerts.':'ยังไม่ได้ตั้งวันครบกำหนด ตั้งวันครบกำหนดให้แต่ละโปรเจกต์เพื่อดู Timeline และแจ้งเตือนเลยกำหนด'});
 Object.assign(I18N_TH,{'ADMIN':'ผู้ดูแลระบบ','MANAGER':'ผู้จัดการ','OBSERVER':'ผู้สังเกตการณ์','LEADER':'หัวหน้า','INSPECTOR':'ผู้ตรวจ','AMR ASIA CO., LTD.':'AMR ASIA CO., LTD.'});
 function i18nLookup(t){let r=I18N_TH[t];if(r!==undefined)return r;for(const[re,fn]of I18N_RE){const m=t.match(re);if(m)return fn(m);}return undefined;}
@@ -3438,12 +3438,20 @@ const ST_DEFAULT_TITLE='สรุปรายงานผลการปฏิ�
 function thDateTime(ms){const d=new Date(ms);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+(d.getFullYear()+543)+' '+pad(d.getHours())+':'+pad(d.getMinutes())+' น.';}
 function thMonthLabel(key){const [y,m]=String(key).split('-').map(Number);return 'ประจำเดือน '+TH_MONTHS[m-1]+' '+(y+543);}
 function monthKeyOf(ms){const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1);}
-function stationTitleOf(e,mode){
+function thDate(ms){const d=new Date(ms);return d.getDate()+'/'+pad(d.getMonth()+1)+'/'+(d.getFullYear()+543);}
+function stationTitleOf(e,mode,dmode){
   const loc=String(e.locName||'').trim(),sub=String(e.subName||'').trim();
   const t=mode==='sub'?(sub||loc):mode==='both'?[loc,sub].filter(Boolean).join(' '):(loc||sub);
-  return (t||e.equipment||'-')+' ( '+thDateTime(e.createdAt)+' )';
+  const base=t||e.equipment||'-';
+  return dmode==='none'?base:dmode==='d'?base+' ( '+thDate(e.createdAt)+' )':base+' ( '+thDateTime(e.createdAt)+' )';
 }
-function stationSort(a,b,mode){return String(stationTitleOf(a,mode)).localeCompare(String(stationTitleOf(b,mode)),'th',{numeric:true});}
+function stationSort(a,b,mode){return String(stationTitleOf(a,mode,'none')).localeCompare(String(stationTitleOf(b,mode,'none')),'th',{numeric:true});}
+/* ข้อความมาตรฐานเก็บใน ReportInfo.stationText เป็น JSON {"ชื่อ System":"ข้อความ","*":"ข้อความเริ่มต้น"} — ค่าเก่าที่เป็นข้อความล้วนถือเป็น "*" */
+function parseStationTexts(v){
+  const t=String(v||'').trim();if(!t)return {};
+  if(t[0]==='{'){try{const o=JSON.parse(t);if(o&&typeof o==='object')return o;}catch(e){}}
+  return {'*':t};
+}
 async function shrinkImage(buf,maxSide){
   /* ย่อรูปก่อนฝังใน Word (ไฟล์ ~100 สถานี × 4 รูป จะได้ไม่ใหญ่เกิน) คืน {buf,w,h} */
   const blob=new Blob([buf]);const url=URL.createObjectURL(blob);
@@ -3465,6 +3473,11 @@ async function openStationReport(){
   let info=[];try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)info=r.info||[];}catch(e){}
   const projects=uniq(list0.map(e=>e.project).filter(Boolean));
   const pInfo=info.find(x=>projects.includes(x.project))||{};
+  const systems=uniq(list0.map(e=>e.system).filter(Boolean));
+  const sysKey=systems.length===1?systems[0]:'*';
+  const texts=parseStationTexts(pInfo.stationText);
+  const stdFor=e=>String(texts[e.system]||texts['*']||'').trim();
+  const defDate=systems.length===1&&/radar/i.test(systems[0])?'d':'dt';
   const months={};list0.forEach(e=>{const k=monthKeyOf(e.createdAt);months[k]=(months[k]||0)+1;});
   const monthKeys=Object.keys(months).sort().reverse();
   const {dlg,body,foot}=simpleDlg('stDlg',_tx('Station photo report (Word)'),680);
@@ -3474,7 +3487,8 @@ async function openStationReport(){
     <label class="st-l">${esc(_tx('Report title'))}<input id="stTitle" class="tin" value="${escAttr(pInfo.reportTitle||ST_DEFAULT_TITLE)}"></label>
     <label class="st-l">${esc(_tx('Sub-title'))}<input id="stSub" class="tin" value="${escAttr(monthKeys.length===1?thMonthLabel(monthKeys[0]):'')}"></label>
     <label class="st-l">${esc(_tx('Station title from'))}<select id="stMode" class="tin"><option value="loc">${esc(_tx('Location'))}</option><option value="both">${esc(_tx('Location + Sub-location'))}</option><option value="sub">${esc(_tx('Sub-location'))}</option></select></label>
-    <label class="st-l">${esc(_tx('Standard text under each station'))}<textarea id="stText" class="tin" rows="2">${esc(pInfo.stationText||'')}</textarea></label>
+    <label class="st-l">${esc(_tx('Date in the station title'))}<select id="stDate" class="tin"><option value="dt"${defDate==='dt'?' selected':''}>${esc(_tx('Date and time'))}</option><option value="d"${defDate==='d'?' selected':''}>${esc(_tx('Date only'))}</option><option value="none">${esc(_tx('No date'))}</option></select></label>
+    <label class="st-l">${esc(_tx('Standard text under each station'))}${systems.length===1?' ('+esc(systems[0])+')':''}<textarea id="stText" class="tin" rows="2">${esc(texts[sysKey]||(sysKey!=='*'?'':texts['*'])||'')}</textarea></label>
     <label class="st-chk"><input type="checkbox" id="stSave" checked> ${esc(_tx('Remember the title and standard text for this project'))}</label>
     <div class="st-hint">${esc(_tx('A record with a Note uses its Note instead of the standard text. You can also edit each station below (this report only).'))}</div>
     <details class="st-det"><summary>${esc(_tx('Edit text per station'))}</summary><div id="stRows" class="st-rows"></div></details>
@@ -3482,21 +3496,23 @@ async function openStationReport(){
   const q=s=>body.querySelector(s);
   const current=()=>{const m=q('#stMonth').value;return list0.filter(e=>!m||monthKeyOf(e.createdAt)===m);};
   const paintRows=()=>{
-    const mode=q('#stMode').value,std=q('#stText').value.trim();
+    const mode=q('#stMode').value,dm=q('#stDate').value,std=q('#stText').value.trim();
     const items=current().slice().sort((a,b)=>stationSort(a,b,mode));
     const withPh=items.filter(e=>e.imgMain||e.imgSticker||e.img3||e.img4).length;
     q('#stCount').textContent=items.length+' '+_tx('stations')+' · '+withPh+' '+_tx('with photos');
-    q('#stRows').innerHTML=items.map(e=>`<div class="st-row"><div class="st-rt">${esc(stationTitleOf(e,mode))}</div><input class="tin" data-id="${escAttr(e.id)}" placeholder="${escAttr(e.note||std||'')}" value="${escAttr(ovr[e.id]||'')}"></div>`).join('');
+    q('#stRows').innerHTML=items.map(e=>`<div class="st-row"><div class="st-rt">${esc(stationTitleOf(e,mode,dm))}</div><input class="tin" data-id="${escAttr(e.id)}" placeholder="${escAttr(e.note||(systems.length===1?std:(stdFor(e)||std))||'')}" value="${escAttr(ovr[e.id]||'')}"></div>`).join('');
     q('#stRows').querySelectorAll('input').forEach(i=>i.oninput=()=>{ovr[i.dataset.id]=i.value;});
   };
   q('#stMonth').onchange=()=>{const m=q('#stMonth').value;if(m)q('#stSub').value=thMonthLabel(m);paintRows();};
-  q('#stMode').onchange=paintRows;q('#stText').oninput=()=>{};
+  q('#stMode').onchange=paintRows;q('#stDate').onchange=paintRows;q('#stText').oninput=()=>{};
   paintRows();
   foot.style.display='flex';foot.innerHTML='<button type="button" class="btn btn-primary" id="stGo">Create Word report</button>';
   foot.querySelector('#stGo').onclick=async()=>{
-    const opt={title:q('#stTitle').value.trim()||ST_DEFAULT_TITLE,sub:q('#stSub').value.trim(),mode:q('#stMode').value,std:q('#stText').value.trim(),items:current(),ovr:Object.assign({},ovr)};
+    const edited=q('#stText').value.trim();
+    const map=Object.assign({},texts);if(edited)map[sysKey]=edited;else delete map[sysKey];
+    const opt={title:q('#stTitle').value.trim()||ST_DEFAULT_TITLE,sub:q('#stSub').value.trim(),mode:q('#stMode').value,dmode:q('#stDate').value,stdFor:e=>String(map[e.system]||map['*']||'').trim(),items:current(),ovr:Object.assign({},ovr)};
     if(!opt.items.length){toast('No data matches the current filter',false);return;}
-    if(q('#stSave').checked){projects.forEach(p=>{api(ACT.saveReportInfo,{row:{project:p,reportTitle:opt.title,stationText:opt.std}});});}
+    if(q('#stSave').checked){projects.forEach(p=>{const pi=info.find(x=>x.project===p)||{};const m=Object.assign({},parseStationTexts(pi.stationText));if(edited)m[sysKey]=edited;else delete m[sysKey];api(ACT.saveReportInfo,{row:{project:p,reportTitle:opt.title,stationText:JSON.stringify(m)}});});}
     dlg.style.display='none';
     await generateStationReport(opt,projects);
   };
@@ -3532,8 +3548,8 @@ async function generateStationReport(opt,projects){
     kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:0},children:[T(opt.title,{size:36,bold:true})]}));
     if(opt.sub)kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:200},children:[T(opt.sub,{size:32})]}));
     items.forEach((e,i)=>{
-      const text=String(opt.ovr[e.id]||'').trim()||String(e.note||'').trim()||opt.std;
-      kids.push(new Paragraph({alignment:AlignmentType.CENTER,keepNext:true,keepLines:true,spacing:{before:i?240:120,after:0},children:[T(stationTitleOf(e,opt.mode),{size:32})]}));
+      const text=String(opt.ovr[e.id]||'').trim()||String(e.note||'').trim()||opt.stdFor(e);
+      kids.push(new Paragraph({alignment:AlignmentType.CENTER,keepNext:true,keepLines:true,spacing:{before:i?240:120,after:0},children:[T(stationTitleOf(e,opt.mode,opt.dmode),{size:32})]}));
       if(text)kids.push(new Paragraph({alignment:AlignmentType.CENTER,keepNext:true,keepLines:true,spacing:{after:80},children:[T(text,{size:32})]}));
       const ph=imgs[i];
       if(ph.length){
@@ -3541,7 +3557,7 @@ async function generateStationReport(opt,projects){
         const rows=[];
         for(let k=0;k<ph.length;k+=2)rows.push(new TableRow({cantSplit:true,children:[cell(ph[k],k+2<ph.length),cell(ph[k+1]||null,k+2<ph.length)]}));
         kids.push(new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:[COL,CONTENT-COL],layout:TableLayoutType.FIXED,borders:none(),rows}));
-      }else kids.push(new Paragraph({alignment:AlignmentType.CENTER,children:[T('(no photos)',{size:26,color:'888888'})]}));
+      }
     });
     const LW=Math.round(CONTENT*0.3);
     const header=new Header({children:[new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:[LW,CONTENT-LW],layout:TableLayoutType.FIXED,borders:none(),rows:[new TableRow({children:[
