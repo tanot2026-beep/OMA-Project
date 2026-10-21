@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Project Equipment Report — AMR Asia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<!-- xlsx / docx / html2pdf / html5-qrcode are loaded on demand by loadLib() in script -->
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="styles.css?v=1792548732657">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#D93A2B">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Equipment Report">
+</head>
+<body>
+
+<!-- ══════════════════════ AUTH GATE ══════════════════════ -->
+<div id="authGate">
+  <div class="auth-card">
+    <div style="display:flex;justify-content:flex-end;margin:-14px -10px 6px 0"><button type="button" class="lang-toggle" aria-label="Language / ภาษา" title="ภาษา / Language"><span data-l="th">TH</span><span data-l="en">EN</span></button></div>
+    <div class="auth-brand">
+      <div class="auth-logo-box" id="authLogoBox">
+        <!-- Logo injected by JS after it loads successfully -->
+        <span class="auth-logo-fallback" id="authLogoFallback">AMR ASIA</span>
+      </div>
+      <div class="info">
+        <h2>Sign In</h2>
+        <div class="sub">AMR Inspection · OMA</div>
+      </div>
+    </div>
+    <label for="authUser">Username</label>
+    <input type="text" class="tin" id="authUser" autocomplete="off" placeholder="username">
+    <label for="authPass">Password</label>
+    <div class="auth-pw">
+      <input type="password" class="tin" id="authPass" autocomplete="current-password" placeholder="••••••••">
+      <span class="eye" id="authEye">Show</span>
+    </div>
+    <div class="auth-err" id="authErr"></div>
+    <button class="auth-btn" id="authBtn">Sign In</button>
+    <div class="auth-foot">AMR ASIA CO., LTD. · Equipment Inspection System</div>
+  </div>
+</div>
+
+<!-- ══════════════════════ PDPA ════════════════════════════ -->
+<div id="pdpaBanner">
+  <div class="pd-head"><div class="pd-ic">🛡</div><b>Privacy &amp; Personal Data</b></div>
+  <div class="pd-body">
+    This system records your usage data for auditing and maintenance purposes.
+    <a id="pdpaToggle">View details</a>
+    <div class="pd-extra" id="pdpaExtra">Data collected: username, role, login time, inspection records and equipment photos, in accordance with the Personal Data Protection Act B.E. 2562 (2019).</div>
+  </div>
+  <div class="pd-actions">
+    <button class="pd-btn pd-detail" id="pdpaDetailBtn">Details</button>
+    <button class="pd-btn pd-accept" id="pdpaAccept">Accept</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ HEADER ══════════════════════════ -->
+<header class="app">
+  <div class="brandmark" id="headerBrandmark">
+    <!-- Logo injected by JS -->
+    <span style="font-size:13px;font-weight:700;color:var(--accent-deep)" id="headerLogoFallback">AMR ASIA</span>
+  </div>
+  <div class="brand-text">
+    <h1>Project Equipment Report</h1>
+    <div class="sub">AMR ASIA CO., LTD.</div>
+  </div>
+  <div class="header-stat"><div class="num" id="statCount">0</div><div class="lbl">Recorded</div></div>
+  <div class="user-chip" id="userChip" style="display:none">
+    <div class="av" id="uAvatar">?</div>
+    <div><div class="un" id="uName">—</div><div class="ur" id="uRole">—</div></div>
+  </div>
+  <div class="hdr-actions">
+    <button type="button" class="lang-toggle" aria-label="Language / ภาษา" title="ภาษา / Language"><span data-l="th">TH</span><span data-l="en">EN</span></button>
+    <button id="darkToggleBtn" class="hdr-ctrl-btn icon-toggle-btn" title="Dark / Light mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    <button type="button" id="logoutBtn" class="hdr-ctrl-btn icon-toggle-btn logout-icon" style="display:none" title="Sign out" aria-label="Sign out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button>
+  </div>
+</header>
+
+<!-- ══════════════════════ TABS ════════════════════════════ -->
+<nav class="tabs">
+  <button class="tab active" data-tab="dash" id="tabDash">Overview</button>
+  <button class="tab" data-tab="add" id="tabAdd">Add Record</button>
+  <button class="tab" data-tab="saved">Records <span class="pill" id="savedPill">0</span></button>
+  <button class="tab" data-tab="master" id="tabMaster">Master Data <span class="pill" id="masterPill">0</span></button>
+  <button class="tab" data-tab="users" id="tabUsers">Users <span class="pill" id="usersPill">0</span></button>
+</nav>
+
+<div id="oqBar" class="oq-bar" style="display:none" role="status"><span id="oqText"></span><span class="oq-actions"><button type="button" class="btn btn-soft" id="oqViewBtn">View</button><button type="button" class="btn btn-primary" id="oqSyncBtn">Send now</button></span></div>
+<main>
+
+<!-- ══════ PANEL: DASHBOARD ══════ -->
+<section class="panel active" id="panel-dash">
+  <div class="panel-title">Project Equipment Overview</div>
+  <div id="actionBar" class="action-bar" role="region" aria-label="Needs attention"></div>
+
+  <div id="leaderDashSection" style="display:none;margin-bottom:18px">
+    <div class="dash-card">
+      <div class="dc-head"><b>My Projects Overview</b><span id="leaderDonutLegend" style="font-size:12px;color:var(--ink-soft)"></span></div>
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+        <div style="position:relative;flex:none;width:200px;height:200px">
+          <canvas id="leaderDonutCanvas" width="200" height="200" style="cursor:pointer"></canvas>
+          <div id="leaderDonutCenter" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">
+            <div style="font-size:28px;font-weight:700;color:var(--accent)" id="leaderDonutPct">0%</div>
+            <div style="font-size:11px;color:var(--ink-soft)">Total</div>
+          </div>
+        </div>
+        <div id="leaderDonutList" style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="projDetailModal" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(20,26,34,.6);align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:18px;max-width:480px;width:100%;padding:28px;box-shadow:var(--shadow-lift);position:relative">
+      <button onclick="document.getElementById('projDetailModal').style.display='none'" style="position:absolute;top:14px;right:16px;font-size:20px;color:var(--ink-faint);cursor:pointer;background:none;border:none">&times;</button>
+      <div id="projDetailContent"></div>
+    </div>
+  </div>
+
+  <div id="dashFilterRow" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <label for="dashMainFilter" style="font-size:13px;font-weight:600;color:var(--ink-soft)">Show:</label>
+    <select id="dashMainFilter" class="tin" style="width:auto;min-width:180px;font-size:13px;padding:8px 12px"><option value="__all">All Projects</option></select>
+    <label for="dashRangeFilter" style="font-size:13px;font-weight:600;color:var(--ink-soft)">Period:</label>
+    <select id="dashRangeFilter" class="tin" style="width:auto;min-width:120px;font-size:13px;padding:8px 12px"><option value="7">Last 7 days</option><option value="14" selected>Last 14 days</option><option value="30">Last 30 days</option><option value="60">Last 60 days</option></select>
+    <button class="btn btn-soft" id="dashRefresh" style="margin-left:auto">Refresh Data</button>
+  </div>
+  <div class="kpi-row" id="kpiRow"></div>
+  <div class="dash-card" id="ganttHint" style="margin-bottom:14px;display:none"><div class="dc-head"><b>Project Timeline</b></div><div style="font-size:13px;color:var(--ink-soft);margin-bottom:10px">No due dates set yet. Set a target due date for each project to see the timeline and overdue alerts.</div><button type="button" class="btn btn-soft" id="ganttHintBtn">Set due dates</button></div>
+  <div class="dash-card" id="ganttCard" style="margin-bottom:14px;display:none">
+    <div class="dc-head"><b>Project Timeline</b></div>
+    <div id="ganttWrap" style="position:relative"><canvas id="ganttCanvas"></canvas></div>
+    <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:var(--ink-soft)">
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#2E9E6B;margin-right:5px"></span>On track</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#F97316;margin-right:5px"></span>Due within 14 days</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#EF4444;margin-right:5px"></span>Overdue</span>
+    </div>
+  </div>
+  <div class="dash-card" id="progCard" style="margin-bottom:14px">
+    <div class="dc-head"><b>Recording Progress</b><span id="progTotalPct" style="font-size:20px;font-weight:700;color:var(--accent)"></span></div>
+    <div id="progSummary"></div>
+    <div id="progChart" style="margin-top:14px"></div>
+  </div>
+  <div class="dash-card" id="dailyCard" style="margin-bottom:14px">
+    <div class="dc-head"><b>Daily Uploads</b><span id="dayRangeLbl" style="font-size:12px;color:var(--ink-soft)">Last 14 days</span></div>
+    <div id="chartDaily" style="position:relative;height:220px"><canvas id="chartDailyCanvas"></canvas></div>
+    <div id="dailyTableWrap" style="margin-top:14px;overflow-x:auto"></div>
+  </div>
+  <div id="dashStatusRow" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+    <div class="dash-card" style="flex:1;min-width:300px">
+      <div class="dc-head"><b>Status Breakdown</b></div>
+      <div id="statusBar" class="status-bar"></div>
+      <div id="statusDonutList" class="sb-legend"></div>
+      <canvas id="statusDonutCanvas" width="1" height="1" style="display:none" aria-hidden="true"></canvas>
+    </div>
+    <details class="dash-card dash-fold" style="flex:1.4;min-width:340px">
+      <summary><b>Equipment by Location</b></summary>
+      <select id="dashEquipLocFilter" class="tin" style="width:auto;min-width:160px;font-size:12.5px;padding:6px 10px;margin:10px 0"><option value="">All Locations</option></select>
+      <div id="dashEquipTableWrap" style="max-height:320px;overflow-y:auto"></div>
+    </details>
+  </div>
+  <div class="dash-card" id="assignDashCard" style="display:none;margin-bottom:14px">
+    <div class="dc-head">
+      <b>Assignment Progress</b>
+      <select id="assignDashFProject" class="tin" style="width:auto;min-width:160px;font-size:12px;padding:6px 10px"><option value="">All Projects</option></select>
+    </div>
+    <div id="assignDashChart" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<!-- ══════ PANEL: ADD ══════ -->
+<section class="panel" id="panel-add">
+  <div class="panel-title" id="addTitle">Add New Record</div>
+  <button class="btn btn-soft qr-only" id="openQrScanBtn" style="width:100%;margin-bottom:16px;justify-content:center">Scan QR/Barcode to Open Form</button>
+  <div class="card">
+    <div class="card-h"><span class="step">1</span><h3>Select Equipment</h3></div>
+    <div class="card-b">
+      <div class="cascade">
+        <div class="field"><label>Project <span class="req">*</span></label><div class="combo" data-level="project"></div></div>
+        <div class="field"><label>System</label><div class="combo disabled" data-level="system"></div></div>
+        <div class="field"><label>Location Type</label><div class="combo disabled" data-level="typeloc"></div></div>
+        <div class="field"><label>Location <span class="req">*</span></label><div class="combo disabled" data-level="loc"></div></div>
+        <div class="field"><label>Sub-location</label><div class="combo disabled" data-level="sub"></div></div>
+        <div class="field"><label>Equipment Type</label><input type="text" id="inpAsset" placeholder="e.g. Firewall, Switch, Transceiver..." autocomplete="off"></div>
+        <div class="field"><label>Equipment <span class="req">*</span></label><div class="combo disabled" data-level="equip"></div></div>
+        <div class="field"><label>Serial Number</label><div class="combo disabled" data-level="serial"></div><div id="serialWarn" class="serial-warn" role="alert" style="display:none"></div><button type="button" class="ocr-btn" id="ocrBtn">Read serial from photo</button></div>
+      </div>
+      <div class="bm-row">
+        <div class="bm-box"><div class="k">Brand AUTO</div><div class="v empty" id="bmBrand" data-empty="— Select equipment —"><input id="inpBrand" placeholder="—" style="display:none"></div></div>
+        <div class="bm-box"><div class="k">Model AUTO</div><div class="v empty" id="bmModel" data-empty="— Select equipment —"><input id="inpModel" placeholder="—" style="display:none"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-h"><span class="step">2</span><h3>Attach Photos</h3></div>
+    <div class="card-b">
+      <div class="imgs">
+        <div class="imgslot"><div class="cap"><span class="tagn">Photo 1</span> Full equipment photo</div>
+          <label class="drop" id="dropMain" for="fileMain"><div class="ph-content"><div class="drop-hint"><b>Choose main photo</b>Full view of the equipment</div></div><div class="replace-badge">Tap to replace</div></label>
+          <input type="file" id="fileMain" accept="image/*" hidden></div>
+        <div class="imgslot"><div class="cap"><span class="tagn">Photo 2</span> Sticker photo</div>
+          <label class="drop" id="dropSticker" for="fileSticker"><div class="ph-content"><div class="drop-hint"><b>Choose sticker photo</b>Equipment label/sticker</div></div><div class="replace-badge">Tap to replace</div></label>
+          <input type="file" id="fileSticker" accept="image/*" hidden></div>
+        <div class="imgslot"><div class="cap"><span class="tagn">Photo 3</span> Additional photo 1</div>
+          <label class="drop" id="dropImg3" for="fileImg3"><div class="ph-content"><div class="drop-hint"><b>Choose additional photo</b></div></div><div class="replace-badge">Tap to replace</div></label>
+          <input type="file" id="fileImg3" accept="image/*" hidden></div>
+        <div class="imgslot"><div class="cap"><span class="tagn">Photo 4</span> Additional photo 2</div>
+          <label class="drop" id="dropImg4" for="fileImg4"><div class="ph-content"><div class="drop-hint"><b>Choose additional photo</b></div></div><div class="replace-badge">Tap to replace</div></label>
+          <input type="file" id="fileImg4" accept="image/*" hidden></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-h"><span class="step">3</span><h3>Inspection Details</h3></div>
+    <div class="card-b">
+      <div class="field"><label>Inspector Name <span class="req">*</span></label><div class="combo" id="inspCombo"></div></div>
+      <div class="field" style="margin-top:14px"><label>Note</label><textarea class="tin" id="inpNote" placeholder="Additional details"></textarea></div>
+    </div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-soft" id="resetBtn">Clear Form</button>
+    <button class="btn btn-primary" id="saveBtn">Save Record</button>
+  </div>
+</section>
+
+<!-- ══════ PANEL: SAVED ══════ -->
+<section class="panel" id="panel-saved">
+  <div class="panel-title">Records</div>
+  <div class="ro-banner">Your account (observer) is view-only</div>
+  <div id="savedProgress" class="dash-card" style="margin-bottom:14px;display:none">
+    <div class="dc-head"><b>Recording Progress</b><select id="savedProgFilter" class="tin" style="width:auto;min-width:160px;font-size:12.5px;padding:6px 10px;display:none"></select></div>
+    <div id="savedProgBody"></div>
+  </div>
+  <div id="myAssignmentsSection" style="display:none;margin-bottom:18px">
+    <div class="dash-card">
+      <div class="dc-head">
+        <b>Assigned Work <span class="pill" id="assignPill">0</span></b>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="menu-wrap"><button type="button" class="ghost-btn menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="More" title="More">⋯</button><div class="menu-pop" role="menu"><button type="button" role="menuitem" class="menu-item" id="exportAssignBtn">EXCEL</button><button type="button" role="menuitem" class="menu-item" id="setProjectTargetBtn" style="display:none">Target</button></div></div>
+          <button class="btn btn-primary" id="assignWorkBtn" style="font-size:12px;padding:6px 14px;display:none">Assign Work</button>
+          <button id="assignSectionToggle" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--ink-soft)" title="Show/hide">▾</button>
+        </div>
+      </div>
+      <div id="assignStatsPanel" style="margin-top:12px"></div>
+      <div id="myAssignmentsList" style="display:flex;flex-direction:column;gap:10px;margin-top:8px"></div>
+    </div>
+  </div>
+  <div class="saved-tools flt-toolbar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+    <input type="text" id="savedSearch" placeholder="Search records…" style="flex:1;min-width:180px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 12px;outline:none">
+    <details class="flt-drawer">
+      <summary class="flt-drawer-toggle">Filters</summary>
+      <div class="flt-drawer-body">
+        <select id="savedFProject" class="tin" style="width:auto;min-width:130px"><option value="">All Projects</option></select>
+        <select id="savedFSystem" class="tin" style="width:auto;min-width:110px"><option value="">All Systems</option></select>
+        <select id="savedFLoc" class="tin" style="width:auto;min-width:130px"><option value="">All Locations</option></select>
+        <select id="savedFSub" class="tin" style="width:auto;min-width:130px"><option value="">All Sub-locations</option></select>
+        <select id="savedFEquip" class="tin" style="width:auto;min-width:150px"><option value="">All Equipment</option></select>
+        <select id="savedSort" class="tin" style="width:auto;min-width:160px">
+          <option value="newest">Newest→Oldest</option><option value="oldest">Oldest→Newest</option>
+          <option value="az">Equipment A→Z</option><option value="za">Equipment Z→A</option>
+          <option value="proj_th_az">Project ก→ฮ</option><option value="proj_th_za">Project ฮ→ก</option>
+          <option value="proj_en_az">Project A→Z</option><option value="proj_en_za">Project Z→A</option>
+        </select>
+      </div>
+    </details>
+    <button class="ghost-btn word-report-only" id="openWordReportBtn" disabled>DOC</button>
+    <div class="menu-wrap"><button type="button" class="ghost-btn menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="More" title="More">⋯</button><div class="menu-pop" role="menu"><button type="button" role="menuitem" class="menu-item" id="exportXlsx">EXCEL</button><button type="button" role="menuitem" class="menu-item word-report-only" id="openStationReportBtn">DOC (Station photos)</button><button type="button" role="menuitem" class="menu-item" id="exportZipBtn" style="display:none">Photos ZIP</button><button type="button" role="menuitem" class="menu-item" id="openTrashBtn" style="display:none">Trash</button></div></div>
+  </div>
+  <div class="rlist" id="savedGrid"></div>
+</section>
+
+<!-- ══════ MODAL: IMPORT EXCEL (opened from the Master Data page) ══════ -->
+<div id="importExcelModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(20,26,34,.5);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border-radius:18px;max-width:520px;width:100%;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,.2);position:relative;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div style="font-size:17px;font-weight:700;color:var(--ink)">Import Equipment Data (Excel)</div>
+      <button id="importExcelModalClose" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-faint)">&times;</button>
+    </div>
+    <label class="import-drop" for="fileXlsx">
+      <div class="id-ic">📁</div>
+      <b>Choose or drag an Excel file</b>
+      <span>Supports .xlsx · .xls · .csv</span>
+      <span class="id-btn">Choose File</span>
+    </label>
+    <input type="file" id="fileXlsx" accept=".xlsx,.xls,.csv" hidden>
+    <div class="import-cols" style="margin-top:14px">
+      <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px">Supported columns</div>
+      <div class="ic-grid"><span>Order</span><span>Project</span><span>System</span><span>Location Type</span><span>Location</span><span>Sub-location</span><span>Equipment Type</span><span>Equipment</span><span>Brand</span><span>Model</span><span>Serial Number</span></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="ghost-btn" onclick="downloadMasterTemplate()" style="flex:1;min-width:140px">Download Blank Form</button>
+      <button class="ghost-btn" onclick="downloadMasterData()" style="flex:1;min-width:140px">Download Current Data</button>
+    </div>
+    <div id="importPreview" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- ══════ WARP ANIMATION OVERLAY (shown while generating the Word report) ══════ -->
+<div id="warpOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:#03040c;overflow:hidden">
+  <canvas id="warpCanvas" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+  <div id="warpDone" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column">
+    <canvas id="warpPlanet" width="240" height="240"></canvas>
+    <div id="warpDoneText">Report generated ✨</div>
+  </div>
+  <div id="warpStatus"></div>
+</div>
+
+
+<!-- ══════ PANEL: MASTER ══════ -->
+<section class="panel" id="panel-master">
+  <div class="panel-title">Master Data</div>
+  <div class="flt-toolbar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+    <input type="text" id="masterSearch" placeholder="Search master data…" style="flex:1;min-width:180px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 12px;outline:none">
+    <details class="flt-drawer">
+      <summary class="flt-drawer-toggle">Filters</summary>
+      <div class="flt-drawer-body">
+        <select id="masterFProject" class="tin" style="width:auto;min-width:130px"><option value="">All Projects</option></select>
+        <select id="masterFSystem" class="tin" style="width:auto;min-width:110px"><option value="">All Systems</option></select>
+        <select id="masterFLoc" class="tin" style="width:auto;min-width:130px"><option value="">All Locations</option></select>
+        <select id="masterFSub" class="tin" style="width:auto;min-width:130px"><option value="">All Sub-locations</option></select>
+        <select id="masterFEquip" class="tin" style="width:auto;min-width:150px"><option value="">All Equipment</option></select>
+        <select id="masterFMissing" class="tin" style="width:auto;min-width:160px">
+          <option value="">Show All</option>
+          <option value="brand">Missing Brand</option>
+          <option value="model">Missing Model</option>
+          <option value="serial">Missing Serial</option>
+          <option value="any">Missing Any Field</option>
+        </select>
+        <select id="masterFSort" class="tin" style="width:auto;min-width:160px">
+          <option value="order_asc">Order Low→High</option>
+          <option value="order_desc">Order High→Low</option>
+        </select>
+      </div>
+    </details>
+    <button class="btn btn-primary edit-only" id="addMasterBtn">Add Equipment</button>
+    <div class="menu-wrap edit-only"><button type="button" class="ghost-btn menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Tools" title="Tools">Tools ▾</button><div class="menu-pop" role="menu"><button type="button" role="menuitem" class="menu-item edit-only" id="openImportExcelBtn">Import Equipment Data (Excel)</button><button type="button" role="menuitem" class="menu-item admin-only" id="openQrMasterBtn">QR Code</button><button type="button" role="menuitem" class="menu-item menu-danger edit-only" id="bulkDelMasterBtn">Delete by Filter</button></div></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th title="Order used for generating Word/PDF">Order</th><th>Project</th><th>System</th><th>Location Type</th><th>Location</th><th>Sub-location</th><th>Equipment Type</th><th>Equipment</th><th>Brand</th><th>Model</th><th>Serial</th><th></th></tr></thead>
+      <tbody id="masterBody"></tbody>
+    </table>
+  </div>
+  <div id="masterLoadMoreWrap" style="text-align:center;margin-top:14px"></div>
+</section>
+
+<!-- ══════ PANEL: USERS ══════ -->
+<section class="panel" id="panel-users">
+  <div class="admin-only" style="margin-bottom:22px">
+    <div class="panel-title" style="font-size:16px">Page Permissions</div>
+    <div id="pagePermContainer" style="background:var(--surface);border:1px solid var(--line-soft);border-radius:14px;padding:16px;box-shadow:var(--shadow)"></div>
+  </div>
+  <div class="panel-title">Manage Users</div>
+  <div class="user-cols">
+    <div class="card"><div class="card-b">
+      <div class="card-h"><span class="step">+</span><h3>Add User</h3></div>
+      <div class="field"><label>Username <span class="req">*</span></label><input type="text" class="tin" id="nuUser" placeholder="e.g. somchai.j" autocomplete="off"></div>
+      <div class="field" style="margin-top:12px"><label>Password <span class="req">*</span></label><input type="text" class="tin" id="nuPass" placeholder="Set an initial password" autocomplete="off"></div>
+      <div class="field" style="margin-top:12px"><label>Full Name</label><input type="text" class="tin" id="nuName" placeholder="Display name"></div>
+      <div class="field" style="margin-top:12px"><label>Email</label><input type="email" class="tin" id="nuEmail" placeholder="For notifications (optional)" autocomplete="off"></div>
+      <div class="field" style="margin-top:12px"><label>Role <span class="req">*</span></label>
+        <select class="tin" id="nuRole">
+          <option value="inspector">inspector — Inspector</option>
+          <option value="observer">observer — Observer</option>
+          <option value="leader">leader — Team Lead</option>
+          <option value="manager">manager — Manager</option>
+          <option value="admin">admin — Administrator</option>
+        </select>
+      </div>
+      <div id="nuProjectChips" class="chips-box" style="margin-top:12px"></div>
+      <div class="field" style="margin-top:12px"><label>Project</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="text" class="tin" id="nuProject" list="nuProjectList" placeholder="Select a project then press +" style="flex:1">
+          <button type="button" class="round-add-btn" id="nuProjectAdd" title="Add this project">+</button>
+        </div>
+        <datalist id="nuProjectList"></datalist>
+      </div>
+      <button class="btn btn-primary" id="nuAdd" style="margin-top:16px">Add User</button>
+    </div></div>
+    <div class="card"><div class="card-b">
+      <div class="card-h"><span class="step">⬆</span><h3>Import from Excel</h3></div>
+      <label class="import-drop" for="fileUsers" style="padding:26px 18px">
+        <div class="id-ic" style="width:52px;height:52px;font-size:22px">📁</div>
+        <b>Choose or drag an Excel file</b><span>.xlsx · .xls · .csv</span>
+        <span class="id-btn">Choose File</span>
+      </label>
+      <input type="file" id="fileUsers" accept=".xlsx,.xls,.csv" hidden>
+      <div class="import-cols" style="margin-top:14px">
+        <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px">Supported columns</div>
+        <div class="ic-grid"><span>username</span><span>password</span><span>name</span><span>role</span><span>project</span><span>email</span></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button class="ghost-btn" onclick="downloadUsersTemplate()" style="flex:1;min-width:140px">Download Blank Form</button>
+        <button class="ghost-btn" onclick="downloadUsersData()" style="flex:1;min-width:140px">Download User Data</button>
+      </div>
+      <div id="usersImportMsg" style="margin-top:12px"></div>
+    </div></div>
+  </div>
+  <div style="margin-top:20px;display:flex;gap:10px">
+    <input type="text" id="usersSearch" placeholder="Search users…" style="flex:1;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 12px;outline:none">
+    <button class="btn btn-soft" id="usersRefresh">Refresh</button>
+  </div>
+  <div class="table-wrap" style="margin-top:14px">
+    <table>
+      <thead><tr><th>Username</th><th>Password</th><th>Full Name</th><th>Role</th><th>Project</th><th>Email</th><th>Status</th><th></th></tr></thead>
+      <tbody id="usersBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════ ASSIGN MODAL ══════ -->
+<div id="assignModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(20,26,34,.5);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border-radius:18px;max-width:520px;width:100%;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,.2);position:relative;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div style="font-size:17px;font-weight:700;color:var(--ink)">Assign Work</div>
+      <button id="assignModalClose" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-faint)">&times;</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:5px">Project *</label>
+        <div id="awProjectChips" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
+        <input type="text" class="tin" id="awProject" placeholder="Add project…" autocomplete="off" style="width:100%">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:5px">Assignee *</label>
+        <input type="text" class="tin" id="awAssignee" placeholder="Type or select assignee…" autocomplete="off" style="width:100%">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:8px">Work Scope</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="radio" name="awScope" value="project" checked> Whole Project</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="radio" name="awScope" value="loc"> Location</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="radio" name="awScope" value="sub"> Sub-location</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="radio" name="awScope" value="equip"> Equipment</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="radio" name="awScope" value="missing"> Missing Data</label>
+        </div>
+      </div>
+      <div id="awLocRow" style="display:none">
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:5px">Location</label>
+        <div id="awLocChips" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
+        <input type="text" class="tin" id="awLoc" placeholder="Add location…" autocomplete="off" style="width:100%">
+      </div>
+      <div id="awSubRow" style="display:none">
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:5px">Sub-location</label>
+        <div id="awSubChips" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
+        <input type="text" class="tin" id="awSub" placeholder="Add sub-location…" autocomplete="off" style="width:100%">
+      </div>
+      <div id="awEquipRow" style="display:none">
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:5px">Equipment</label>
+        <div id="awEquipChips" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
+        <input type="text" class="tin" id="awEquip" placeholder="Add equipment…" autocomplete="off" style="width:100%">
+      </div>
+      <div id="awMissingRow" style="display:none">
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:8px">Records Missing Data <span id="awMissingCount"></span></label>
+        <div class="table-wrap" style="max-height:200px;overflow-y:auto">
+          <table style="width:100%">
+            <thead><tr><th style="padding:6px 10px"><input type="checkbox" id="awMissingSelectAll"></th><th style="padding:6px 8px">Sub-location</th><th style="padding:6px 8px">Equipment</th><th style="padding:6px 8px">Missing Fields</th></tr></thead>
+            <tbody id="awMissingBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div><label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:5px">Note</label><input type="text" class="tin" id="awNote" placeholder="Note (optional)" style="width:100%"></div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:5px">Due Date <span style="font-weight:400;color:var(--ink-faint)">(optional)</span></label>
+        <input type="date" class="tin" id="awTargetDate" style="width:100%">
+        <div style="font-size:11px;color:var(--ink-faint);margin-top:3px" id="awTargetHint"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-soft" id="awCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="awSaveBtn">Assign Work</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ PROJECT TARGET MODAL ══════ -->
+<div id="projectTargetModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(20,26,34,.5);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border-radius:18px;max-width:420px;width:100%;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,.2);position:relative">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div style="font-size:17px;font-weight:700;color:var(--ink)">Set Project Target</div>
+      <button id="ptModalClose" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-faint)">&times;</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:5px">Project *</label>
+        <input type="text" class="tin" id="ptProject" placeholder="Type or select a project…" autocomplete="off" style="width:100%">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:5px">Due Date *</label>
+        <input type="date" class="tin" id="ptDeadline" style="width:100%">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:5px">Note</label>
+        <input type="text" class="tin" id="ptNote" placeholder="Note (optional)" style="width:100%">
+      </div>
+      <div id="ptCurrentInfo" style="font-size:12px;color:var(--ink-soft);background:var(--bg);border-radius:8px;padding:8px 12px;display:none"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-soft" id="ptCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="ptSaveBtn">Save Target</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ FILL DATA MODAL ══════ -->
+<div id="fillDataModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(20,26,34,.5);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border-radius:18px;max-width:400px;width:100%;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,.2);position:relative">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:700;color:var(--ink)">Fill Missing Data</div>
+      <button id="fillDataClose" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-faint)">&times;</button>
+    </div>
+    <div id="fillDataInfo" style="margin-bottom:14px;font-size:13px;color:var(--ink-soft)"></div>
+    <div id="fillDataFields" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-soft" id="fillDataCancel">Cancel</button>
+      <button class="btn btn-primary" id="fillDataSave">Save</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<div id="reportArea"></div>
+<div class="toast" id="toast"><span class="tdot"></span><span id="toastMsg"></span><button type="button" class="toast-act" id="toastAct" style="display:none"></button></div>
+
+<!-- ══════ MODAL: QR/BARCODE SCAN ══════ -->
+<div id="qrScanModal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(10,14,20,.85);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border-radius:18px;max-width:420px;width:100%;padding:20px;box-shadow:0 8px 40px rgba(0,0,0,.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:700;color:var(--ink)">Scan QR / Barcode</div>
+      <button id="qrScanClose" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-faint)">&times;</button>
+    </div>
+    <div id="qrReaderBox" style="width:100%;border-radius:12px;overflow:hidden;background:#000;min-height:240px"></div>
+    <div id="qrScanMsg" style="margin-top:12px;font-size:13px;color:var(--ink-soft);text-align:center">Opening camera…</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+      <div style="flex:1;height:1px;background:var(--line)"></div>
+      <span style="font-size:12px;color:var(--ink-faint)">or</span>
+      <div style="flex:1;height:1px;background:var(--line)"></div>
+    </div>
+    <label class="ghost-btn" for="qrScanFile" style="width:100%;justify-content:center;margin-top:14px;cursor:pointer">Attach a photo to scan</label>
+    <input type="file" id="qrScanFile" accept="image/*" style="display:none">
+  </div>
+</div>
+
+<!-- ══════ MODAL: QR CODE GENERATOR (Master Data, admin only) ══════ -->
+<div id="qrMasterModal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(10,14,20,.85);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border-radius:18px;max-width:420px;width:100%;padding:26px;box-shadow:0 8px 40px rgba(0,0,0,.3);position:relative">
+    <button id="qrMasterClose" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-soft)">&times;</button>
+    <div style="font-size:17px;font-weight:700;color:var(--ink);margin-bottom:4px">Generate QR Codes</div>
+    <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px">Narrow down with filters, or leave as "All" to include everything</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <select id="qrfProject" class="tin" style="width:100%"><option value="">All Projects</option></select>
+      <select id="qrfTypeLoc" class="tin" style="width:100%"><option value="">All Location Types</option></select>
+      <select id="qrfLoc" class="tin" style="width:100%"><option value="">All Locations</option></select>
+      <select id="qrfSub" class="tin" style="width:100%"><option value="">All Sub-locations</option></select>
+      <select id="qrfEquip" class="tin" style="width:100%"><option value="">All Equipment</option></select>
+    </div>
+    <div id="qrMasterCount" style="margin-top:14px;font-size:13px;color:#444"></div>
+    <button class="btn btn-primary" id="qrMasterGenBtn" style="width:100%;margin-top:16px">Generate QR Codes</button>
+  </div>
+</div>
+
+<script src="script.js?v=1792548732657"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
