@@ -651,9 +651,9 @@ $('#saveBtn').addEventListener('click',async()=>{
   if(localSerialDup(sel.serial,editingId)){checkSerialWarn();toast('This serial number is already recorded - edit the existing record instead',false);return;}
   const btn=$('#saveBtn');btn.disabled=true;btn.textContent='Saving...';
   const newFields=detectNewFields();
-  const e={id:editingId||uid(),project:sel.project,system:sel.system,typeLocation:sel.typeloc,locName:sel.loc,subName:sel.sub,equipment:sel.equip,serial:String(sel.serial||'').trim(),brand:$('#inpBrand').value.trim(),model:$('#inpModel').value.trim(),asset:cleanName($('#inpAsset').value),inspector:insp,note:$('#inpNote').value.trim(),imgMain,imgSticker,img3,img4,pendingReview:newFields.length>0,newFields:newFields.join(', '),createdAt:editingId?(entries.find(x=>x.id===editingId)?.createdAt||Date.now()):Date.now()};
+  const e={id:editingId||uid(),project:sel.project,system:sel.system,typeLocation:sel.typeloc,locName:sel.loc,subName:sel.sub,equipment:sel.equip,serial:String(sel.serial||'').trim(),brand:$('#inpBrand').value.trim(),model:$('#inpModel').value.trim(),asset:cleanName($('#inpAsset').value),inspector:insp,note:$('#inpNote').value.trim(),reading:($('#inpReading')?$('#inpReading').value.trim():''),imgMain,imgSticker,img3,img4,pendingReview:newFields.length>0,newFields:newFields.join(', '),createdAt:editingId?(entries.find(x=>x.id===editingId)?.createdAt||Date.now()):Date.now()};
   let synced=false,errMsg='',queued=false;
-  if(AUTH.token){const mb=((e.imgMain||'').length+(e.imgSticker||'').length+(e.img3||'').length+(e.img4||'').length)*0.75/1048576;btn.textContent='Uploading'+(mb>0.05?' ('+mb.toFixed(1)+' MB)':'')+'...';const payload={record:{id:e.id,project:e.project,system:e.system,typeLocation:e.typeLocation,location:e.locName,sublocation:e.subName,equipment:e.equipment,serial:e.serial,brand:e.brand,model:e.model,asset:e.asset,inspector:e.inspector,note:e.note,createdAt:e.createdAt,pendingReview:e.pendingReview?'true':'',newFields:e.newFields||''},images:{main:e.imgMain||'',sticker:e.imgSticker||'',img3:e.img3||'',img4:e.img4||''}};let r=navigator.onLine?await api(ACT.createRecord,payload):{ok:false,error:'NETWORK'};if(r&&r.error==='NETWORK'&&navigator.onLine){btn.textContent='Connection lost, retrying...';await new Promise(z=>setTimeout(z,1500));r=await api(ACT.createRecord,payload);}if(r&&r.error==='NETWORK'){queued=await oqEnqueue(payload);}synced=!!(r&&r.ok);errMsg=(r&&r.message)||'';}
+  if(AUTH.token){const mb=((e.imgMain||'').length+(e.imgSticker||'').length+(e.img3||'').length+(e.img4||'').length)*0.75/1048576;btn.textContent='Uploading'+(mb>0.05?' ('+mb.toFixed(1)+' MB)':'')+'...';const payload={record:{id:e.id,project:e.project,system:e.system,typeLocation:e.typeLocation,location:e.locName,sublocation:e.subName,equipment:e.equipment,serial:e.serial,brand:e.brand,model:e.model,asset:e.asset,inspector:e.inspector,note:e.note,reading:e.reading||'',createdAt:e.createdAt,pendingReview:e.pendingReview?'true':'',newFields:e.newFields||''},images:{main:e.imgMain||'',sticker:e.imgSticker||'',img3:e.img3||'',img4:e.img4||''}};let r=navigator.onLine?await api(ACT.createRecord,payload):{ok:false,error:'NETWORK'};if(r&&r.error==='NETWORK'&&navigator.onLine){btn.textContent='Connection lost, retrying...';await new Promise(z=>setTimeout(z,1500));r=await api(ACT.createRecord,payload);}if(r&&r.error==='NETWORK'){queued=await oqEnqueue(payload);}synced=!!(r&&r.ok);errMsg=(r&&r.message)||'';}
   btn.disabled=false;btn.textContent='Save Record';
   if(synced){
     resetForm();refreshDerived();updateStats();
@@ -670,9 +670,9 @@ $('#saveBtn').addEventListener('click',async()=>{
   }
 });
 $('#resetBtn').addEventListener('click',resetForm);
-function resetForm(){try{setTimeout(checkSerialWarn,0);}catch(e){}imgMain='';imgSticker='';editingId=null;img3='';img4='';['fileMain','fileSticker','fileImg3','fileImg4'].forEach(id=>$('#'+id).value='');['dropMain','dropSticker','dropImg3','dropImg4'].forEach(id=>{const l=$('#'+id);l.classList.remove('has-img');l.style.backgroundImage='';const ph=l.querySelector('.ph-content');if(ph)ph.style.display='';});['inpInspector','inpAsset','inpNote'].forEach(id=>$('#'+id).value='');$('#inspCombo').classList.remove('has-val');syncComboVal('inpAsset');LEVELS.forEach(lv=>{sel[lv]='';if(combos[lv]){combos[lv].input.value='';combos[lv].el.classList.remove('has-val');}});setDisabledStates();updateBrandModel();const role=AUTH.user?.role||'';const userProjs=(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean);if(role==='leader'||role==='inspector'){$('#inpInspector').value=cleanName(AUTH.user?.name||AUTH.user?.username||'');$('#inpInspector').disabled=true;$('#inspCombo').classList.add('has-val');$('#inspCombo').style.background='#EEF1F4';if(userProjs.length===1){setTimeout(()=>choose('project',userProjs[0]),50);if(combos.project){combos.project.input.disabled=true;combos.project.el.style.background='#EEF1F4';}}}else{$('#inpInspector').disabled=false;$('#inspCombo').style.background='';if(role&&role!=='admin'){const n=cleanName(AUTH.user?.name||AUTH.user?.username||'');if(n){$('#inpInspector').value=n;$('#inspCombo').classList.add('has-val');}}if(combos.project){combos.project.input.disabled=false;combos.project.el.style.background='';}}$('#addTitle').textContent='Add New Record';$('#saveBtn').textContent='Save Record';paintReturnBanner(null);clearPhotoQuality();}
+function resetForm(){try{setTimeout(checkSerialWarn,0);}catch(e){}imgMain='';imgSticker='';editingId=null;img3='';img4='';['fileMain','fileSticker','fileImg3','fileImg4'].forEach(id=>$('#'+id).value='');['dropMain','dropSticker','dropImg3','dropImg4'].forEach(id=>{const l=$('#'+id);l.classList.remove('has-img');l.style.backgroundImage='';const ph=l.querySelector('.ph-content');if(ph)ph.style.display='';});['inpInspector','inpAsset','inpNote','inpReading'].forEach(id=>{const el=$('#'+id);if(el)el.value='';});$('#inspCombo').classList.remove('has-val');syncComboVal('inpAsset');LEVELS.forEach(lv=>{sel[lv]='';if(combos[lv]){combos[lv].input.value='';combos[lv].el.classList.remove('has-val');}});setDisabledStates();updateBrandModel();const role=AUTH.user?.role||'';const userProjs=(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean);if(role==='leader'||role==='inspector'){$('#inpInspector').value=cleanName(AUTH.user?.name||AUTH.user?.username||'');$('#inpInspector').disabled=true;$('#inspCombo').classList.add('has-val');$('#inspCombo').style.background='#EEF1F4';if(userProjs.length===1){setTimeout(()=>choose('project',userProjs[0]),50);if(combos.project){combos.project.input.disabled=true;combos.project.el.style.background='#EEF1F4';}}}else{$('#inpInspector').disabled=false;$('#inspCombo').style.background='';if(role&&role!=='admin'){const n=cleanName(AUTH.user?.name||AUTH.user?.username||'');if(n){$('#inpInspector').value=n;$('#inspCombo').classList.add('has-val');}}if(combos.project){combos.project.input.disabled=false;combos.project.el.style.background='';}}$('#addTitle').textContent='Add New Record';$('#saveBtn').textContent='Save Record';paintReturnBanner(null);clearPhotoQuality();}
 
-async function loadRecords(){if(!AUTH.token)return;const r=await api(ACT.listRecords,{});if(r&&r.ok&&Array.isArray(r.records)){entries=r.records.map(x=>({id:x.id,project:x.project,system:x.system,typeLocation:x.typeLocation,locName:x.location,subName:x.sublocation,equipment:x.equipment,serial:x.serial,brand:x.brand,model:x.model,asset:x.asset,inspector:x.inspector,note:x.note,imgMain:x.imgMain,imgSticker:x.imgSticker,img3:x.img3,img4:x.img4,thumbMain:x.thumbMain,thumbSticker:x.thumbSticker,thumb3:x.thumb3,thumb4:x.thumb4,pendingReview:!!x.pendingReview,newFields:x.newFields||'',returnReason:x.returnReason||'',returnedBy:x.returnedBy||'',returnedAt:x.returnedAt||0,createdAt:x.createdAt||Date.now(),synced:true}));entries.sort((a,b)=>b.createdAt-a.createdAt);renderSaved();updateStats();renderDashboard();}}
+async function loadRecords(){if(!AUTH.token)return;const r=await api(ACT.listRecords,{});if(r&&r.ok&&Array.isArray(r.records)){entries=r.records.map(x=>({id:x.id,project:x.project,system:x.system,typeLocation:x.typeLocation,locName:x.location,subName:x.sublocation,equipment:x.equipment,serial:x.serial,brand:x.brand,model:x.model,asset:x.asset,inspector:x.inspector,note:x.note,reading:x.reading||'',imgMain:x.imgMain,imgSticker:x.imgSticker,img3:x.img3,img4:x.img4,thumbMain:x.thumbMain,thumbSticker:x.thumbSticker,thumb3:x.thumb3,thumb4:x.thumb4,pendingReview:!!x.pendingReview,newFields:x.newFields||'',returnReason:x.returnReason||'',returnedBy:x.returnedBy||'',returnedAt:x.returnedAt||0,createdAt:x.createdAt||Date.now(),synced:true}));entries.sort((a,b)=>b.createdAt-a.createdAt);renderSaved();updateStats();renderDashboard();}}
 
 $('#savedSearch').addEventListener('input',renderSaved);
 {const tb=document.getElementById('openTrashBtn');if(tb)tb.addEventListener('click',openTrash);}
@@ -814,7 +814,7 @@ async function confirmRecordReviewed(id){
   if(r&&r.ok){toast('Confirmed',true);await loadRecords();}
   else toast((r&&r.message)||'Confirmation failed',false);
 }
-function editEntry(id){const e=entries.find(x=>x.id===id);if(!e)return;resetForm();editingId=id;imgMain=e.imgMain||'';imgSticker=e.imgSticker||'';img3=e.img3||'';img4=e.img4||'';setImgPreview('dropMain',e.thumbMain||e.imgMain);setImgPreview('dropSticker',e.thumbSticker||e.imgSticker);setImgPreview('dropImg3',e.thumb3||e.img3);setImgPreview('dropImg4',e.thumb4||e.img4);choose('project',e.project||'');choose('system',e.system||'');choose('loc',e.locName||'');choose('sub',e.subName||'');choose('equip',e.equipment||'');choose('serial',e.serial||'');if($('#inpBrand'))$('#inpBrand').value=e.brand||'';if($('#inpModel'))$('#inpModel').value=e.model||'';$('#inpAsset').value=e.asset||'';syncComboVal('inpAsset');$('#inpInspector').value=e.inspector||'';$('#inspCombo').classList.toggle('has-val',!!e.inspector);$('#inpNote').value=e.note||'';$('#addTitle').textContent='Edit Record';$('#saveBtn').textContent='Save Changes';paintReturnBanner(e);goTab('add');window.scrollTo(0,0);}
+function editEntry(id){const e=entries.find(x=>x.id===id);if(!e)return;resetForm();editingId=id;imgMain=e.imgMain||'';imgSticker=e.imgSticker||'';img3=e.img3||'';img4=e.img4||'';setImgPreview('dropMain',e.thumbMain||e.imgMain);setImgPreview('dropSticker',e.thumbSticker||e.imgSticker);setImgPreview('dropImg3',e.thumb3||e.img3);setImgPreview('dropImg4',e.thumb4||e.img4);choose('project',e.project||'');choose('system',e.system||'');choose('loc',e.locName||'');choose('sub',e.subName||'');choose('equip',e.equipment||'');choose('serial',e.serial||'');if($('#inpBrand'))$('#inpBrand').value=e.brand||'';if($('#inpModel'))$('#inpModel').value=e.model||'';$('#inpAsset').value=e.asset||'';syncComboVal('inpAsset');$('#inpInspector').value=e.inspector||'';$('#inspCombo').classList.toggle('has-val',!!e.inspector);$('#inpNote').value=e.note||'';if($('#inpReading'))$('#inpReading').value=e.reading||'';$('#addTitle').textContent='Edit Record';$('#saveBtn').textContent='Save Changes';paintReturnBanner(e);goTab('add');window.scrollTo(0,0);}
 function delEntry(id){confirmDlg('Delete this record? Its photos are moved to the _Trash folder and you can undo this.','Delete',async()=>{if(AUTH.token){const r=await api(ACT.deleteRecord,{id});if(r&&r.ok){await loadRecords();loadProgress();toast('Record deleted',true,{label:'Undo',ms:10000,fn:()=>restoreFromTrash(id)});}else toast((r&&r.message)||'Delete failed',false);}});}
 async function restoreFromTrash(id){const r=await api(ACT.restoreRecord,{id});if(r&&r.ok){await loadRecords();loadProgress();toast('Record restored',true);return true;}toast((r&&r.message)||'Restore failed',false);return false;}
 function openTrash(){
@@ -3040,6 +3040,7 @@ Object.assign(I18N_TH,{'Returned:':'ตีกลับ:','Return':'ตีกล�
 Object.assign(I18N_TH,{'Photos ZIP':'รูปทั้งหมด (ZIP)','Export photos (ZIP)':'Export รูปเป็น ZIP','Create ZIP':'สร้างไฟล์ ZIP','Creating ZIP':'กำลังสร้าง ZIP','Download part':'ดาวน์โหลดส่วนที่','photos':'รูป','photo(s) could not be read and were skipped':'รูปที่อ่านไม่ได้และถูกข้าม','Files are grouped by Project / Location / Sub-location. Links expire after 1 day.':'ไฟล์จัดโฟลเดอร์ตาม Project / Location / Sub-location ลิงก์หมดอายุใน 1 วัน','Done - tap each part to download':'เสร็จแล้ว - แตะแต่ละส่วนเพื่อดาวน์โหลด','No photos found':'ไม่พบรูป','No photos to export in the current list':'ไม่มีรูปให้ export ในรายการปัจจุบัน','No records yet':'ยังไม่มีรายการ','Equipment by Location':'อุปกรณ์ตามสถานที่'});
 Object.assign(I18N_TH,{'Station photo report (Word)':'รายงานรูปรายสถานี (Word)','DOC (Station photos)':'DOC รูปรายสถานี','Period':'ช่วงเวลา','All records in the current list':'ทุกรายการในรายการปัจจุบัน','Report title':'หัวเรื่องรายงาน','Sub-title':'หัวเรื่องรอง','Station title from':'ชื่อสถานีจาก','Location':'สถานที่','Location + Sub-location':'สถานที่ + สถานที่ย่อย','Sub-location':'สถานที่ย่อย','Standard text under each station':'ข้อความมาตรฐานใต้ชื่อสถานี','Date in the station title':'วันที่ในชื่อสถานี','Date and time':'วันที่และเวลา','Date only':'วันที่อย่างเดียว','No date':'ไม่แสดงวันที่','Remember the title and standard text for this project':'จำหัวเรื่องและข้อความมาตรฐานของโปรเจกต์นี้','A record with a Note uses its Note instead of the standard text. You can also edit each station below (this report only).':'รายการที่มี Note จะใช้ Note แทนข้อความมาตรฐาน และแก้รายสถานีด้านล่างได้ (เฉพาะรายงานนี้)','Edit text per station':'แก้ข้อความรายสถานี','stations':'สถานี','with photos':'มีรูป','Create Word report':'สร้างรายงาน Word'});
 Object.assign(I18N_TH,{'DOC (choose layout…)':'DOC (เลือกรูปแบบ…)','Use this layout for these projects from now on':'ใช้รูปแบบนี้กับโครงการเหล่านี้ต่อไป','Which report?':'สร้างรายงานแบบไหน?','Station photo report':'รายงานรูปรายสถานี','Equipment report':'รายงานอุปกรณ์','Monthly report like the Excel template: title, one block per station with date and 4 photos (2x2).':'รายงานรายเดือนแบบเทมเพลต Excel: หัวเรื่อง แต่ละสถานีมีวันที่และรูป 4 รูป (2x2)','With table of contents, grouped by location type and location, one equipment per block.':'มีสารบัญ จัดกลุ่มตามประเภทสถานที่และสถานที่ แต่ละอุปกรณ์หนึ่งบล็อก'});
+Object.assign(I18N_TH,{'Reading':'ค่าที่วัดได้','Reading (optional, printed in the station report, e.g. water level)':'ค่าที่วัดได้ (ไม่บังคับ พิมพ์ในรายงานรายสถานี เช่น ระดับน้ำ)','Report layout for this project':'รูปแบบรายงานของโครงการนี้','DOC (set layout…)':'DOC (ตั้งรูปแบบรายงาน…)','Report layout saved':'บันทึกรูปแบบรายงานแล้ว','Only admin or manager can set the report layout':'เฉพาะ admin หรือ manager ที่ตั้งรูปแบบรายงานได้','Report layout is not set for this project. Ask an admin or manager to set it':'โครงการนี้ยังไม่ได้ตั้งรูปแบบรายงาน กรุณาให้ admin หรือ manager ตั้งค่า','These projects use different report layouts. Filter to one project first':'โครงการเหล่านี้ใช้รูปแบบรายงานต่างกัน กรุณากรองเหลือโครงการเดียวก่อน','The layout is locked to the project. Everyone uses it from now on; only admin or manager can change it.':'รูปแบบถูกล็อกตามโครงการ ทุกคนใช้รูปแบบนี้ต่อไป เฉพาะ admin หรือ manager เปลี่ยนได้','Use {reading} in the standard text where the measured value goes, e.g. "… ค่าระดับน้ำ {reading} ม.รทก." Without {reading}, the reading is added at the end.':'ใส่ {reading} ในข้อความมาตรฐานตรงตำแหน่งที่จะแสดงค่าที่วัดได้ เช่น "… ค่าระดับน้ำ {reading} ม.รทก." ถ้าไม่ใส่ จะต่อท้ายข้อความ'});
 Object.assign(I18N_TH,{'Needs attention':'ต้องจัดการ','Pending review':'รอตรวจสอบ','Overdue projects':'โปรเจกต์เลยกำหนด','Due within 14 days':'ใกล้กำหนดใน 14 วัน','Open assignments':'งานมอบหมายที่ค้าง','My open assignments':'งานของฉันที่ค้าง','✓ Nothing needs attention':'✓ ไม่มีรายการที่ต้องจัดการ','Last 7 days':'7 วันที่ผ่านมา','Last 14 days':'14 วันที่ผ่านมา','Last 30 days':'30 วันที่ผ่านมา','Last 60 days':'60 วันที่ผ่านมา','Completion':'ความสำเร็จ','Period:':'ช่วงเวลา:','Show:':'แสดง:','Set due dates':'ตั้งวันครบกำหนด','No due dates set yet. Set a target due date for each project to see the timeline and overdue alerts.':'ยังไม่ได้ตั้งวันครบกำหนด ตั้งวันครบกำหนดให้แต่ละโปรเจกต์เพื่อดู Timeline และแจ้งเตือนเลยกำหนด'});
 Object.assign(I18N_TH,{'ADMIN':'ผู้ดูแลระบบ','MANAGER':'ผู้จัดการ','OBSERVER':'ผู้สังเกตการณ์','LEADER':'หัวหน้า','INSPECTOR':'ผู้ตรวจ','AMR ASIA CO., LTD.':'AMR ASIA CO., LTD.'});
 function i18nLookup(t){let r=I18N_TH[t];if(r!==undefined)return r;for(const[re,fn]of I18N_RE){const m=t.match(re);if(m)return fn(m);}return undefined;}
@@ -3251,7 +3252,7 @@ function openOfflineQueue(){
 
 /* ── 4) ประวัติการแก้ไขต่อรายการ ── */
 const HIST_ACTIONS={create:'Created',edit:'Edited',delete:'Deleted',restore:'Restored',purge:'Deleted forever',review:'Confirmed reviewed',return:'Returned for fixing','return-cancel':'Return cancelled',resubmit:'Fixed and resubmitted'};
-const HIST_FIELDS={project:'Project',system:'System',typeLocation:'Location Type',location:'Location',sublocation:'Sub-location',equipment:'Equipment',serial:'Serial Number',brand:'Brand',model:'Model',asset:'Equipment Type',inspector:'Inspector',note:'Note'};
+const HIST_FIELDS={project:'Project',system:'System',typeLocation:'Location Type',location:'Location',sublocation:'Sub-location',equipment:'Equipment',serial:'Serial Number',brand:'Brand',model:'Model',asset:'Equipment Type',inspector:'Inspector',note:'Note',reading:'Reading'};
 async function openHistory(id){
   const e=entries.find(x=>x.id===id)||{};
   const {body}=simpleDlg('histDlg',_tx('History')+(e.equipment?' - '+e.equipment:''),560);
@@ -3482,7 +3483,8 @@ async function openStationReport(){
   const months={};list0.forEach(e=>{const k=monthKeyOf(e.createdAt);months[k]=(months[k]||0)+1;});
   const monthKeys=Object.keys(months).sort().reverse();
   const {dlg,body,foot}=simpleDlg('stDlg',_tx('Station photo report (Word)'),680);
-  const ovr={};          // id -> ข้อความเฉพาะสถานี (เฉพาะรายงานนี้)
+  const ovr={},rdg={};          // rdg: id -> ค่าที่วัดได้ (เฉพาะรายงานนี้)
+  // id -> ข้อความเฉพาะสถานี (เฉพาะรายงานนี้)
   body.innerHTML=`<div class="st-form">
     <label class="st-l">${esc(_tx('Period'))}<select id="stMonth" class="tin"><option value="">${esc(_tx('All records in the current list'))} (${list0.length})</option>${monthKeys.map(k=>`<option value="${k}">${esc(thMonthLabel(k))} (${months[k]})</option>`).join('')}</select></label>
     <label class="st-l">${esc(_tx('Report title'))}<input id="stTitle" class="tin" value="${escAttr(pInfo.reportTitle||ST_DEFAULT_TITLE)}"></label>
@@ -3490,6 +3492,7 @@ async function openStationReport(){
     <label class="st-l">${esc(_tx('Station title from'))}<select id="stMode" class="tin"><option value="loc">${esc(_tx('Location'))}</option><option value="both">${esc(_tx('Location + Sub-location'))}</option><option value="sub">${esc(_tx('Sub-location'))}</option></select></label>
     <label class="st-l">${esc(_tx('Date in the station title'))}<select id="stDate" class="tin"><option value="dt"${defDate==='dt'?' selected':''}>${esc(_tx('Date and time'))}</option><option value="d"${defDate==='d'?' selected':''}>${esc(_tx('Date only'))}</option><option value="none">${esc(_tx('No date'))}</option></select></label>
     <label class="st-l">${esc(_tx('Standard text under each station'))}${systems.length===1?' ('+esc(systems[0])+')':''}<textarea id="stText" class="tin" rows="2">${esc(texts[sysKey]||(sysKey!=='*'?'':texts['*'])||'')}</textarea></label>
+    <div class="st-hint">${esc(_tx('Use {reading} in the standard text where the measured value goes, e.g. "… ค่าระดับน้ำ {reading} ม.รทก." Without {reading}, the reading is added at the end.'))}</div>
     <label class="st-chk"><input type="checkbox" id="stSave" checked> ${esc(_tx('Remember the title and standard text for this project'))}</label>
     <div class="st-hint">${esc(_tx('A record with a Note uses its Note instead of the standard text. You can also edit each station below (this report only).'))}</div>
     <details class="st-det"><summary>${esc(_tx('Edit text per station'))}</summary><div id="stRows" class="st-rows"></div></details>
@@ -3501,8 +3504,9 @@ async function openStationReport(){
     const items=current().slice().sort((a,b)=>stationSort(a,b,mode));
     const withPh=items.filter(e=>e.imgMain||e.imgSticker||e.img3||e.img4).length;
     q('#stCount').textContent=items.length+' '+_tx('stations')+' · '+withPh+' '+_tx('with photos');
-    q('#stRows').innerHTML=items.map(e=>`<div class="st-row"><div class="st-rt">${esc(stationTitleOf(e,mode,dm))}</div><input class="tin" data-id="${escAttr(e.id)}" placeholder="${escAttr(e.note||(systems.length===1?std:(stdFor(e)||std))||'')}" value="${escAttr(ovr[e.id]||'')}"></div>`).join('');
-    q('#stRows').querySelectorAll('input').forEach(i=>i.oninput=()=>{ovr[i.dataset.id]=i.value;});
+    q('#stRows').innerHTML=items.map(e=>`<div class="st-row"><div class="st-rt">${esc(stationTitleOf(e,mode,dm))}</div><input class="tin" data-id="${escAttr(e.id)}" placeholder="${escAttr(e.note||(systems.length===1?std:(stdFor(e)||std))||'')}" value="${escAttr(ovr[e.id]||'')}"><input class="tin st-rd" data-rd="${escAttr(e.id)}" placeholder="${escAttr(_tx('Reading')+(e.reading?': '+e.reading:''))}" value="${escAttr(rdg[e.id]||'')}"></div>`).join('');
+    q('#stRows').querySelectorAll('input[data-id]').forEach(i=>i.oninput=()=>{ovr[i.dataset.id]=i.value;});
+    q('#stRows').querySelectorAll('input[data-rd]').forEach(i=>i.oninput=()=>{rdg[i.dataset.rd]=i.value;});
   };
   q('#stMonth').onchange=()=>{const m=q('#stMonth').value;if(m)q('#stSub').value=thMonthLabel(m);paintRows();};
   q('#stMode').onchange=paintRows;q('#stDate').onchange=paintRows;q('#stText').oninput=()=>{};
@@ -3511,12 +3515,24 @@ async function openStationReport(){
   foot.querySelector('#stGo').onclick=async()=>{
     const edited=q('#stText').value.trim();
     const map=Object.assign({},texts);if(edited)map[sysKey]=edited;else delete map[sysKey];
-    const opt={title:q('#stTitle').value.trim()||ST_DEFAULT_TITLE,sub:q('#stSub').value.trim(),mode:q('#stMode').value,dmode:q('#stDate').value,stdFor:e=>String(map[e.system]||map['*']||'').trim(),items:current(),ovr:Object.assign({},ovr)};
+    const opt={title:q('#stTitle').value.trim()||ST_DEFAULT_TITLE,sub:q('#stSub').value.trim(),mode:q('#stMode').value,dmode:q('#stDate').value,stdFor:e=>String(map[e.system]||map['*']||'').trim(),items:current(),ovr:Object.assign({},ovr),rd:Object.assign({},rdg)};
     if(!opt.items.length){toast('No data matches the current filter',false);return;}
     if(q('#stSave').checked){projects.forEach(p=>{const pi=info.find(x=>x.project===p)||{};const m=Object.assign({},parseStationTexts(pi.stationText));if(edited)m[sysKey]=edited;else delete m[sysKey];api(ACT.saveReportInfo,{row:{project:p,reportTitle:opt.title,stationText:JSON.stringify(m)}});});}
     dlg.style.display='none';
     await generateStationReport(opt,projects);
   };
+}
+/* ข้อความบรรทัดที่ 2: แก้เฉพาะสถานี > Note > ข้อความมาตรฐาน + ค่าที่วัดได้ ({reading} หรือต่อท้าย) */
+function stationText(e,opt){
+  const ov=String((opt.ovr||{})[e.id]||'').trim();if(ov)return ov;
+  const nt=String(e.note||'').trim();if(nt)return nt;
+  const std=String(opt.stdFor(e)||'').trim();
+  const rv=String(((opt.rd||{})[e.id]||e.reading||'')).trim();
+  const i=std.indexOf('{reading}');
+  if(i<0)return rv?(std?std+' ':'')+rv:std;
+  if(rv)return std.split('{reading}').join(rv).replace(/\s+/g,' ').trim();
+  const head=std.slice(0,i),k=head.lastIndexOf('ค่า');
+  return std.slice(0,k>=0?k:i).trim();
 }
 async function generateStationReport(opt,projects){
   try{await loadLib('docx');}catch(e){toast('Could not load the Word library. Check your connection and try again',false);return;}
@@ -3549,7 +3565,7 @@ async function generateStationReport(opt,projects){
     kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:0},children:[T(opt.title,{size:36,bold:true})]}));
     if(opt.sub)kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:200},children:[T(opt.sub,{size:32})]}));
     items.forEach((e,i)=>{
-      const text=String(opt.ovr[e.id]||'').trim()||String(e.note||'').trim()||opt.stdFor(e);
+      const text=stationText(e,opt);
       kids.push(new Paragraph({alignment:AlignmentType.CENTER,keepNext:true,keepLines:true,spacing:{before:i?240:120,after:0},children:[T(stationTitleOf(e,opt.mode,opt.dmode),{size:32})]}));
       if(text)kids.push(new Paragraph({alignment:AlignmentType.CENTER,keepNext:true,keepLines:true,spacing:{after:80},children:[T(text,{size:32})]}));
       const ph=imgs[i];
@@ -3576,10 +3592,11 @@ async function generateStationReport(opt,projects){
     console.error('generateStationReport error:',err);
   }
 }
-document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('openStationReportBtn');if(b)b.addEventListener('click',openStationReport);});
+document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('openStationReportBtn');if(b)b.addEventListener('click',()=>openDocPicker(false));});
 
 
 /* ═══ Phase 23: ปุ่ม DOC ถามก่อนว่าจะสร้างรายงานแบบไหน ═══ */
+const canSetTemplate=()=>{const r=AUTH.user&&AUTH.user.role;return r==='admin'||r==='manager';};
 async function openDocPicker(force){
   const list=getSavedFilteredList();
   if(!list.length){toast('No data matches the current filter',false);return;}
@@ -3587,23 +3604,26 @@ async function openDocPicker(force){
   let info=[];try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)info=r.info||[];}catch(e){}
   const saved=uniq(projects.map(p=>String((info.find(x=>x.project===p)||{}).reportTemplate||'')));
   const run=k=>{if(k==='station')openStationReport();else generateWordTemplate();};
-  /* แต่ละโครงการใช้เทมเพลตต่างกัน: ถ้าทุกโครงการในรายการจำค่าไว้ตรงกัน → สร้างเลย (เมนู ⋯ → "DOC (choose layout…)" เปลี่ยนได้) */
-  if(!force&&saved.length===1&&(saved[0]==='station'||saved[0]==='equip')){run(saved[0]);return;}
-  let last='';try{last=(await sGet('docPickLast'))||'';}catch(e){}
-  const {dlg,body,foot}=simpleDlg('docPick',_tx('Which report?'),520);
+  /* ล็อกเทมเพลตตามโครงการ: ผู้ใช้ทั่วไปใช้เทมเพลตที่ admin/manager ตั้งไว้เท่านั้น */
+  if(!force){
+    if(saved.length===1&&(saved[0]==='station'||saved[0]==='equip')){run(saved[0]);return;}
+    if(projects.length>1&&saved.length>1){toast('These projects use different report layouts. Filter to one project first',false);return;}
+    if(!canSetTemplate()){toast('Report layout is not set for this project. Ask an admin or manager to set it',false);return;}
+  }else if(!canSetTemplate()){toast('Only admin or manager can set the report layout',false);return;}
+  const cur=saved.length===1?saved[0]:'';
+  const {dlg,body,foot}=simpleDlg('docPick',_tx('Report layout for this project'),520);
   foot.style.display='none';
-  body.innerHTML=`<div class="dp-list">
-    <button type="button" class="dp-opt${last==='station'?' is-last':''}" data-k="station"><b>${esc(_tx('Station photo report'))}</b><span>${esc(_tx('Monthly report like the Excel template: title, one block per station with date and 4 photos (2x2).'))}</span></button>
-    <button type="button" class="dp-opt${last==='equip'?' is-last':''}" data-k="equip"><b>${esc(_tx('Equipment report'))}</b><span>${esc(_tx('With table of contents, grouped by location type and location, one equipment per block.'))}</span></button></div>
-    ${projects.length?`<label class="st-chk" style="padding-bottom:12px"><input type="checkbox" id="dpRemember" checked> ${esc(_tx('Use this layout for these projects from now on'))}</label>`:''}`;
-  body.querySelectorAll('.dp-opt').forEach(b=>b.onclick=()=>{
-    const k=b.dataset.k,rem=body.querySelector('#dpRemember');
-    try{sSet('docPickLast',k);}catch(e){}
-    if(rem&&rem.checked)projects.forEach(p=>{api(ACT.saveReportInfo,{row:{project:p,reportTemplate:k}});});
-    dlg.style.display='none';run(k);
+  body.innerHTML=`<div class="st-hint" style="padding-bottom:8px">${esc(projects.join(', '))}</div><div class="dp-list">
+    <button type="button" class="dp-opt${cur==='station'?' is-last':''}" data-k="station"><b>${esc(_tx('Station photo report'))}</b><span>${esc(_tx('Monthly report like the Excel template: title, one block per station with date and 4 photos (2x2).'))}</span></button>
+    <button type="button" class="dp-opt${cur==='equip'?' is-last':''}" data-k="equip"><b>${esc(_tx('Equipment report'))}</b><span>${esc(_tx('With table of contents, grouped by location type and location, one equipment per block.'))}</span></button></div>
+    <div class="st-hint" style="padding-bottom:12px">${esc(_tx('The layout is locked to the project. Everyone uses it from now on; only admin or manager can change it.'))}</div>`;
+  body.querySelectorAll('.dp-opt').forEach(b=>b.onclick=async()=>{
+    const k=b.dataset.k;
+    await Promise.all(projects.map(p=>api(ACT.saveReportInfo,{row:{project:p,reportTemplate:k}})));
+    dlg.style.display='none';if(!force)run(k);else toast('Report layout saved');
   });
 }
-document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('openDocChooseBtn');if(b)b.addEventListener('click',()=>openDocPicker(true));});
+document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('openDocChooseBtn');if(b){b.addEventListener('click',()=>openDocPicker(true));const sync=()=>{b.style.display=canSetTemplate()?'':'none';};sync();setInterval(sync,1000);}});
 
 /* ═══ Phase 3: dialog accessibility (Esc to close, focus in/out, role=dialog) ═══ */
 function _isOverlay(el){return el&&el.nodeType===1&&el.style&&el.style.position==='fixed'&&/inset:\s*0/.test(el.getAttribute('style')||'')&&el.id!=='warpOverlay'&&el.id!=='authGate';}

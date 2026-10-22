@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=1792567549761">
+<link rel="stylesheet" href="styles.css?v=1792634698984">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D93A2B">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -224,6 +224,7 @@
     <div class="card-b">
       <div class="field"><label>Inspector Name <span class="req">*</span></label><div class="combo" id="inspCombo"></div></div>
       <div class="field" style="margin-top:14px"><label>Note</label><textarea class="tin" id="inpNote" placeholder="Additional details"></textarea></div>
+      <div class="field" style="margin-top:14px"><label>Reading <span class="hint-s">(optional, printed in the station report, e.g. water level)</span></label><input class="tin" id="inpReading" placeholder="e.g. -0.29  or  IN -0.29 ม.รทก. ค่าระดับน้ำ OUT -0.30"></div>
     </div>
   </div>
   <div class="form-actions">
@@ -273,7 +274,7 @@
       </div>
     </details>
     <button class="ghost-btn word-report-only" id="openWordReportBtn" disabled>DOC</button>
-    <div class="menu-wrap"><button type="button" class="ghost-btn menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="More" title="More">⋯</button><div class="menu-pop" role="menu"><button type="button" role="menuitem" class="menu-item" id="exportXlsx">EXCEL</button><button type="button" role="menuitem" class="menu-item word-report-only" id="openDocChooseBtn">DOC (choose layout…)</button><button type="button" role="menuitem" class="menu-item word-report-only" id="openStationReportBtn">DOC (Station photos)</button><button type="button" role="menuitem" class="menu-item" id="exportZipBtn" style="display:none">Photos ZIP</button><button type="button" role="menuitem" class="menu-item" id="openTrashBtn" style="display:none">Trash</button></div></div>
+    <div class="menu-wrap"><button type="button" class="ghost-btn menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="More" title="More">⋯</button><div class="menu-pop" role="menu"><button type="button" role="menuitem" class="menu-item" id="exportXlsx">EXCEL</button><button type="button" role="menuitem" class="menu-item word-report-only" id="openDocChooseBtn">DOC (set layout…)</button><button type="button" role="menuitem" class="menu-item word-report-only" id="openStationReportBtn" style="display:none" aria-hidden="true" tabindex="-1">DOC (Station photos)</button><button type="button" role="menuitem" class="menu-item" id="exportZipBtn" style="display:none">Photos ZIP</button><button type="button" role="menuitem" class="menu-item" id="openTrashBtn" style="display:none">Trash</button></div></div>
   </div>
   <div class="rlist" id="savedGrid"></div>
 </section>
@@ -569,7 +570,7 @@
   </div>
 </div>
 
-<script src="script.js?v=1792567549761"></script>
+<script src="script.js?v=1792634698984"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
