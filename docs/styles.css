@@ -1,8 +1,8 @@
 
 /* ─── TOKENS ────────────────────────────────────────────── */
 :root{
-  --bg:#EBEEF2;--surface:#FFFFFF;--ink:#161B22;--ink-soft:#4B5563;--ink-faint:#566274;
-  --line:#D7DCE4;--line-soft:#E6EAF0;--steel:#222D3A;--steel-2:#2E3C4D;
+  --bg:#F4F2EE;--surface:#FFFFFF;--ink:#1F1D1A;--ink-soft:#4F4B45;--ink-faint:#645F57;
+  --line:#DDD9D1;--line-soft:#E9E6E0;--steel:#222D3A;--steel-2:#2E3C4D;
   --accent:#D93A2B;--accent-deep:#A82A1E;--accent-wash:#FBE5E2;
   --ok:#2E9E6B;--danger:#D5443A;--radius:12px;
   /* Phase 8: สีที่ใช้ "เป็นตัวอักษร" และ "เป็นพื้นปุ่มที่มีตัวอักษรขาว" แยกจากสีแบรนด์ เพื่อให้คอนทราสต์ผ่านทั้งโหมดสว่าง/มืด */
@@ -426,8 +426,8 @@ body.readonly .ro-banner{display:block}
 /* ─── DARK MODE ─────────────────────────────────────────── */
 /* โหมดมืด — สลับด้วยปุ่ม 🌙/☀️ (ไม่ใช้ค่า OS อัตโนมัติ กันปัญหาสีเพี้ยน) */
 :root[data-theme="dark"]{
-  --bg:#0B1220;--surface:#111A2B;--ink:#E8EDF5;--ink-soft:#A9B4C6;--ink-faint:#8D99AD;
-  --line:#26324A;--line-soft:#1B263B;--steel:#070C16;--steel-2:#0B1220;
+  --bg:#17181B;--surface:#1F2124;--ink:#ECEBE8;--ink-soft:#B6B3AD;--ink-faint:#9B978F;
+  --line:#37393E;--line-soft:#2B2D31;--steel:#101113;--steel-2:#17181B;
   --accent:#ff5a4a;--accent-deep:#ff3d2a;--accent-wash:#2A1816;
   --ok:#34d399;--danger:#f87171;
   --accent-fill:#CF3326;--accent-fill-hover:#B52E21;--warn-text:#FBA05A;--warn-fill:#C2410C;--ok-text:#34d399;
@@ -441,48 +441,48 @@ body.readonly .ro-banner{display:block}
 :root[data-theme="dark"] .dash-card,
 :root[data-theme="dark"] .kpi-card,
 :root[data-theme="dark"] .prog-card,
-:root[data-theme="dark"] .wg-step{background:#111A2B;border-color:#26324A}
+:root[data-theme="dark"] .wg-step{background:#1F2124;border-color:#37393E}
 :root[data-theme="dark"] .card-h{background:transparent}
-:root[data-theme="dark"] .auth-card{background:#111A2B;border-color:#26324A}
+:root[data-theme="dark"] .auth-card{background:#1F2124;border-color:#37393E}
 :root[data-theme="dark"] input,
 :root[data-theme="dark"] select,
-:root[data-theme="dark"] textarea{background:#0B1220 !important;color:#E8EDF5;border-color:#26324A}
-:root[data-theme="dark"] .tin{background:#0B1220 !important;color:#E8EDF5 !important;border-color:#26324A !important}
-:root[data-theme="dark"] table thead tr{background:var(--surface-2);color:#A9B4C6}
+:root[data-theme="dark"] textarea{background:#17181B !important;color:#ECEBE8;border-color:#37393E}
+:root[data-theme="dark"] .tin{background:#17181B !important;color:#ECEBE8 !important;border-color:#37393E !important}
+:root[data-theme="dark"] table thead tr{background:var(--surface-2);color:#B6B3AD}
 :root[data-theme="dark"] table tbody tr:hover{background:rgba(255,255,255,.04)}
-:root[data-theme="dark"] td,:root[data-theme="dark"] th{border-color:#26324A !important}
-:root[data-theme="dark"] .combo-list{background:#111A2B !important;border-color:#26324A}
+:root[data-theme="dark"] td,:root[data-theme="dark"] th{border-color:#37393E !important}
+:root[data-theme="dark"] .combo-list{background:#1F2124 !important;border-color:#37393E}
 :root[data-theme="dark"] .combo-opt,
 :root[data-theme="dark"] .combo-new,
-:root[data-theme="dark"] .combo-empty{background:#111A2B !important;color:#E8EDF5}
-:root[data-theme="dark"] .combo-opt:hover{background:#26324A !important}
-:root[data-theme="dark"] .btn-soft{background:#26324A;color:#E8EDF5}
-:root[data-theme="dark"] .ghost-btn{background:#111A2B;color:#A9B4C6;border-color:#26324A}
-:root[data-theme="dark"] .icon-btn{background:#111A2B;color:#A9B4C6;border-color:#26324A}
-:root[data-theme="dark"] .sdlg-panel{background:#111A2B}
-:root[data-theme="dark"] .flt-toolbar input{background:#111A2B !important}
-:root[data-theme="dark"] .import-drop{background:#111A2B;border-color:#26324A;color:var(--ink-faint)}
-:root[data-theme="dark"] .ic-grid span{background:#0B1220;border-color:#26324A;color:var(--ink-faint)}
-:root[data-theme="dark"] .assign-card{background:#111A2B;border-color:#26324A}
-:root[data-theme="dark"] #pagePermContainer{background:#111A2B !important}
-:root[data-theme="dark"] .prog-c{background:#111A2B;border-color:#26324A;color:#E8EDF5}
+:root[data-theme="dark"] .combo-empty{background:#1F2124 !important;color:#ECEBE8}
+:root[data-theme="dark"] .combo-opt:hover{background:#37393E !important}
+:root[data-theme="dark"] .btn-soft{background:#37393E;color:#ECEBE8}
+:root[data-theme="dark"] .ghost-btn{background:#1F2124;color:#B6B3AD;border-color:#37393E}
+:root[data-theme="dark"] .icon-btn{background:#1F2124;color:#B6B3AD;border-color:#37393E}
+:root[data-theme="dark"] .sdlg-panel{background:#1F2124}
+:root[data-theme="dark"] .flt-toolbar input{background:#1F2124 !important}
+:root[data-theme="dark"] .import-drop{background:#1F2124;border-color:#37393E;color:var(--ink-faint)}
+:root[data-theme="dark"] .ic-grid span{background:#17181B;border-color:#37393E;color:var(--ink-faint)}
+:root[data-theme="dark"] .assign-card{background:#1F2124;border-color:#37393E}
+:root[data-theme="dark"] #pagePermContainer{background:#1F2124 !important}
+:root[data-theme="dark"] .prog-c{background:#1F2124;border-color:#37393E;color:#ECEBE8}
 :root[data-theme="dark"] .prog-c .v{color:#ff7a6b}
-:root[data-theme="dark"] header.app{background:#111A2B;color:#E8EDF5;box-shadow:0 1px 0 rgba(0,0,0,.4)}
-:root[data-theme="dark"] .tabs{background:#111A2B;box-shadow:0 1px 0 rgba(0,0,0,.3),inset 0 -1px 0 #26324A}
-:root[data-theme="dark"] .tab{color:#A9B4C6}
-:root[data-theme="dark"] .tab:hover{color:#E8EDF5}
+:root[data-theme="dark"] header.app{background:#1F2124;color:#ECEBE8;box-shadow:0 1px 0 rgba(0,0,0,.4)}
+:root[data-theme="dark"] .tabs{background:#1F2124;box-shadow:0 1px 0 rgba(0,0,0,.3),inset 0 -1px 0 #37393E}
+:root[data-theme="dark"] .tab{color:#B6B3AD}
+:root[data-theme="dark"] .tab:hover{color:#ECEBE8}
 :root[data-theme="dark"] .icon-toggle-btn{color:var(--ink-soft)}
-:root[data-theme="dark"] .icon-toggle-btn:hover{background:#26324A}
-:root[data-theme="dark"] .hdr-ctrl-btn{color:#E8EDF5}
-:root[data-theme="dark"] .hdr-ctrl-btn:hover{background:#26324A}
-:root[data-theme="dark"] .user-chip{border-left-color:#26324A}
-:root[data-theme="dark"] .user-chip .un{color:#E8EDF5}
+:root[data-theme="dark"] .icon-toggle-btn:hover{background:#37393E}
+:root[data-theme="dark"] .hdr-ctrl-btn{color:#ECEBE8}
+:root[data-theme="dark"] .hdr-ctrl-btn:hover{background:#37393E}
+:root[data-theme="dark"] .user-chip{border-left-color:#37393E}
+:root[data-theme="dark"] .user-chip .un{color:#ECEBE8}
 /* bm-box (brand/model auto) */
-:root[data-theme="dark"] .bm-box{background:#111A2B;border-color:#26324A}
+:root[data-theme="dark"] .bm-box{background:#1F2124;border-color:#37393E}
 /* survey dialog */
-:root[data-theme="dark"] .sdlg{background:#111A2B}
+:root[data-theme="dark"] .sdlg{background:#1F2124}
 /* table header — override the per-cell rule */
-:root[data-theme="dark"] thead th{background:var(--surface-2) !important;color:#A9B4C6 !important}
+:root[data-theme="dark"] thead th{background:var(--surface-2) !important;color:#B6B3AD !important}
 /* ─── LOGIN PAGE — unaffected by dark mode ─────────────────
    Force every element inside #authGate back to light appearance
    using !important to beat the global dark-mode overrides      */
@@ -595,8 +595,7 @@ body.dark .assign-badge-done{background:#022C22;color:#34D399}
 #warpOverlay{color:#e8f2ff}
 #warpStatus{position:absolute;bottom:44px;left:0;right:0;text-align:center;color:#9fd8ff;font-size:14px;letter-spacing:.4px;font-family:'TH Sarabun New',sans-serif;min-height:20px;z-index:3}
 #warpDone{gap:4px;position:relative;z-index:3}
-#warpPlanet{width:180px;height:180px;border-radius:50%;box-shadow:0 0 70px 14px rgba(120,200,255,.35);animation:warpPlanetIn .9s cubic-bezier(.2,.8,.3,1.1) both}
-#warpDoneText{margin-top:22px;font-size:16px;font-weight:600;font-family:'TH Sarabun New',sans-serif;opacity:0;animation:warpTextIn .6s ease .3s forwards}
+#warpDoneText{font-size:18px;font-weight:600;font-family:'TH Sarabun New',sans-serif;opacity:0;animation:warpTextIn .6s ease .3s forwards}
 @keyframes warpPlanetIn{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes warpTextIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -604,8 +603,8 @@ body.dark .assign-badge-done{background:#022C22;color:#34D399}
 .lang-toggle{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;background:var(--surface);padding:2px;cursor:pointer;flex:none;font-size:12px;font-weight:700;letter-spacing:.3px}
 .lang-toggle span{padding:4px 10px;border-radius:999px;color:var(--ink-soft);min-width:34px;text-align:center;transition:background .15s,color .15s}
 .lang-toggle span.on{background:var(--accent-fill);color:#fff}
-:root[data-theme="dark"] .lang-toggle{background:#111A2B;border-color:#26324A}
-:root[data-theme="dark"] .lang-toggle span{color:#A9B4C6}
+:root[data-theme="dark"] .lang-toggle{background:#1F2124;border-color:#37393E}
+:root[data-theme="dark"] .lang-toggle span{color:#B6B3AD}
 :root[data-theme="dark"] .lang-toggle span.on{color:#fff}
 :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
 input:focus-visible,select:focus-visible,textarea:focus-visible{outline-offset:0}
@@ -647,9 +646,9 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline-offset:0
 .menu-item:hover,.menu-item:focus-visible{background:var(--bg)}
 .menu-item.menu-danger{color:var(--danger);border-top:1px solid var(--line-soft);border-radius:0 0 8px 8px;margin-top:4px}
 .menu-item[style*="display: none"]{display:none !important}
-:root[data-theme="dark"] .flt-pop-box,:root[data-theme="dark"] .menu-pop{background:#111A2B;border-color:#26324A}
-:root[data-theme="dark"] .menu-item{color:#E8EDF5}
-:root[data-theme="dark"] .menu-item:hover{background:#26324A}
+:root[data-theme="dark"] .flt-pop-box,:root[data-theme="dark"] .menu-pop{background:#1F2124;border-color:#37393E}
+:root[data-theme="dark"] .menu-item{color:#ECEBE8}
+:root[data-theme="dark"] .menu-item:hover{background:#37393E}
 :root[data-theme="dark"] .flt-chip{background:#3a2a28;color:#f5b8b0}
 @media(max-width:600px){
   .flt-pop{align-items:flex-end !important;padding:0 !important}
@@ -669,7 +668,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline-offset:0
 .hdr-actions .icon-toggle-btn{width:36px}
 .logout-icon{color:var(--ink-soft) !important;border-radius:8px}
 .logout-icon:hover{background:rgba(213,68,58,.1) !important;color:var(--danger) !important}
-:root[data-theme="dark"] .logout-icon{color:#A9B4C6 !important}
+:root[data-theme="dark"] .logout-icon{color:#B6B3AD !important}
 @media(max-width:600px){
   header.app{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"logo title stat" "user user actions";align-items:center;column-gap:10px;row-gap:8px}
   header.app .brandmark{grid-area:logo}
@@ -690,7 +689,7 @@ input:disabled,textarea:disabled,select:disabled{color:var(--ink-soft);-webkit-t
 :root[data-theme="dark"] #pdpaBanner .pd-detail{background:var(--surface);color:var(--ink-soft)}
 
 /* หน้าเข้าสู่ระบบบังคับเป็นโหมดสว่างเสมอ → ตัวแปรสีในนี้ต้องเป็นค่าโหมดสว่างด้วย (ไม่งั้นข้อความรองจะกลายเป็นสีอ่อนบนพื้นขาว) */
-:root[data-theme="dark"] #authGate{--ink:#161B22;--ink-soft:#4B5563;--ink-faint:#566274;--surface:#FFFFFF;--bg:#EBEEF2;--line:#D7DCE4;--line-soft:#E6EAF0}
+:root[data-theme="dark"] #authGate{--ink:#1F1D1A;--ink-soft:#4F4B45;--ink-faint:#645F57;--surface:#FFFFFF;--bg:#F4F2EE;--line:#DDD9D1;--line-soft:#E9E6E0}
 
 /* AA nits */
 :root{--danger-text:#B91C1C}
@@ -706,8 +705,8 @@ input:disabled,textarea:disabled,select:disabled{color:var(--ink-soft);-webkit-t
 /* ─── Phase 9: สลับโหมดสว่าง/มืด — แก้จุดที่สีตัวอักษรกลืนพื้น (ตรวจด้วย tests/theme-audit.js) ─── */
 /* กล่อง Brand/Model AUTO: class .empty ของหน้า "ไม่มีรายการ" ไปทับ (padding 54px + กรอบประ + พื้นขาว) ทำให้กล่องใหญ่เกินและเป็นแผ่นเทาในโหมดมืด */
 .bm-box .v.empty{padding:0;border:0;background:none;border-radius:0;text-align:left}
-:root[data-theme="dark"] .combo-ctl{background:#0B1220}
-:root[data-theme="dark"] .combo.disabled .combo-ctl{background:#0B1220}
+:root[data-theme="dark"] .combo-ctl{background:#17181B}
+:root[data-theme="dark"] .combo.disabled .combo-ctl{background:#17181B}
 :root[data-theme="dark"] .assign-badge-pending{background:#3b2f12;color:#fbbf24}
 :root[data-theme="dark"] .assign-badge-done{background:#0b3a2c;color:#6ee7b7}
 .chip-x{background:#C23329 !important;color:#fff}
@@ -727,7 +726,7 @@ input:disabled,textarea:disabled,select:disabled{color:var(--ink-soft);-webkit-t
 
 /* ─── Phase 10 ─── */
 :root[data-theme="dark"] .target-form{background:var(--bg);color:var(--ink)}
-:root[data-theme="dark"] #darkToggleBtn{color:#E8EDF5}
+:root[data-theme="dark"] #darkToggleBtn{color:#ECEBE8}
 :root:not([data-theme="dark"]) #darkToggleBtn{color:var(--ink)}
 @media(max-width:600px){header.app{position:static}.tabs{top:0}}
 
@@ -739,15 +738,15 @@ input:disabled,textarea:disabled,select:disabled{color:var(--ink-soft);-webkit-t
 #authGate input:-webkit-autofill:active{
   -webkit-box-shadow:0 0 0 1000px #FFFFFF inset !important;
   box-shadow:0 0 0 1000px #FFFFFF inset !important;
-  -webkit-text-fill-color:#161B22 !important;
-  caret-color:#161B22;
+  -webkit-text-fill-color:#1F1D1A !important;
+  caret-color:#1F1D1A;
   transition:background-color 9999s ease-out 0s;
 }
 /* Phase 13: ปุ่ม TH/EN ในหน้า login เป็นพื้นขาวเสมอ (หน้า login บังคับโหมดสว่าง) */
 #authGate .lang-toggle,
-:root[data-theme="dark"] #authGate .lang-toggle{background:#FFFFFF !important;border-color:#D7DCE4 !important}
+:root[data-theme="dark"] #authGate .lang-toggle{background:#FFFFFF !important;border-color:#DDD9D1 !important}
 #authGate .lang-toggle span,
-:root[data-theme="dark"] #authGate .lang-toggle span{color:#4B5563}
+:root[data-theme="dark"] #authGate .lang-toggle span{color:#4F4B45}
 #authGate .lang-toggle span.on,
 :root[data-theme="dark"] #authGate .lang-toggle span.on{color:#fff;background:var(--accent-fill)}
 
@@ -811,9 +810,9 @@ input:disabled,textarea:disabled,select:disabled{color:var(--ink-soft);-webkit-t
   --ease:cubic-bezier(.2,.7,.2,1);
 }
 :root[data-theme="dark"]{
-  --bg:#0B1220;--surface:#111A2B;--surface-2:#16223A;
-  --ink:#E8EDF5;--ink-soft:#A9B4C6;--ink-faint:#8D99AD;
-  --line:#26324A;--line-soft:#1B263B;
+  --bg:#17181B;--surface:#1F2124;--surface-2:#16223A;
+  --ink:#ECEBE8;--ink-soft:#B6B3AD;--ink-faint:#9B978F;
+  --line:#37393E;--line-soft:#2B2D31;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.28);
   --shadow-lift:0 18px 48px rgba(0,0,0,.6);
   --ring:0 0 0 3px rgba(255,90,74,.28);
@@ -1048,3 +1047,73 @@ td.codecell{font-size:12px;color:var(--ink-soft)}
 .dp-opt span{font-size:12.5px;color:var(--ink-soft);line-height:1.4}
 .dp-opt:hover,.dp-opt:focus-visible{border-color:var(--accent);outline:none}
 .dp-opt.is-last{border-color:var(--accent)}
+
+/* Phase 24d: summary report dialog */
+.sm-sys{display:flex;flex-direction:column;gap:6px}
+.sm-row{display:grid;grid-template-columns:minmax(90px,1.4fr) repeat(4,minmax(54px,1fr));gap:6px;align-items:center}
+.sm-row.sm-h{font-size:12px;color:var(--text-3,var(--muted));font-weight:600}
+.sm-row .tin{padding:6px 8px;min-width:0}
+
+/* Phase 24e: inspection values + repairs */
+.chk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:6px}
+.chk-i{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-2,var(--muted))}
+.rp-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rp-bar .tin{width:auto;min-width:140px}
+.rp-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rp-list{max-height:55vh;overflow:auto}
+.rp-t{width:100%;border-collapse:collapse;font-size:12.5px}.rp-t th,.rp-t td{padding:6px 8px;border-bottom:1px solid var(--border,#ddd);text-align:left;vertical-align:top}
+.rp-t tbody tr{cursor:pointer}.rp-t tbody tr:hover{background:var(--hover,rgba(127,127,127,.08))}
+
+/* ═══ Phase 25: calmer chrome (แนวทาง app-screens: สีอยู่ที่ข้อมูล ไม่ใช่กรอบ / KPI เป็นตัวเลขไม่ใช่การ์ดหลายใบ / ฟอร์มมือถือกระชับ) ═══ */
+/* KPI: กล่องเดียวแบ่งด้วยเส้นบาง ตัวเลขสีหมึก (ยกเว้น Completion ซึ่งเป็นสถานะ) */
+#kpiRow.kpi-row{gap:0;background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius);overflow:hidden}
+#kpiRow .kpi{background:transparent;box-shadow:none;border:0 !important;border-radius:0;border-left:0 !important;padding:16px 20px}
+#kpiRow .kpi + .kpi{border-left:1px solid var(--line-soft) !important}
+#kpiRow .kpi .k-num{color:var(--ink) !important;font-weight:600;font-size:28px}
+#kpiRow .kpi:last-child .k-num{color:var(--warn-text) !important}
+:root[data-theme="dark"] #kpiRow.kpi-row{background:#1F2124;border-color:#37393E}
+/* ชิป "ต้องจัดการ": ไม่มีแถบสีซ้าย สีอยู่ที่ตัวเลขเท่านั้น */
+.act-chip{border-left:1px solid var(--line-soft) !important;box-shadow:none;transform:none !important}
+.act-chip:hover{box-shadow:none}
+/* ขั้นตอน 1-2-3 ของฟอร์ม: ตัวเลขเรียบ ปุ่มบันทึกเป็นสีหลักอันเดียวบนหน้า */
+.card-h .step{background:transparent;color:var(--ink-soft);border:1px solid var(--line)}
+/* มือถือ: รูป 2x2 แทน 4 ช่องเรียงยาว, Brand/Model คู่กัน, ช่องเลือกชิดกันขึ้น */
+@media(max-width:760px){
+  .imgs{grid-template-columns:1fr 1fr;gap:10px}
+  .imgslot{display:flex;flex-direction:column}
+  .imgslot label.drop{min-height:112px;padding:10px;flex:1}
+  .imgslot .cap{font-size:12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:6px;min-height:42px}
+  .imgslot .tagn{white-space:nowrap}
+  .imgslot .drop-hint{font-size:12px}
+  .imgslot .drop-hint b{font-size:13px}
+  .bm-row{grid-template-columns:1fr 1fr;gap:10px}
+  .bm-box{padding:8px 10px}
+  .card-b{padding:16px}
+}
+
+/* ═══ Phase 26: โทนเรียบ ใช้งานตรงไปตรงมา (กระดาษอุ่น + เส้นบาง + ไม่มีเงา/ไล่สี/เรืองแสง) ═══ */
+:root{--radius:8px;--shadow:none;--shadow-lift:0 6px 20px rgba(31,29,26,.14)}
+:root[data-theme="dark"]{--shadow:none;--shadow-lift:0 6px 20px rgba(0,0,0,.5)}
+.card,.io-card,.dash-card,.prog-card,.auth-card{box-shadow:none !important;border-radius:8px}
+.card,.io-card,.dash-card,.prog-card{border:1px solid var(--line)}
+header.app,.tabs{box-shadow:none !important;border-bottom:1px solid var(--line)}
+.tabs{border-bottom:1px solid var(--line)}
+.tab{border-radius:0;font-weight:500}
+.tab .pill{background:transparent;border:1px solid var(--line);border-radius:10px}
+button,.btn,.tin,input,select,textarea{border-radius:6px}
+.btn,button.btn{box-shadow:none !important;transition:background-color .12s,border-color .12s}
+.btn:active{transform:none}
+.dp-opt,.chip,.act-chip{border-radius:6px}
+table th{font-weight:600;letter-spacing:0;text-transform:none}
+table tbody tr:hover{background:rgba(127,120,105,.07)}
+:root[data-theme="dark"] .tabs,:root[data-theme="dark"] header.app{background:#1F2124;border-color:#37393E}
+:root[data-theme="dark"] #kpiRow.kpi-row{background:#1F2124;border-color:#37393E}
+/* ตัวเลข/แถบความคืบหน้า: สีเดียว ไม่แยกแดง/ส้ม/เขียนหลายสี (สีเตือนใช้เฉพาะที่ต้องจัดการจริง) */
+.prog-c{background:transparent !important;border:0 !important;border-left:1px solid var(--line-soft) !important;border-radius:0 !important}
+.prog-c:first-child{border-left:0 !important}
+.prog-c .v,.prog-c .v[style],:root:not([data-theme="dark"]) .prog-c .v[style],:root[data-theme="dark"] .prog-c .v{color:var(--ink) !important;font-weight:600}
+.prog-fill{background:var(--steel-2) !important}
+:root[data-theme="dark"] .prog-fill{background:#9B978F !important}
+.prog-row .pn{color:var(--ink-soft) !important;font-weight:500 !important}
+#progTotalPct{color:var(--ink) !important}
+body{background:var(--bg)}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
