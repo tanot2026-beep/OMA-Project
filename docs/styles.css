@@ -593,7 +593,7 @@ body.dark .assign-badge-done{background:#022C22;color:#34D399}
 
 /* ─── WARP ANIMATION (สร้างรายงาน Word) ────────────────────── */
 #warpOverlay{color:#e8f2ff}
-#warpStatus{position:absolute;bottom:44px;left:0;right:0;text-align:center;color:#9fd8ff;font-size:14px;letter-spacing:.4px;font-family:'TH Sarabun New',sans-serif;min-height:20px;z-index:3}
+#warpStatus{display:none;position:absolute;bottom:44px;left:0;right:0;text-align:center;color:#9fd8ff;font-size:14px;letter-spacing:.4px;font-family:'TH Sarabun New',sans-serif;min-height:20px;z-index:3}
 #warpDone{gap:4px;position:relative;z-index:3}
 #warpDoneText{font-size:18px;font-weight:600;font-family:'TH Sarabun New',sans-serif;opacity:0;animation:warpTextIn .6s ease .3s forwards}
 @keyframes warpPlanetIn{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}

@@ -348,6 +348,7 @@ async function afterLogin(){
     loadRecords(),loadProgress(),loadTargets(),loadAssignments(),loadAssignStats(),
     ...(AUTH.user?.role==='admin' ? [loadPagePerms()] : [])
   ]);
+  try{const r0=AUTH.user?.role;if((r0==='leader'||r0==='inspector')&&!(AUTH.user?.project||'').trim())toast('No project assigned to your account yet. Please ask the administrator.',false);}catch(e){}
   // วาดซ้ำหนึ่งรอบ เผื่อรายการ/ความคืบหน้ามาถึงก่อนข้อมูลหลัก
   try{renderSaved();updateStats();renderDashboard();}catch(e){console.warn(e);}
 }
@@ -472,7 +473,7 @@ async function sSet(k,v){try{localStorage.setItem(k,v);}catch(e){console.warn(e)
 function optionsFor(level){
   const idx=LEVELS.indexOf(level);let rows=master;
   const role=AUTH.user?.role||'';const userProjs=(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean);
-  if((role==='leader'||role==='inspector')&&userProjs.length>0)rows=rows.filter(r=>userProjs.includes(r.project));
+  if((role==='leader'||role==='inspector'))rows=rows.filter(r=>userProjs.includes(r.project));
   for(let i=0;i<idx;i++){const lv=LEVELS[i];if(!sel[lv])continue;if((level==='equip'||level==='serial')&&lv==='typeloc')continue;rows=rows.filter(r=>String(r[PROP[lv]]||'')===sel[lv]);}
   if(level==='equip'){const asset=($('#inpAsset')?.value||'').trim();if(asset)rows=rows.filter(r=>String(r.asset||'')===asset);}
   if(level==='serial'){const brand=($('#inpBrand')&&$('#inpBrand').value||'').trim();if(brand)rows=rows.filter(r=>String(r.brand||'')===brand);return uniq(rows.map(r=>String(r.serial||'')).filter(Boolean)).sort((a,b)=>a.localeCompare(b,'th'));}
@@ -519,7 +520,7 @@ function refreshDerived(){
   upgradeToCombo('inpAsset',()=>{
     let rows=master;
     const role=AUTH.user?.role||'';const userProjs=(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean);
-    if((role==='leader'||role==='inspector')&&userProjs.length>0)rows=rows.filter(r=>userProjs.includes(r.project));
+    if((role==='leader'||role==='inspector'))rows=rows.filter(r=>userProjs.includes(r.project));
     if(sel.project)rows=rows.filter(r=>String(r.project||'')===sel.project);
     if(sel.system)rows=rows.filter(r=>String(r.system||'')===sel.system);
     if(sel.loc)rows=rows.filter(r=>String(r.locName||'')===sel.loc);
@@ -1241,7 +1242,7 @@ function renderOverviewDash(){
   const role=AUTH.user?.role||'';
   const userProjs=(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean);
   let list=progressCache;
-  if((role==='leader'||role==='inspector')&&userProjs.length)list=list.filter(p=>userProjs.includes(p.project));
+  if((role==='leader'||role==='inspector'))list=list.filter(p=>userProjs.includes(p.project));
   if(!list.length){card.style.display='none';return;}
   card.style.display='';
   const totalAll=list.reduce((a,p)=>a+p.total,0),doneAll=list.reduce((a,p)=>a+p.done,0);
@@ -1285,7 +1286,7 @@ function renderOverviewRight(selectedProj){
   const role=AUTH.user?.role||'';
   const userProjs=(AUTH.user?.project||'').split(',').map(p=>p.trim()).filter(Boolean);
   let list=progressCache;
-  if((role==='leader'||role==='inspector')&&userProjs.length)list=list.filter(p=>userProjs.includes(p.project));
+  if((role==='leader'||role==='inspector'))list=list.filter(p=>userProjs.includes(p.project));
   document.querySelectorAll('#overviewDonutSvg .donut-seg').forEach(seg=>{seg.style.opacity=(!selectedProj||seg.dataset.proj===selectedProj)?'1':'0.3';});
   if(selectedProj){
     const p=list.find(x=>x.project===selectedProj);if(!p)return;
@@ -1791,7 +1792,7 @@ async function earthLoad(){
   if(_earth||_earthLoading) return; _earthLoading=true;
   const [day,night,water]=await Promise.all([_earthDecode(EARTH_TEX.day,768,384),_earthDecode(EARTH_TEX.night,512,256),_earthDecode(EARTH_TEX.water,384,192)]);
   if(!day){_earthLoading=false;return;}
-  const D=420,R=D/2,N=D*D,tilt=0.38,ct=Math.cos(tilt),st=Math.sin(tilt);
+  const D=512,R=D/2,N=D*D,tilt=0.38,ct=Math.cos(tilt),st=Math.sin(tilt);
   const L=[-0.5,0.32,0.80],ll=Math.hypot(...L);L[0]/=ll;L[1]/=ll;L[2]/=ll;
   const Hh=[L[0],L[1],L[2]+1],hl=Math.hypot(...Hh);Hh[0]/=hl;Hh[1]/=hl;Hh[2]/=hl;
   const pre={D,mask:new Float32Array(N),lon0:new Float32Array(N),v:new Float32Array(N),diff:new Float32Array(N),spec:new Float32Array(N),rim:new Float32Array(N),nz:new Float32Array(N)};
@@ -1844,46 +1845,83 @@ function renderEarth(rotRad){
   e.ctx.putImageData(e.img,0,0);return e.buf;
 }
 let WATER_IS_BRIGHT=true;
-function _warpLayout(){const w=innerWidth,h=innerHeight,dg=Math.max(260,Math.min(w*.92,h*.68,680));return{w,h,dg,cx:w/2,cy:h*.45};}
+/* ── Cockpit view: we sit in a spacecraft, drop out of warp and fly toward Earth ── */
+let _warpBuf=null,_warpFn=0,_warpPct=0;
+function _warpLayout(){
+  const w=innerWidth,h=innerHeight,portrait=w<h*0.9;
+  return{w,h,portrait,wx:0,wy:0,ww:w,wh:h,cx:w/2,cy:h*.46,dg:Math.min(w*.9,h*.62,680)};
+}
 function _warpFrame(ts){
   if(!_warpOn) return;
-  const cv=$('#warpCanvas');if(!cv){return;}
-  const dpr=Math.min(2,window.devicePixelRatio||1),Lo=_warpLayout();
-  if(cv.width!==Math.round(Lo.w*dpr)||cv.height!==Math.round(Lo.h*dpr)){cv.width=Math.round(Lo.w*dpr);cv.height=Math.round(Lo.h*dpr);}
+  const cv=$('#warpCanvas');if(!cv) return;
+  const dpr=Math.min(2,window.devicePixelRatio||1),L=_warpLayout();
+  const key=L.w+'x'+L.h+'@'+dpr;
+  if(cv.width!==Math.round(L.w*dpr)||cv.height!==Math.round(L.h*dpr)){cv.width=Math.round(L.w*dpr);cv.height=Math.round(L.h*dpr);}
   const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
   const t=(ts-_warpT0)/1000,dt=Math.min(.05,(ts-(_warpLast||ts))/1000);_warpLast=ts;
-  /* progress: eases toward a target that each status message pushes forward; creeps on its own so it never looks frozen */
-  _warpTarget=Math.max(_warpTarget,Math.min(.9,1-Math.exp(-t/14)));
-  _warpP+=(Math.min(1,_warpTarget)-_warpP)*Math.min(1,dt*2.2);
+  _warpTarget=Math.max(_warpTarget,Math.min(.9,1-Math.exp(-t/16)));
+  _warpP+=(Math.min(1,_warpTarget)-_warpP)*Math.min(1,dt*1.6);
   const fin=_warpDoneAt?Math.min(1,(ts-_warpDoneAt)/900):0;
-  const ease=x=>1-Math.pow(1-x,3),appear=ease(Math.min(1,t/2.6));
-  _warpRot+=dt*(.16*(1-fin*.7)+.05);
-  /* space */
-  ctx.fillStyle='#02030a';ctx.fillRect(0,0,Lo.w,Lo.h);
-  const bg=ctx.createRadialGradient(Lo.cx,Lo.cy,0,Lo.cx,Lo.cy,Math.max(Lo.w,Lo.h)*.7);bg.addColorStop(0,'rgba(20,40,80,.28)');bg.addColorStop(1,'rgba(2,3,10,0)');ctx.fillStyle=bg;ctx.fillRect(0,0,Lo.w,Lo.h);
-  if(!_warpStars){_warpStars=Array.from({length:230},()=>({x:Math.random(),y:Math.random(),z:.2+Math.random()*.8,p:Math.random()*6.28,s:.4+Math.random()*1.1}));}
-  _warpStars.forEach(s=>{const drift=(t*3*s.z)%Lo.w;let x=((s.x*Lo.w-drift)%Lo.w+Lo.w)%Lo.w;const tw=.55+.45*Math.sin(t*(.8+s.z)+s.p);
-    ctx.globalAlpha=Math.min(1,t/1.2)*tw*s.z*.9;ctx.fillStyle=s.z>.85?'#cfe3ff':'#ffffff';ctx.beginPath();ctx.arc(x,s.y*Lo.h,s.s*s.z,0,6.283);ctx.fill();});
-  ctx.globalAlpha=1;
-  /* camera approach: starts far (small, low), ends large and centred */
-  const sc=.42+.58*ease(Math.min(1,_warpP*.55+appear*.45)),R=Lo.dg/2*sc,cy=Lo.cy+(1-sc)*Lo.h*.16;
-  const a=Math.min(1,Math.max(0,(t-.5)/1.6));
-  if(_earth&&a>0){
-    ctx.save();ctx.globalAlpha=a;
-    /* outer glow (atmosphere seen from space) */
-    const gl=ctx.createRadialGradient(Lo.cx,cy,R*.96,Lo.cx,cy,R*1.28);gl.addColorStop(0,'rgba(90,160,255,.55)');gl.addColorStop(.25,'rgba(70,130,240,.22)');gl.addColorStop(1,'rgba(40,90,220,0)');
-    ctx.fillStyle=gl;ctx.beginPath();ctx.arc(Lo.cx,cy,R*1.28,0,6.283);ctx.fill();
-    const buf=renderEarth(_warpRot);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-    if(buf)ctx.drawImage(buf,Lo.cx-R,cy-R,R*2,R*2);
+  const WARP=2.4,drop=Math.max(0,Math.min(1,(t-WARP)/.5)),inWarp=t<WARP+.5;
+  const ease=x=>1-Math.pow(1-x,3);
+  _warpRot+=dt*(.1+.05*drop);
+  ctx.fillStyle='#000';ctx.fillRect(0,0,L.w,L.h);
+  /* ── scene inside the window ── */
+  ctx.save();
+  /* ship vibration */
+  const shake=inWarp?1.4*(1-drop):0,sx0=Math.sin(t*37)*shake*.6+Math.sin(t*11)*shake,sy0=Math.cos(t*31)*shake*.6+Math.cos(t*13)*shake*.7;
+  ctx.translate(sx0,sy0);
+  ctx.fillStyle='#02030a';ctx.fillRect(L.wx-10,L.wy-10,L.ww+20,L.wh+20);
+  const nb=ctx.createRadialGradient(L.cx,L.cy,0,L.cx,L.cy,L.ww*.6);nb.addColorStop(0,'rgba(24,44,86,.30)');nb.addColorStop(1,'rgba(2,3,10,0)');ctx.fillStyle=nb;ctx.fillRect(L.wx-10,L.wy-10,L.ww+20,L.wh+20);
+  if(!_warpStars)_warpStars=Array.from({length:320},()=>({a:Math.random()*6.283,d:Math.random(),z:.25+Math.random()*.75,p:Math.random()*6.28,s:.5+Math.random()*1.1}));
+  const maxR=Math.hypot(L.ww,L.wh)*.55,roll=t*.012;
+  _warpStars.forEach(s=>{
+    const ang=s.a+roll,wf=inWarp?(1-drop):0;
+    if(wf>0){ /* warp: stars stream outward as streaks */
+      const ph=(s.d+t*(.9+s.z*1.4)*wf*.8)%1,r1=ph*ph*maxR,len=(8+60*ph*ph*s.z)*wf+1.2,r0=Math.max(0,r1-len);
+      ctx.strokeStyle='rgba('+(s.z>.7?'200,225,255':'170,200,255')+','+Math.min(1,.15+ph*1.1)+')';ctx.lineWidth=.6+ph*2*s.z;
+      ctx.beginPath();ctx.moveTo(L.cx+Math.cos(ang)*r0,L.cy+Math.sin(ang)*r0);ctx.lineTo(L.cx+Math.cos(ang)*r1,L.cy+Math.sin(ang)*r1);ctx.stroke();
+    }
+    if(drop>0){const r=(.08+s.d*.98)*maxR*(1+.12*(1-ease(drop)));const tw=.6+.4*Math.sin(t*(.7+s.z)+s.p);
+      ctx.globalAlpha=Math.min(1,drop*1.6)*tw*s.z;ctx.fillStyle=s.z>.85?'#d4e6ff':'#fff';ctx.beginPath();ctx.arc(L.cx+Math.cos(ang)*r,L.cy+Math.sin(ang)*r*.8,s.s*s.z,0,6.283);ctx.fill();ctx.globalAlpha=1;}
+  });
+  /* Earth: appears after the drop-out, then we close in as the work progresses */
+  const ap=Math.min(1,Math.max(0,(t-WARP-.3)/1.2));
+  const approach=Math.min(1,_warpP*.92+(fin?.08:0)),Rmin=L.dg*.035,Rmax=Math.min(L.dg*.68,L.w*.44);
+  const R=Rmin+(Rmax-Rmin)*Math.pow(approach,1.35);
+  const ecx=L.cx-(1-approach)*L.ww*.06,ecy=L.cy+L.wh*(.0+.07*Math.pow(approach,2.2));
+  if(_earth&&ap>0){
+    ctx.save();ctx.globalAlpha=ap;
+    const gl=ctx.createRadialGradient(ecx,ecy,R*.96,ecx,ecy,R*1.25);gl.addColorStop(0,'rgba(90,160,255,.55)');gl.addColorStop(.3,'rgba(70,130,240,.2)');gl.addColorStop(1,'rgba(40,90,220,0)');
+    ctx.fillStyle=gl;ctx.beginPath();ctx.arc(ecx,ecy,R*1.25,0,6.283);ctx.fill();
+    if(!_warpBuf||(_warpFn++&1))_warpBuf=renderEarth(_warpRot);const buf=_warpBuf;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';if(buf)ctx.drawImage(buf,ecx-R,ecy-R,R*2,R*2);
     ctx.restore();
-    /* sun glare on the upper-left limb */
-    const gx=Lo.cx-R*.78,gy=cy-R*.62,fl=ctx.createRadialGradient(gx,gy,0,gx,gy,R*.9);fl.addColorStop(0,'rgba(255,245,225,'+(.28*a)+')');fl.addColorStop(.3,'rgba(255,225,170,'+(.08*a)+')');fl.addColorStop(1,'rgba(255,220,160,0)');
-    ctx.globalCompositeOperation='lighter';ctx.fillStyle=fl;ctx.fillRect(gx-R,gy-R,R*2,R*2);ctx.globalCompositeOperation='source-over';
   }
-  /* thin progress line */
-  const bw=Math.min(260,Lo.w*.6),bx=Lo.cx-bw/2,by=Lo.h-86;
-  ctx.fillStyle='rgba(255,255,255,.14)';ctx.fillRect(bx,by,bw,2);ctx.fillStyle='rgba(159,216,255,.95)';ctx.fillRect(bx,by,bw*(fin?1:Math.min(.97,_warpP)),2);
-  const dn=$('#warpDone');if(dn&&_warpDoneAt){dn.style.top=Math.round(cy+R+22)+'px';}
+  /* sun flare in the glass corner */
+  const fx=L.wx+L.ww*.16,fy=L.wy+L.wh*.2,fa=.05+.04*Math.sin(t*.7),fg=ctx.createRadialGradient(fx,fy,0,fx,fy,L.dg*.28);
+  fg.addColorStop(0,'rgba(255,250,235,'+(fa+.6)+')');fg.addColorStop(.06,'rgba(255,235,190,'+(fa+.25)+')');fg.addColorStop(.3,'rgba(255,225,170,'+fa*.4+')');fg.addColorStop(1,'rgba(255,220,160,0)');
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=fg;ctx.fillRect(L.wx-20,L.wy-20,L.ww+40,L.wh+40);ctx.globalCompositeOperation='source-over';
+  /* drop-out flash */
+  if(t>WARP-.1&&t<WARP+.9){const fl=Math.max(0,1-Math.abs(t-(WARP+.1))/.5);ctx.fillStyle='rgba(210,230,255,'+(fl*.55)+')';ctx.fillRect(L.wx-20,L.wy-20,L.ww+40,L.wh+40);}
+  ctx.restore();
+  /* soft vignette */
+  const vg=ctx.createRadialGradient(L.cx,L.cy,Math.min(L.w,L.h)*.4,L.cx,L.cy,Math.max(L.w,L.h)*.75);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.45)');ctx.fillStyle=vg;ctx.fillRect(0,0,L.w,L.h);
+  /* progress HUD: percent follows the real work; "MISSION COMPLETE" at 100% */
+  const txt=($('#warpStatus')&&$('#warpStatus').textContent)||'',pr=fin?1:Math.min(.99,_warpP);
+  _warpPct+=((fin?100:Math.round(pr*100))-_warpPct)*Math.min(1,dt*6);const pct=fin&&_warpPct>99.4?100:Math.min(fin?100:99,Math.round(_warpPct));
+  const bw=Math.min(440,L.w*.74),bx=(L.w-bw)/2,by=L.h-(L.portrait?60:54),ff='Orbitron, "IBM Plex Sans Thai", sans-serif';
+  const done=fin&&pct>=100,ga=Math.min(1,t/1.5);
+  ctx.globalAlpha=ga;
+  ctx.textBaseline='alphabetic';ctx.textAlign='left';ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=6;
+  if(done){ctx.font='500 12px '+ff;ctx.fillStyle='#cfeeff';ctx.shadowColor='rgba(127,227,255,.7)';ctx.shadowBlur=10;
+    if(ctx.letterSpacing!==undefined)ctx.letterSpacing='4px';ctx.textAlign='center';ctx.fillText('MISSION COMPLETE',L.w/2+2,by-12);ctx.shadowBlur=0;}
+  else{ctx.font='400 13px "IBM Plex Sans Thai", sans-serif';ctx.fillStyle='rgba(200,230,245,.8)';if(ctx.letterSpacing!==undefined)ctx.letterSpacing='.3px';ctx.fillText(txt.slice(0,46),bx,by-12);
+    ctx.textAlign='right';ctx.font='500 12px '+ff;ctx.fillStyle='#9fe4ff';if(ctx.letterSpacing!==undefined)ctx.letterSpacing='1px';ctx.fillText(pct+'%',bx+bw,by-12);}
+  if(ctx.letterSpacing!==undefined)ctx.letterSpacing='0px';
+  ctx.fillStyle='rgba(255,255,255,.16)';ctx.fillRect(bx,by,bw,2);
+  const fw=bw*pct/100;ctx.shadowBlur=0;ctx.fillStyle='#8fe3ff';ctx.fillRect(bx,by,fw,2);
+  if(!done&&fw>2){const hg=ctx.createRadialGradient(bx+fw,by+1,0,bx+fw,by+1,9);hg.addColorStop(0,'rgba(160,235,255,.9)');hg.addColorStop(1,'rgba(160,235,255,0)');ctx.fillStyle=hg;ctx.fillRect(bx+fw-9,by-8,18,18);}
+  ctx.globalAlpha=1;
   _warpRAF=requestAnimationFrame(_warpFrame);
 }
 function startWarpAnimation(){
@@ -1891,7 +1929,7 @@ function startWarpAnimation(){
   ov.style.display='block';
   const done=$('#warpDone'); if(done) done.style.display='none';
   if(_warpRAF){cancelAnimationFrame(_warpRAF);_warpRAF=null;}
-  _warpOn=true;_warpT0=performance.now();_warpLast=0;_warpP=0;_warpTarget=0;_warpDoneAt=0;
+  _warpOn=true;_warpPct=0;_warpT0=performance.now();_warpLast=0;_warpP=0;_warpTarget=0;_warpDoneAt=0;
   earthLoad();
   _warpRAF=requestAnimationFrame(_warpFrame);
 }
@@ -1900,7 +1938,6 @@ function setWarpStatus(msg){
   if(msg) _warpTarget=Math.max(_warpTarget,Math.min(.92,_warpTarget+(1-_warpTarget)*.16));
 }
 function finishWarpAnimation(){
-  const done=$('#warpDone'); if(done) done.style.display='flex';
   setWarpStatus('');_warpTarget=1;_warpDoneAt=performance.now();
 }
 function closeWarpAnimation(){
@@ -2429,6 +2466,9 @@ function openEditUser(username){
   $('#editUserDlg').style.display='flex';
 }
 async function saveEditUser(){
+  const pend=$('#euProject')?$('#euProject').value.trim():'';
+  if(pend&&!euProjects.includes(pend)){euProjects.push(pend);$('#euProject').value='';renderChips('euProjectChips',euProjects);}
+  if(['leader','inspector'].includes($('#euRole').value)&&editUserTarget!=='admin'&&!euProjects.length){toast('Please assign at least one project to this user (otherwise they will see nothing)',false);return;}
   const updates={
     name:$('#euName').value.trim(),
     email:$('#euEmail').value.trim(),
@@ -2455,7 +2495,7 @@ if($('#nuProjectAdd'))$('#nuProjectAdd').addEventListener('click',()=>{
   $('#nuProject').value='';
   renderChips('nuProjectChips',nuProjects);
 });
-if($('#nuAdd'))$('#nuAdd').addEventListener('click',async()=>{const username=$('#nuUser').value.trim(),password=$('#nuPass').value.trim();if(!username||!password){toast('Please enter username and password',false);return;}const r=await api(ACT.createUser,{username,password,name:$('#nuName').value.trim(),role:$('#nuRole').value,project:nuProjects.join(','),email:$('#nuEmail')?$('#nuEmail').value.trim():''});if(r&&r.ok){toast('User added',true);['nuUser','nuPass','nuName','nuProject','nuEmail'].forEach(id=>{const el=$('#'+id);if(el)el.value='';});nuProjects=[];renderChips('nuProjectChips',nuProjects);await loadUsers();}else toast((r&&r.message)||'Failed to add user',false);});
+if($('#nuAdd'))$('#nuAdd').addEventListener('click',async()=>{const username=$('#nuUser').value.trim(),password=$('#nuPass').value.trim();if(!username||!password){toast('Please enter username and password',false);return;}{const pn=$('#nuProject')?$('#nuProject').value.trim():'';if(pn&&!nuProjects.includes(pn))nuProjects.push(pn);}if(['leader','inspector'].includes($('#nuRole').value)&&!nuProjects.length){toast('Please assign at least one project to this user (otherwise they will see nothing)',false);return;}const r=await api(ACT.createUser,{username,password,name:$('#nuName').value.trim(),role:$('#nuRole').value,project:nuProjects.join(','),email:$('#nuEmail')?$('#nuEmail').value.trim():''});if(r&&r.ok){toast('User added',true);['nuUser','nuPass','nuName','nuProject','nuEmail'].forEach(id=>{const el=$('#'+id);if(el)el.value='';});nuProjects=[];renderChips('nuProjectChips',nuProjects);await loadUsers();}else toast((r&&r.message)||'Failed to add user',false);});
 if($('#usersRefresh'))$('#usersRefresh').addEventListener('click',loadUsers);
 async function downloadUsersTemplate(){try{await loadLib('xlsx');const ws=XLSX.utils.aoa_to_sheet([['username','password','name','role','project','email']]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Users');XLSX.writeFile(wb,'users_template.xlsx');}catch(e){toast('Failed to load form',false);}}
 async function downloadUsersData(){try{if(!usersCache.length){toast('No user data yet',false);return;}await loadLib('xlsx');const rows=usersCache.filter(u=>u.username!=='admin').map(u=>[u.username,u.plainPwd||'',u.name||'',u.role||'',u.project||'',u.email||'']);const ws=XLSX.utils.aoa_to_sheet([['username','password','name','role','project','email'],...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Users');XLSX.writeFile(wb,'users_data.xlsx');toast('User data downloaded',true);}catch(e){toast('Failed to load data',false);}}
@@ -2629,7 +2669,7 @@ function showAssignModal(){
 
   initAwMultiCombo('awProject','awProjectChips',awSelProjs,()=>{
     let projs=uniq(master.map(m=>m.project)).filter(Boolean).sort((a,b)=>a.localeCompare(b,'th'));
-    if(role==='leader'&&userProjs.length)projs=projs.filter(p=>userProjs.includes(p));
+    if(role==='leader')projs=projs.filter(p=>userProjs.includes(p));
     return projs;
   });
   upgradeToCombo('awAssignee',()=>{
@@ -2985,7 +3025,7 @@ const I18N_TH={
 'Import from Excel':'นำเข้าจาก Excel','Import Equipment Data (Excel)':'นำเข้าข้อมูลอุปกรณ์ (Excel)','Choose or drag an Excel file':'เลือกหรือลากไฟล์ Excel มาวาง','Download Blank Form':'ดาวน์โหลดแบบฟอร์มเปล่า','Download Current Data':'ดาวน์โหลดข้อมูลปัจจุบัน','Download User Data':'ดาวน์โหลดข้อมูลผู้ใช้','Delete by Filter':'ลบตามตัวกรอง','Supported columns':'คอลัมน์ที่รองรับ','Supports .xlsx · .xls · .csv':'รองรับ .xlsx · .xls · .csv','Narrow down with filters, or leave as "All" to include everything':'เลือกตัวกรองเพื่อจำกัดขอบเขต หรือปล่อยเป็น "ทั้งหมด" เพื่อรวมทุกรายการ',
 'Manage Users':'จัดการผู้ใช้','Add User':'เพิ่มผู้ใช้','Edit User':'แก้ไขผู้ใช้','Full Name':'ชื่อ-นามสกุล','Page Permissions':'สิทธิ์การเข้าถึงหน้า','Save Access Permissions':'บันทึกสิทธิ์การเข้าถึง','Save Changes':'บันทึกการเปลี่ยนแปลง','Page/Feature':'หน้า/ฟังก์ชัน','admin — Administrator':'admin — ผู้ดูแลระบบ','manager — Manager':'manager — ผู้จัดการ','leader — Team Lead':'leader — หัวหน้าทีม','inspector — Inspector':'inspector — ผู้ตรวจ','observer — Observer':'observer — ผู้สังเกตการณ์','Your account (observer) is view-only':'บัญชีของคุณ (ผู้สังเกตการณ์) ดูข้อมูลได้อย่างเดียว','Change admin password':'เปลี่ยนรหัสผ่านผู้ดูแลระบบ','New password':'รหัสผ่านใหม่','Display name':'ชื่อที่แสดง',
 'Privacy & Personal Data':'ความเป็นส่วนตัวและข้อมูลส่วนบุคคล','This system records your usage data for auditing and maintenance purposes.':'ระบบนี้บันทึกข้อมูลการใช้งานของคุณเพื่อการตรวจสอบและบำรุงรักษา','Data collected: username, role, login time, inspection records and equipment photos, in accordance with the Personal Data Protection Act B.E. 2562 (2019).':'ข้อมูลที่เก็บ: ชื่อผู้ใช้ บทบาท เวลาเข้าสู่ระบบ บันทึกการตรวจ และรูปอุปกรณ์ ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562',
-'Report generated ✨':'สร้างรายงานเสร็จแล้ว ✨','Generate PDF':'สร้าง PDF','Generate PDF Report':'สร้างรายงาน PDF','Report Name':'ชื่อรายงาน','Contract Name/Project':'ชื่อสัญญา/โครงการ','Contract Number':'เลขที่สัญญา','Client Organization':'หน่วยงานผู้ว่าจ้าง','Submitted To':'เสนอต่อ','Clause':'ข้อสัญญา',
+'Report generated ✨':'สร้างรายงานเสร็จแล้ว ✨','Please assign at least one project to this user (otherwise they will see nothing)':'กรุณากำหนดโครงการให้ผู้ใช้นี้อย่างน้อย 1 โครงการ (ไม่เช่นนั้นจะไม่เห็นข้อมูลใดเลย)','No project assigned to your account yet. Please ask the administrator.':'บัญชีของคุณยังไม่ได้ถูกกำหนดโครงการ กรุณาแจ้งผู้ดูแลระบบ','No permission for this project':'ไม่มีสิทธิ์ในโครงการนี้','Generate PDF':'สร้าง PDF','Generate PDF Report':'สร้างรายงาน PDF','Report Name':'ชื่อรายงาน','Contract Name/Project':'ชื่อสัญญา/โครงการ','Contract Number':'เลขที่สัญญา','Client Organization':'หน่วยงานผู้ว่าจ้าง','Submitted To':'เสนอต่อ','Clause':'ข้อสัญญา',
 'Search records…':'ค้นหารายการ…','Search records...':'ค้นหารายการ...','Search master data…':'ค้นหาข้อมูลหลัก…','Search users…':'ค้นหาผู้ใช้…','Add project…':'เพิ่มโครงการ…','Add location…':'เพิ่มสถานที่…','Add sub-location…':'เพิ่มพื้นที่ย่อย…','Add equipment…':'เพิ่มอุปกรณ์…','Add this project':'เพิ่มโครงการนี้','Additional details':'รายละเอียดเพิ่มเติม','Dark / Light mode':'โหมดมืด / สว่าง','For notifications (optional)':'สำหรับแจ้งเตือน (ไม่บังคับ)','For notifications':'สำหรับแจ้งเตือน','Note (optional)':'หมายเหตุ (ไม่บังคับ)','Order used for generating Word/PDF':'ลำดับที่ใช้สร้าง Word/PDF','Select a project then press +':'เลือกโครงการแล้วกด +','Set an initial password':'ตั้งรหัสผ่านเริ่มต้น','Show/hide':'แสดง/ซ่อน','Sign out':'ออกจากระบบ','Type or select a project…':'พิมพ์หรือเลือกโครงการ…','Type or select assignee…':'พิมพ์หรือเลือกผู้รับงาน…','Type inspector name':'พิมพ์ชื่อผู้ตรวจ','Display name ':'ชื่อที่แสดง',
 'Loading...':'กำลังโหลด...','Saving...':'กำลังบันทึก...','Saving…':'กำลังบันทึก…','Signing in...':'กำลังเข้าสู่ระบบ...','Restoring...':'กำลังกู้คืน...','Loading library...':'กำลังโหลดไลบรารี...','Reading photo...':'กำลังอ่านรูป...','Connection lost, retrying...':'การเชื่อมต่อหลุด กำลังลองใหม่...','Save Record ':'บันทึกรายการ',
 'Trash (deleted records)':'ถังขยะ (รายการที่ลบแล้ว)','Tools':'เครื่องมือ','Tools ▾':'เครื่องมือ ▾','More':'เพิ่มเติม','Clear filters':'ล้างตัวกรอง','Show results':'ดูผลลัพธ์','Sort by':'เรียงตาม','Missing Data':'ข้อมูลที่ขาด','Remove filter':'เอาตัวกรองออก','Delete forever':'ลบถาวร','Empty Trash':'ล้างถังขยะ','Deleted forever':'ลบถาวรแล้ว','Trash emptied':'ล้างถังขยะแล้ว','Could not delete':'ลบไม่สำเร็จ','Only an admin can empty the Trash':'เฉพาะผู้ดูแลระบบ (admin) เท่านั้นที่ล้างถังขยะได้','Delete forever moves the photos to the Google Drive bin (recoverable there for 30 days)':'ลบถาวรจะย้ายรูปไปถังขยะของ Google Drive (กู้คืนได้ที่นั่นภายใน 30 วัน)','Delete this record forever? The photos go to the Google Drive bin.':'ลบรายการนี้ถาวร? รูปภาพจะถูกย้ายไปถังขยะของ Google Drive','Empty the whole Trash? All deleted records are removed permanently (photos go to the Google Drive bin).':'ล้างถังขยะทั้งหมด? รายการที่ลบแล้วทั้งหมดจะหายถาวร (รูปภาพไปอยู่ถังขยะของ Google Drive)','Trash is empty':'ถังขยะว่างเปล่า','Record deleted':'ลบรายการแล้ว','Record restored':'กู้คืนรายการแล้ว','Delete this record? Its photos are moved to the _Trash folder and you can undo this.':'ลบรายการนี้? รูปภาพจะถูกย้ายไปโฟลเดอร์ _Trash และเลิกทำได้','Restore failed':'กู้คืนไม่สำเร็จ','Delete failed':'ลบไม่สำเร็จ',
@@ -3448,6 +3488,14 @@ function stationTitleOf(e,mode,dmode){
 }
 function stationSort(a,b,mode){return String(stationTitleOf(a,mode,'none')).localeCompare(String(stationTitleOf(b,mode,'none')),'th',{numeric:true});}
 /* ข้อความมาตรฐานเก็บใน ReportInfo.stationText เป็น JSON {"ชื่อ System":"ข้อความ","*":"ข้อความเริ่มต้น"} — ค่าเก่าที่เป็นข้อความล้วนถือเป็น "*" */
+/* ข้อความมาตรฐานเริ่มต้นของแต่ละ System ตามรายงานตัวอย่าง (ใช้เมื่อโครงการนั้นยังไม่ได้บันทึกข้อความของตัวเองไว้) */
+function stationDefaultText(system){
+  const k=String(system||'').toLowerCase();
+  if(/flood|water/.test(k))return 'ตรวจเช็คระบบ ทำความสะอาด ระบบทำงานได้ปกติ ค่าระดับน้ำ {reading} ม.รทก.';
+  if(/tunnel/.test(k))return 'ตรวจเช็คระบบทำความสะอาด ระบบทำงานได้ตามปกติ';
+  if(/rain|flow|radar/.test(k))return 'ตรวจเช็คระบบ ทำความสะอาด ระบบทำงานได้ตามปกติ';
+  return '';
+}
 function parseStationTexts(v){
   const t=String(v||'').trim();if(!t)return {};
   if(t[0]==='{'){try{const o=JSON.parse(t);if(o&&typeof o==='object')return o;}catch(e){}}
@@ -3477,7 +3525,7 @@ async function openStationReport(){
   const systems=uniq(list0.map(e=>e.system).filter(Boolean));
   const sysKey=systems.length===1?systems[0]:'*';
   const texts=parseStationTexts(pInfo.stationText);
-  const stdFor=e=>String(texts[e.system]||texts['*']||'').trim();
+  const stdFor=e=>String(texts[e.system]||texts['*']||stationDefaultText(e.system)).trim();
   const defDate=systems.length===1&&/radar/i.test(systems[0])?'d':'dt';
   const months={};list0.forEach(e=>{const k=monthKeyOf(e.createdAt);months[k]=(months[k]||0)+1;});
   const monthKeys=Object.keys(months).sort().reverse();
@@ -3490,7 +3538,7 @@ async function openStationReport(){
     <label class="st-l">${esc(_tx('Sub-title'))}<input id="stSub" class="tin" value="${escAttr(monthKeys.length===1?thMonthLabel(monthKeys[0]):'')}"></label>
     <label class="st-l">${esc(_tx('Station title from'))}<select id="stMode" class="tin"><option value="loc">${esc(_tx('Location'))}</option><option value="both">${esc(_tx('Location + Sub-location'))}</option><option value="sub">${esc(_tx('Sub-location'))}</option></select></label>
     <label class="st-l">${esc(_tx('Date in the station title'))}<select id="stDate" class="tin"><option value="dt"${defDate==='dt'?' selected':''}>${esc(_tx('Date and time'))}</option><option value="d"${defDate==='d'?' selected':''}>${esc(_tx('Date only'))}</option><option value="none">${esc(_tx('No date'))}</option></select></label>
-    <label class="st-l">${esc(_tx('Standard text under each station'))}${systems.length===1?' ('+esc(systems[0])+')':''}<textarea id="stText" class="tin" rows="2">${esc(texts[sysKey]||(sysKey!=='*'?'':texts['*'])||'')}</textarea></label>
+    <label class="st-l">${esc(_tx('Standard text under each station'))}${systems.length===1?' ('+esc(systems[0])+')':''}<textarea id="stText" class="tin" rows="2">${esc(texts[sysKey]||(sysKey!=='*'?stationDefaultText(sysKey):texts['*'])||'')}</textarea></label>
     ${canSetTemplate()?`<label class="st-l">${esc(_tx('Reading field name for this project (shows a required field in Add Record; leave empty if not needed)'))}<input id="stRdLabel" class="tin" placeholder="ค่าระดับน้ำ (ม.รทก.)" value="${escAttr(pInfo.readingLabel||'')}"></label>`:''}
     ${canSetTemplate()?`<label class="st-chk"><input type="checkbox" id="stSimple"${SIMPLE_FORM[projects[0]]?' checked':''}> ${esc(_tx('Simplified Add Record for this project (only what the report needs)'))}</label>`:''}
     <div class="st-hint">${esc(_tx('Use {reading} in the standard text where the measured value goes, e.g. "… ค่าระดับน้ำ {reading} ม.รทก." Without {reading}, the reading is added at the end.'))}</div>
@@ -3516,7 +3564,7 @@ async function openStationReport(){
   foot.querySelector('#stGo').onclick=async()=>{
     const edited=q('#stText').value.trim();
     const map=Object.assign({},texts);if(edited)map[sysKey]=edited;else delete map[sysKey];
-    const opt={title:q('#stTitle').value.trim()||ST_DEFAULT_TITLE,sub:q('#stSub').value.trim(),mode:q('#stMode').value,dmode:q('#stDate').value,stdFor:e=>String(map[e.system]||map['*']||'').trim(),items:current(),ovr:Object.assign({},ovr),rd:Object.assign({},rdg)};
+    const opt={title:q('#stTitle').value.trim()||ST_DEFAULT_TITLE,sub:q('#stSub').value.trim(),mode:q('#stMode').value,dmode:q('#stDate').value,stdFor:e=>String(map[e.system]||map['*']||stationDefaultText(e.system)).trim(),items:current(),ovr:Object.assign({},ovr),rd:Object.assign({},rdg)};
     if(!opt.items.length){toast('No data matches the current filter',false);return;}
     if(q('#stSave').checked){projects.forEach(p=>{const pi=info.find(x=>x.project===p)||{};const m=Object.assign({},parseStationTexts(pi.stationText));if(edited)m[sysKey]=edited;else delete m[sysKey];api(ACT.saveReportInfo,{row:Object.assign({project:p,reportTitle:opt.title,stationText:JSON.stringify(m)},q('#stRdLabel')?{readingLabel:q('#stRdLabel').value.trim(),simpleForm:q('#stSimple')&&q('#stSimple').checked?'1':''}:{})}).then(()=>loadReportInfoCache());});}
     dlg.style.display='none';
@@ -3586,7 +3634,10 @@ async function stationPhotoKids(items,opt,CONTENT,T,withTitle){
       if(ph.length){
         const cell=(r,keep)=>new TableCell({borders:none(),width:{size:COL,type:WidthType.DXA},verticalAlign:VerticalAlign.CENTER,children:[new Paragraph({alignment:AlignmentType.CENTER,keepNext:keep,spacing:{before:40,after:40},children:r?[new ImageRun({data:r.buf,type:'jpg',transformation:fit(r)})]:[]})]});
         const rows=[];
-        for(let k=0;k<ph.length;k+=2)rows.push(new TableRow({cantSplit:true,children:[cell(ph[k],k+2<ph.length),cell(ph[k+1]||null,k+2<ph.length)]}));
+        for(let k=0;k<ph.length;k+=2){
+          if(k>0)rows.push(new TableRow({cantSplit:true,children:[1,2].map(()=>new TableCell({borders:none(),width:{size:COL,type:WidthType.DXA},children:[new Paragraph({keepNext:true,spacing:{before:0,after:0},children:[T(' ',{size:32})]})]}))})); /* 1 blank line between photo rows (kept with the rows around it) */
+          rows.push(new TableRow({cantSplit:true,children:[cell(ph[k],k+2<ph.length),cell(ph[k+1]||null,k+2<ph.length)]}));
+        }
         kids.push(new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:[COL,CONTENT-COL],layout:TableLayoutType.FIXED,borders:none(),rows}));
       }
     });
@@ -3977,7 +4028,7 @@ async function generateSummaryReport(opt,projects){
         const kk=kids(false);
         setWarpStatus('Preparing photos: '+s.system);
         const dm=/radar/i.test(s.system)?'d':'dt';
-        const sopt={mode:'loc',dmode:dm,ovr:{},rd:{},stdFor:e=>String(texts[e.system]||texts['*']||'').trim()};
+        const sopt={mode:'loc',dmode:dm,ovr:{},rd:{},stdFor:e=>String(texts[e.system]||texts['*']||stationDefaultText(e.system)).trim()};
         const ph=await stationPhotoKids(s.rows,sopt,PC,T,false);
         kk.push(P('',{pb:!opt.sec,after:0}));
         ph.forEach(x=>kk.push(x));
