@@ -1740,7 +1740,7 @@ if($('#fileXlsx'))$('#fileXlsx').addEventListener('change',async(ev)=>{
     const rows=mapped.filter(o=>o.project&&o.equipment);
     const clientInvalid=mapped.filter(o=>!(o.project&&o.equipment)).map(o=>({row:o._row,reason:'missing',firstRow:'',project:o.project||'',location:o.locName||'',sublocation:o.subName||'',equipment:o.equipment||'',brand:o.brand||'',model:o.model||'',serial:o.serial||''}));
     if(!rows.length){if(prev)prev.innerHTML=`<div class="empty">No importable data found (must have at least the "Project" and "Equipment" columns)</div>`;return;}
-    const payload=rows.map(r=>({id:uid(),project:r.project||'',system:r.system||'',typeLocation:r.typeLocation||'',location:r.locName||'',sublocation:r.subName||'',equipment:r.equipment||'',brand:r.brand||'',model:r.model||'',asset:r.asset||'',serial:r.serial||'',order:r.order||'',_row:r._row}));
+    const payload=rows.map(r=>({id:uid(),project:r.project||'',system:r.system||'',typeLocation:r.typeLocation||'',location:r.locName||'',sublocation:r.subName||'',equipment:r.equipment||'',brand:r.brand||'',model:r.model||'',asset:r.asset||'',serial:r.serial||'',order:r.order||'',projectCode:r.projectCode||'',projectAlias:r.projectAlias||'',_row:r._row}));
     const res=await masterServer('masterImport',{rows:payload});
     if(res){
       await loadMasterFromBackend();
@@ -4416,8 +4416,8 @@ function mountProjectPicker(chipsId,getArr,hideEl){
 
 /* ── โหลดข้อมูลครบก่อนแสดงหน้า: แอนิเมชันโหลด + รายการที่กำลังโหลด ใช้ทั้งหลังเข้าสู่ระบบและตอนกดเปลี่ยนแท็บขณะข้อมูลยังไม่ครบ ── */
 let PL={n:0,steps:[],t:0,dead:0};
-function plEl(){let e=$('#pageLoad');if(!e){e=document.createElement('div');e.id='pageLoad';e.setAttribute('role','status');e.setAttribute('aria-live','polite');e.innerHTML='<div class="pl-card"><div class="pl-ring" aria-hidden="true"></div><div class="pl-title"></div><ul class="pl-steps"></ul></div>';document.body.appendChild(e);}return e;}
-function plPaint(){const e=plEl();e.querySelector('.pl-title').textContent=_tx('Loading data...');e.querySelector('.pl-steps').innerHTML=PL.steps.map(s=>`<li class="${s.done?'ok':''}">${esc(_tx(s.label))}</li>`).join('');}
+function plEl(){let e=$('#pageLoad');if(!e){e=document.createElement('div');e.id='pageLoad';e.setAttribute('role','status');e.setAttribute('aria-label','Loading');e.innerHTML='<div class="pl-ring" aria-hidden="true"></div>';document.body.appendChild(e);}return e;}
+function plPaint(){}
 function pageLoadStart(){PL.n++;PL.t=Date.now();clearTimeout(PL.dead);plEl().classList.add('on');document.body.classList.add('pl-busy');plPaint();PL.dead=setTimeout(()=>{PL.n=1;pageLoadDone();},25000);}
 function pageLoadDone(){PL.n=Math.max(0,PL.n-1);if(PL.n)return;clearTimeout(PL.dead);const wait=Math.max(0,350-(Date.now()-PL.t));setTimeout(()=>{if(PL.n)return;plEl().classList.remove('on');document.body.classList.remove('pl-busy');PL.steps=[];},wait);}
 function plTrack(label,p){const s={label,done:false};PL.steps.push(s);plPaint();return Promise.resolve(p).catch(()=>{}).then(v=>{s.done=true;plPaint();return v;});}
