@@ -226,7 +226,7 @@ const DRIVE_THUMB = 'https:\x2f\x2fdrive.google.com/thumbnail?id=';
 const ACT = {
   login:'login', verifyToken:'verifyToken', pdpaStatus:'getPdpaStatus', pdpaAccept:'acceptPdpa',
   listRepairs:'listRepairs', saveRepair:'saveRepair', deleteRepair:'deleteRepair', importRepairs:'importRepairs',
-  createRecord:'createRecord', listRecords:'listRecords', deleteRecord:'deleteRecord', restoreRecord:'restoreRecord', listRecordHistory:'listRecordHistory', listTrash:'listTrash', purgeTrash:'purgeTrash', confirmRecordReviewed:'confirmRecordReviewed', returnRecord:'returnRecord', exportPhotosZip:'exportPhotosZip', listReportInfo:'listReportInfo', saveReportInfo:'saveReportInfo',listRepairs:'listRepairs',saveRepair:'saveRepair',deleteRepair:'deleteRepair',importRepairs:'importRepairs',
+  createRecord:'createRecord', listRecords:'listRecords', deleteRecord:'deleteRecord', restoreRecord:'restoreRecord', listRecordHistory:'listRecordHistory', listTrash:'listTrash', purgeTrash:'purgeTrash', confirmRecordReviewed:'confirmRecordReviewed', returnRecord:'returnRecord', exportPhotosZip:'exportPhotosZip', listReportInfo:'listReportInfo', saveReportInfo:'saveReportInfo', setProjectInfo:'setProjectInfo',listRepairs:'listRepairs',saveRepair:'saveRepair',deleteRepair:'deleteRepair',importRepairs:'importRepairs',
   createUser:'createUser', bulkCreateUsers:'bulkCreateUsers', listUsers:'listUsers',
   saveMaster:'saveMaster', masterUpsert:'masterUpsert', masterDelete:'masterDelete', masterImport:'masterImport', listMaster:'listMaster', getProgress:'getProgress',
   saveAssignment:'saveAssignment', listAssignments:'listAssignments', completeAssignment:'completeAssignment',
@@ -339,14 +339,18 @@ async function doLogin(){
 }
 function doLogout(){clearSession();$('#userChip').style.display='none';$('#logoutBtn').style.display='none';$('#authUser').value='';$('#authPass').value='';hidePdpa();showGate();}
 async function afterLogin(){
+  pageLoadStart();PL.steps=[];
+  try{await afterLoginInner();LAST_FULL_LOAD=Date.now();}finally{pageLoadDone();}
+}
+async function afterLoginInner(){
   try{oqLoad().then(()=>oqSync(false));}catch(e){}
   // แสดงข้อมูลที่แคชไว้ในเครื่องทันที แล้วเรียกเซิร์ฟเวอร์ทุกอย่าง "พร้อมกัน" (เดิมเรียกต่อกัน 2 รอบ ~2 วินาที/ครั้ง)
   await loadAll();
   const repaintMaster=async()=>{await loadMasterFromBackend();buildCombos();buildInspectorCombo();refreshDerived();renderMaster();};
   await Promise.all([
-    checkPdpa(),repaintMaster(),loadReportInfoCache(),
-    loadRecords(),loadProgress(),loadTargets(),loadAssignments(),loadAssignStats(),
-    ...(AUTH.user?.role==='admin' ? [loadPagePerms()] : [])
+    checkPdpa(),plTrack('Master data',repaintMaster()),plTrack('Project settings',loadReportInfoCache()),
+    plTrack('Records',loadRecords()),plTrack('Progress',loadProgress()),loadTargets(),plTrack('Assignments',Promise.all([loadAssignments(),loadAssignStats()])),
+    ...(AUTH.user?.role==='admin' ? [loadPagePerms(),plTrack('Users',loadUsers())] : [])
   ]);
   try{const r0=AUTH.user?.role;if((r0==='leader'||r0==='inspector')&&!(AUTH.user?.project||'').trim())toast('No project assigned to your account yet. Please ask the administrator.',false);}catch(e){}
   // วาดซ้ำหนึ่งรอบ เผื่อรายการ/ความคืบหน้ามาถึงก่อนข้อมูลหลัก
@@ -465,7 +469,7 @@ const sel={project:'',system:'',loc:'',sub:'',equip:'',serial:''};
 const combos={};
 const INSP_SEED=['Somchai Jaidee','Somying Rakngan'];
 
-async function loadAll(){const m=await sGet(MASTER_KEY);if(m){try{master=JSON.parse(m);}catch(e){master=[];}}buildCombos();buildInspectorCombo();refreshDerived();renderMaster();renderSaved();updateStats();}
+async function loadAll(){const m=await sGet(MASTER_KEY);if(m){try{master=JSON.parse(m);}catch(e){master=[];}}rebuildProjInfo();buildCombos();buildInspectorCombo();refreshDerived();renderMaster();renderSaved();updateStats();}
 
 async function sGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 async function sSet(k,v){try{localStorage.setItem(k,v);}catch(e){console.warn(e);}}
@@ -486,18 +490,18 @@ function buildCombos(){
     const input=el.querySelector('.combo-input'),list=el.querySelector('.combo-list'),clear=el.querySelector('.combo-clear');
     combos[level]={el,input,list};let active=-1;
     const isDisabled=()=>el.classList.contains('disabled');
-    function render(filter){let opts=optionsFor(level);const f=(filter||'').trim().toLowerCase();if(f)opts=opts.filter(o=>o.toLowerCase().includes(f));active=-1;let html=opts.map(o=>`<div class="combo-opt" data-v="${escAttr(o)}">${esc(o)}</div>`).join('');const exact=optionsFor(level).some(o=>o.toLowerCase()===f);if(f&&!exact)html+=`<div class="combo-new" data-new="${escAttr(filter.trim())}">+ Use "${esc(filter.trim())}" (new)</div>`;if(!html)html=`<div class="combo-empty">No options</div>`;list.innerHTML=html;list.querySelectorAll('.combo-opt').forEach(o=>o.addEventListener('mousedown',e=>{e.preventDefault();choose(level,o.dataset.v);}));const nw=list.querySelector('.combo-new');if(nw)nw.addEventListener('mousedown',e=>{e.preventDefault();choose(level,nw.dataset.new);});}
+    function render(filter){let opts=optionsFor(level);const f=(filter||'').trim().toLowerCase();if(f)opts=opts.filter(o=>(level==='project'?o+' '+PSEARCH(o):o).toLowerCase().includes(f));active=-1;let html=opts.map(o=>`<div class="combo-opt" data-v="${escAttr(o)}">${level==='project'?`<b>${esc(PN(o))}</b>${PCODE(o)?` <small style="opacity:.65">${esc(PCODE(o))}</small>`:''}${PN(o)!==o?`<div style="font-size:11px;opacity:.65">${esc(o)}</div>`:''}`:esc(o)}</div>`).join('');const exact=optionsFor(level).some(o=>o.toLowerCase()===f)||(level==='project'&&PNREV(filter||'')!==(filter||'').trim());if(f&&!exact)html+=`<div class="combo-new" data-new="${escAttr(filter.trim())}">+ Use "${esc(filter.trim())}" (new)</div>`;if(!html)html=`<div class="combo-empty">No options</div>`;list.innerHTML=html;list.querySelectorAll('.combo-opt').forEach(o=>o.addEventListener('mousedown',e=>{e.preventDefault();choose(level,o.dataset.v);}));const nw=list.querySelector('.combo-new');if(nw)nw.addEventListener('mousedown',e=>{e.preventDefault();choose(level,nw.dataset.new);});}
     function open(){if(isDisabled())return;el.classList.add('open');render(input.value);}
     function close(){el.classList.remove('open');}
     input.addEventListener('focus',open);input.addEventListener('click',open);
     input.addEventListener('input',()=>{el.classList.add('open');render(input.value);});
-    input.addEventListener('keydown',e=>{const items=list.querySelectorAll('.combo-opt,.combo-new');if(e.key==='ArrowDown'){e.preventDefault();active=Math.min(active+1,items.length-1);}else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(active-1,0);}else if(e.key==='Enter'){e.preventDefault();if(active>=0){const it=items[active];choose(level,it.dataset.v||it.dataset.new);}else if(input.value.trim())choose(level,input.value.trim());return;}else if(e.key==='Escape'){close();return;}items.forEach((it,i)=>it.classList.toggle('active',i===active));if(active>=0)items[active].scrollIntoView({block:'nearest'});});
-    input.addEventListener('blur',()=>setTimeout(()=>{close();const v=input.value.trim();if(v!==sel[level])choose(level,v);},150));
+    input.addEventListener('keydown',e=>{const items=list.querySelectorAll('.combo-opt,.combo-new');if(e.key==='ArrowDown'){e.preventDefault();active=Math.min(active+1,items.length-1);}else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(active-1,0);}else if(e.key==='Enter'){e.preventDefault();if(active>=0){const it=items[active];choose(level,it.dataset.v||it.dataset.new);}else if(input.value.trim())choose(level,level==='project'?PNREV(input.value.trim()):input.value.trim());return;}else if(e.key==='Escape'){close();return;}items.forEach((it,i)=>it.classList.toggle('active',i===active));if(active>=0)items[active].scrollIntoView({block:'nearest'});});
+    input.addEventListener('blur',()=>setTimeout(()=>{close();const v=level==='project'?PNREV(input.value.trim()):input.value.trim();if(v!==sel[level])choose(level,v);},150));
     clear.addEventListener('mousedown',e=>{e.preventDefault();choose(level,'');});
   });
   setDisabledStates();
 }
-function choose(level,val){try{setTimeout(checkSerialWarn,0);}catch(e){}val=String(val||'').trim();if(sel[level]===val){combos[level].input.value=val;combos[level].el.classList.toggle('has-val',!!val);combos[level].el.classList.remove('open');return;}sel[level]=val;combos[level].input.value=val;combos[level].el.classList.toggle('has-val',!!val);combos[level].el.classList.remove('open');const idx=LEVELS.indexOf(level);for(let i=idx+1;i<LEVELS.length;i++){const lv=LEVELS[i];sel[lv]='';if(combos[lv]){combos[lv].input.value='';combos[lv].el.classList.remove('has-val');}}setDisabledStates();updateBrandModel();try{paintReadingField();}catch(e){}if(level==='equip'&&val){setTimeout(()=>{const s=optionsFor('serial');if(s.length===1&&!sel.serial)choose('serial',s[0]);},50);}}
+function choose(level,val){try{setTimeout(checkSerialWarn,0);}catch(e){}val=String(val||'').trim();const dv=level==='project'?PN(val):val;if(sel[level]===val){combos[level].input.value=dv;combos[level].el.classList.toggle('has-val',!!val);combos[level].el.classList.remove('open');return;}sel[level]=val;combos[level].input.value=dv;combos[level].el.classList.toggle('has-val',!!val);combos[level].el.classList.remove('open');const idx=LEVELS.indexOf(level);for(let i=idx+1;i<LEVELS.length;i++){const lv=LEVELS[i];sel[lv]='';if(combos[lv]){combos[lv].input.value='';combos[lv].el.classList.remove('has-val');}}setDisabledStates();updateBrandModel();try{paintReadingField();}catch(e){}if(level==='equip'&&val){setTimeout(()=>{const s=optionsFor('serial');if(s.length===1&&!sel.serial)choose('serial',s[0]);},50);}}
 function setDisabledStates(){
   const REQUIRED_ANCESTOR={project:null,system:'project',typeloc:'project',loc:'project',sub:'loc',equip:'loc',serial:'equip'};
   LEVELS.forEach((lv)=>{
@@ -690,12 +694,12 @@ function fillSavedFilters(){
   if(isRestricted&&userProj){
     const userProjs=userProj.split(',').map(p=>p.trim()).filter(Boolean);
     const cur=fp.value;
-    fp.innerHTML=userProjs.map(p=>`<option value="${escAttr(p)}">${esc(p)}</option>`).join('');
+    fp.innerHTML=userProjs.map(p=>`<option value="${escAttr(p)}">${esc(PN(p))}</option>`).join('');
     if(userProjs.includes(cur)) fp.value=cur; else if(userProjs.length===1) fp.value=userProjs[0];
   } else {
     const projects=uniq(entries.map(e=>e.project)).filter(Boolean).sort((a,b)=>a.localeCompare(b,'th'));
     const prev=fp.value;
-    fp.innerHTML='<option value="">All Projects</option>'+projects.map(p=>`<option value="${escAttr(p)}">${esc(p)}</option>`).join('');
+    fp.innerHTML='<option value="">All Projects</option>'+projects.map(p=>`<option value="${escAttr(p)}">${esc(PN(p))}</option>`).join('');
     if(projects.includes(prev)) fp.value=prev;
   }
   const fillDep=(el,src,key,defLabel)=>{
@@ -807,7 +811,7 @@ function renderSaved(){
   const sig=[$('#savedSearch').value,...['savedFProject','savedFSystem','savedFLoc','savedFSub','savedFEquip','savedSort'].map(id=>document.getElementById(id)?.value||''),recordsDateFilter,recordsStatusFilter,!!$('#savedFPending')?.checked].join('|');
   if(sig!==_savedSig){_savedSig=sig;savedShown=SAVED_PAGE;}
   const fullList=list;lastSavedList=fullList;list=fullList.slice(0,savedShown);
-  grid.innerHTML=list.map(e=>{const thumb=driveViewUrl(e.thumbMain||e.thumbSticker||e.imgMain||e.imgSticker||'',300);const n=(e.imgMain?1:0)+(e.imgSticker?1:0);const title=esc([e.equipment,e.brand,e.model].filter(Boolean).join(' · '))||'(Equipment not specified)';const loc=esc([e.project,e.locName,e.subName].filter(Boolean).join(' › '));const pendingBadge=e.pendingReview?`<div class="loc" style="color:var(--warn-text);font-weight:600">Pending Review${e.newFields?': '+esc(e.newFields):''}</div>`:'';const retBadge=e.returnReason?`<div class="loc rr-ret"><label class="rr-ret-lbl">Returned:</label> ${esc(e.returnReason)}${e.returnedBy?` <span class="rr-ret-by">(${esc(e.returnedBy)})</span>`:''}</div>`:'';return `<div class="rrow${e.returnReason?' is-returned':''}" data-id="${e.id}"><div class="thumb" style="background-image:url(${thumb})">${n?`<span class="cnt">${n} photos</span>`:''}</div><div class="body"><div class="tt">${title}</div>${loc?`<div class="loc">${loc}</div>`:''}${pendingBadge}${retBadge}<div class="meta"><span>${esc(e.inspector||'-')}</span>${e.serial?`<span>SN: ${esc(e.serial)}</span>`:''}<span>${fmtDate(e.createdAt,true)}</span>${['admin','manager','leader'].includes((AUTH.user&&AUTH.user.role)||'')?'<button type="button" class="rr-hist" data-act="hist">History</button>':''}</div></div><div class="acts">${canEdit()?'<button data-act="edit">Edit</button>':''}<button data-act="img">Photos</button>${canReturn?`<button data-act="ret">${e.returnReason?'Returned':'Return'}</button>`:''}${e.pendingReview&&canConfirm?'<button data-act="confirm" style="color:var(--warn-text)">Confirmed</button>':''}${canDelete()?'<button data-act="del" class="del">Delete</button>':''}</div></div>`;}).join('')+(fullList.length>list.length?`<div style="text-align:center;padding:14px"><button class="ghost-btn" id="savedLoadMore">Load more (${list.length}/${fullList.length})</button></div>`:`<div style="text-align:center;padding:10px;color:var(--ink-faint);font-size:12.5px">Showing all ${fullList.length} records</div>`);
+  grid.innerHTML=list.map(e=>{const thumb=driveViewUrl(e.thumbMain||e.thumbSticker||e.imgMain||e.imgSticker||'',300);const n=(e.imgMain?1:0)+(e.imgSticker?1:0);const title=esc([e.equipment,e.brand,e.model].filter(Boolean).join(' · '))||'(Equipment not specified)';const loc=esc([PN(e.project),e.locName,e.subName].filter(Boolean).join(' › '));const pendingBadge=e.pendingReview?`<div class="loc" style="color:var(--warn-text);font-weight:600">Pending Review${e.newFields?': '+esc(e.newFields):''}</div>`:'';const retBadge=e.returnReason?`<div class="loc rr-ret"><label class="rr-ret-lbl">Returned:</label> ${esc(e.returnReason)}${e.returnedBy?` <span class="rr-ret-by">(${esc(e.returnedBy)})</span>`:''}</div>`:'';return `<div class="rrow${e.returnReason?' is-returned':''}" data-id="${e.id}"><div class="thumb" style="background-image:url(${thumb})">${n?`<span class="cnt">${n} photos</span>`:''}</div><div class="body"><div class="tt">${title}</div>${loc?`<div class="loc">${loc}</div>`:''}${pendingBadge}${retBadge}<div class="meta"><span>${esc(e.inspector||'-')}</span>${e.serial?`<span>SN: ${esc(e.serial)}</span>`:''}<span>${fmtDate(e.createdAt,true)}</span>${['admin','manager','leader'].includes((AUTH.user&&AUTH.user.role)||'')?'<button type="button" class="rr-hist" data-act="hist">History</button>':''}</div></div><div class="acts">${canEdit()?'<button data-act="edit">Edit</button>':''}<button data-act="img">Photos</button>${canReturn?`<button data-act="ret">${e.returnReason?'Returned':'Return'}</button>`:''}${e.pendingReview&&canConfirm?'<button data-act="confirm" style="color:var(--warn-text)">Confirmed</button>':''}${canDelete()?'<button data-act="del" class="del">Delete</button>':''}</div></div>`;}).join('')+(fullList.length>list.length?`<div style="text-align:center;padding:14px"><button class="ghost-btn" id="savedLoadMore">Load more (${list.length}/${fullList.length})</button></div>`:`<div style="text-align:center;padding:10px;color:var(--ink-faint);font-size:12.5px">Showing all ${fullList.length} records</div>`);
   paintReturnedBanner();
   const lmBtn=$('#savedLoadMore');if(lmBtn)lmBtn.onclick=()=>{savedShown+=SAVED_PAGE;renderSaved();};
   grid.querySelectorAll('.rrow').forEach(c=>{const id=c.dataset.id;const be=c.querySelector('[data-act="edit"]');if(be)be.onclick=()=>editEntry(id);c.querySelector('[data-act="img"]').onclick=()=>viewImgs(id);const bc=c.querySelector('[data-act="confirm"]');if(bc)bc.onclick=()=>confirmRecordReviewed(id);const bd=c.querySelector('[data-act="del"]');if(bd)bd.onclick=()=>delEntry(id);const br=c.querySelector('[data-act="ret"]');if(br)br.onclick=()=>openReturnDlg(id);const bh=c.querySelector('[data-act="hist"]');if(bh)bh.onclick=ev=>{ev.stopPropagation();openHistory(id);};});
@@ -943,7 +947,7 @@ function fillQrMasterFilters(){
   const fp=$('#qrfProject'); if(!fp) return;
   const projects=uniq(master.map(m=>m.project)).filter(Boolean).sort((a,b)=>a.localeCompare(b,'th'));
   const prev=fp.value;
-  fp.innerHTML='<option value="">All Projects</option>'+projects.map(p=>`<option value="${escAttr(p)}">${esc(p)}</option>`).join('');
+  fp.innerHTML='<option value="">All Projects</option>'+projects.map(p=>`<option value="${escAttr(p)}">${esc(PN(p))}</option>`).join('');
   if(projects.includes(prev)) fp.value=prev;
   const fillDep=(el,src,key,defLabel)=>{
     if(!el) return;
@@ -1053,7 +1057,7 @@ $('#kpiRow').innerHTML=[
   {lbl:'Last 7 days',n:last7,color:'var(--c-blue)'},
   {lbl:'Completion',n:complPct,color:'var(--c-amber)'},
 ].map(k=>`<div class="kpi" style="border-left:4px solid ${k.color}"><div class="k-lbl">${k.lbl}</div><div class="k-num" style="color:${k.color}">${k.n}</div></div>`).join('');
-const allProjs=uniq(baseAll.map(e=>e.project)).filter(Boolean).sort();const df=$('#dashMainFilter');if(df){const cur=df.value;df.innerHTML='<option value="__all">All Projects</option>'+allProjs.map(p=>`<option value="${escAttr(p)}">${esc(p)}</option>`).join('');df.value=cur;}try{renderProgress();}catch(e){}try{renderActionBar(baseEntries);}catch(e){}renderOverviewDash();renderLeaderDashboard();renderStatusDonut(baseEntries);renderDailyChart(baseEntries);const baseMaster=(role==='leader'&&leaderProjs.length>0)?master.filter(m=>leaderProjs.includes(m.project)):master;fillDashEquipLocFilter(baseMaster);renderDashEquipTable(baseMaster);renderGanttChart();}
+const allProjs=uniq(baseAll.map(e=>e.project)).filter(Boolean).sort();const df=$('#dashMainFilter');if(df){const cur=df.value;df.innerHTML='<option value="__all">All Projects</option>'+allProjs.map(p=>`<option value="${escAttr(p)}">${esc(PN(p))}</option>`).join('');df.value=cur;}try{renderProgress();}catch(e){}try{renderActionBar(baseEntries);}catch(e){}renderOverviewDash();renderLeaderDashboard();renderStatusDonut(baseEntries);renderDailyChart(baseEntries);const baseMaster=(role==='leader'&&leaderProjs.length>0)?master.filter(m=>leaderProjs.includes(m.project)):master;fillDashEquipLocFilter(baseMaster);renderDashEquipTable(baseMaster);renderGanttChart();}
 
 /* ─── Phase 14: แถบ "ต้องจัดการ" + ช่วงเวลา ─── */
 let dashRangeDays=14;
@@ -1206,7 +1210,7 @@ function renderDashEquipTable(scopedMaster){
 }
 $('#dashEquipLocFilter')?.addEventListener('change',()=>renderDashEquipTable());
 
-function renderProgress(){const df=$('#dashMainFilter');const pick=df?df.value:'__all';const list=(!pick||pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;$('#progSummary').innerHTML=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--danger)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--accent)">${pct}%</div><div>Progress</div></div></div>`;const pctEl=$('#progTotalPct');if(pctEl)pctEl.textContent=tot?pct+'%':'—';const chart=$('#progChart');if(!list.length){chart.innerHTML='';return;}chart.innerHTML=list.slice().sort((a,b)=>(a.total?a.done/a.total:0)-(b.total?b.done/b.total:0)||String(a.project).localeCompare(String(b.project),'th')).map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;const color=w>=80?'#22C55E':w>=40?'#F97316':'#EF4444';return `<div class="prog-row"><span class="pl">${esc(p.project)}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%;background:${color}"></div></div><span class="pn" style="color:${w>=80?'var(--ok-text)':w>=40?'var(--warn-text)':'var(--danger-text)'};font-weight:600">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');}
+function renderProgress(){const df=$('#dashMainFilter');const pick=df?df.value:'__all';const list=(!pick||pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;$('#progSummary').innerHTML=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--danger)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--accent)">${pct}%</div><div>Progress</div></div></div>`;const pctEl=$('#progTotalPct');if(pctEl)pctEl.textContent=tot?pct+'%':'—';const chart=$('#progChart');if(!list.length){chart.innerHTML='';return;}chart.innerHTML=list.slice().sort((a,b)=>(a.total?a.done/a.total:0)-(b.total?b.done/b.total:0)||String(a.project).localeCompare(String(b.project),'th')).map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;const color=w>=80?'#22C55E':w>=40?'#F97316':'#EF4444';return `<div class="prog-row"><span class="pl">${esc(PN(p.project))}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%;background:${color}"></div></div><span class="pn" style="color:${w>=80?'var(--ok-text)':w>=40?'var(--warn-text)':'var(--danger-text)'};font-weight:600">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');}
 
 function filterRecordsByDate(dateKey){recordsDateFilter=dateKey;recordsStatusFilter=null;goTab('saved');renderSaved();}
 function filterRecordsByStatus(status){recordsStatusFilter=status;recordsDateFilter=null;goTab('saved');renderSaved();}
@@ -1265,7 +1269,7 @@ function renderOverviewDash(){
     const pct=p.total?Math.round(p.done/p.total*100):0;
     const leader=usersCache.find(u=>u.role==='leader'&&(u.project||'').split(',').map(x=>x.trim()).includes(p.project));
     const leaderName=leader?(leader.name||leader.username):'—';
-    paths+=`<path class="donut-seg" d="M${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} L${ix2.toFixed(2)},${iy2.toFixed(2)} A${r},${r} 0 ${large},0 ${ix1.toFixed(2)},${iy1.toFixed(2)} Z" fill="${color}" data-proj="${escAttr(p.project)}" style="cursor:pointer;transition:opacity .2s"><title>${esc(p.project)} (${esc(leaderName)}): ${p.done}/${p.total} (${pct}%)</title></path>`;
+    paths+=`<path class="donut-seg" d="M${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} L${ix2.toFixed(2)},${iy2.toFixed(2)} A${r},${r} 0 ${large},0 ${ix1.toFixed(2)},${iy1.toFixed(2)} Z" fill="${color}" data-proj="${escAttr(p.project)}" style="cursor:pointer;transition:opacity .2s"><title>${esc(PN(p.project))} (${esc(leaderName)}): ${p.done}/${p.total} (${pct}%)</title></path>`;
     startAngle=endAngle;
   });
   svg.innerHTML=paths;
@@ -1277,7 +1281,7 @@ function renderOverviewDash(){
     const leader=usersCache.find(u=>u.role==='leader'&&(u.project||'').split(',').map(x=>x.trim()).includes(p.project));
     const leaderName=leader?(leader.name||leader.username):'—';
     const pct=p.total?Math.round(p.done/p.total*100):0;
-    return `<div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 4px;border-radius:6px" onclick="renderOverviewRight(${jsArg(p.project)})" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><div style="width:10px;height:10px;border-radius:50%;background:${color};flex:none"></div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.project)}</div><div style="font-size:10px;color:var(--ink-faint)">${esc(leaderName)} · ${pct}%</div></div></div>`;
+    return `<div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 4px;border-radius:6px" onclick="renderOverviewRight(${jsArg(p.project)})" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''"><div style="width:10px;height:10px;border-radius:50%;background:${color};flex:none"></div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(PN(p.project))}</div><div style="font-size:10px;color:var(--ink-faint)">${esc(leaderName)} · ${pct}%</div></div></div>`;
   }).join('');
   renderOverviewRight(null);
 }
@@ -1300,7 +1304,7 @@ function renderOverviewRight(selectedProj){
     const projInspectors=usersCache.filter(u=>u.role==='inspector'&&(u.project||'').split(',').map(x=>x.trim()).includes(selectedProj));
     const projStat=assignStats.find(s=>s.project===selectedProj);
     const inspectors=projStat?projStat.inspectors:[];
-    let html=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><div style="width:14px;height:14px;border-radius:50%;background:${color};flex:none"></div><div style="font-size:15px;font-weight:700">${esc(p.project)}</div><button onclick="renderOverviewRight(null)" style="margin-left:auto;font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--line-soft);background:var(--bg);cursor:pointer;color:var(--ink-soft)">← All Projects</button></div>`;
+    let html=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><div style="width:14px;height:14px;border-radius:50%;background:${color};flex:none"></div><div style="font-size:15px;font-weight:700">${esc(PN(p.project))}</div><button onclick="renderOverviewRight(null)" style="margin-left:auto;font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--line-soft);background:var(--bg);cursor:pointer;color:var(--ink-soft)">← All Projects</button></div>`;
     html+=`<div style="margin-bottom:16px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700">${esc(leaderName)}</span><span style="font-size:10px;background:var(--bg);border:1px solid var(--line-soft);border-radius:10px;padding:1px 7px;color:var(--ink-soft)">leader</span></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:${barColor}">${p.done}/${p.total}</span>${dl?daysChip(dl):''}</div></div><div style="background:var(--line-soft);border-radius:8px;height:18px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${barColor};border-radius:8px;transition:width .6s;display:flex;align-items:center;justify-content:flex-end;padding-right:6px">${pct>=15?`<span style="font-size:10px;color:#fff;font-weight:700">${pct}%</span>`:''}</div></div><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink-faint);margin-top:3px"><span>${p.total-p.done} remaining · ${projInspectors.length} inspector</span>${dl?`<span>target: ${dl}</span>`:''}</div></div>`;
     if(inspectors.length){
       html+=`<div style="font-size:11px;font-weight:600;color:var(--ink-soft);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line-soft)">Work Assigned to Inspector</div>`;
@@ -1322,12 +1326,12 @@ function renderOverviewRight(selectedProj){
       const dl=getProjectDeadline(p.project);
       const leader=usersCache.find(u=>u.role==='leader'&&(u.project||'').split(',').map(x=>x.trim()).includes(p.project));
       const leaderName=leader?(leader.name||leader.username):'—';
-      html+=`<div style="margin-bottom:14px;cursor:pointer" onclick="renderOverviewRight(${jsArg(p.project)})"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:${color};flex:none"></div><span style="font-size:12px;font-weight:600">${esc(p.project)}</span><span style="font-size:10px;color:var(--ink-faint)">${esc(leaderName)}</span></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;font-weight:600;color:${barColor}">${p.done}/${p.total}</span>${dl?daysChip(dl):''}</div></div><div style="background:var(--line-soft);border-radius:8px;height:16px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:8px;transition:width .6s;display:flex;align-items:center;justify-content:flex-end;padding-right:6px">${pct>=15?`<span style="font-size:10px;color:#fff;font-weight:600">${pct}%</span>`:''}</div></div><div style="font-size:10px;color:var(--ink-faint);margin-top:2px;display:flex;justify-content:space-between"><span>${p.total-p.done} remaining</span>${dl?`<span>target: ${dl}</span>`:''}</div></div>`;
+      html+=`<div style="margin-bottom:14px;cursor:pointer" onclick="renderOverviewRight(${jsArg(p.project)})"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:${color};flex:none"></div><span style="font-size:12px;font-weight:600">${esc(PN(p.project))}</span><span style="font-size:10px;color:var(--ink-faint)">${esc(leaderName)}</span></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;font-weight:600;color:${barColor}">${p.done}/${p.total}</span>${dl?daysChip(dl):''}</div></div><div style="background:var(--line-soft);border-radius:8px;height:16px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:8px;transition:width .6s;display:flex;align-items:center;justify-content:flex-end;padding-right:6px">${pct>=15?`<span style="font-size:10px;color:#fff;font-weight:600">${pct}%</span>`:''}</div></div><div style="font-size:10px;color:var(--ink-faint);margin-top:2px;display:flex;justify-content:space-between"><span>${p.total-p.done} remaining</span>${dl?`<span>target: ${dl}</span>`:''}</div></div>`;
     });
     wrap.innerHTML=html||'<div style="color:var(--ink-faint);font-size:12px;text-align:center;padding:20px">No data yet</div>';
   }
 }
-function renderSavedProgress(){const role=(AUTH.user&&AUTH.user.role)||'';const box=$('#savedProgress');if(!box)return;const show=(role==='leader'||role==='manager'||role==='admin')&&progressCache.length;box.style.display=show?'':'none';if(!show)return;const sel_f=$('#savedProgFilter');const multi=(role==='manager'||role==='admin');sel_f.style.display=multi?'':'none';if(multi){const cur=sel_f.value;sel_f.innerHTML=['<option value="__all">All Projects</option>'].concat(progressCache.map(p=>`<option value="${esc(p.project)}">${esc(p.project)}</option>`)).join('');if(cur&&[...sel_f.options].some(o=>o.value===cur))sel_f.value=cur;sel_f.onchange=()=>renderSavedProgress();}const pick=multi?sel_f.value:'__all';const list=(pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;let html=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--danger)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--accent)">${pct}%</div><div>Progress</div></div></div>`;html+=list.map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;return `<div class="prog-row"><span class="pl">${esc(p.project)}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%"></div></div><span class="pn">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');$('#savedProgBody').innerHTML=html;}
+function renderSavedProgress(){const role=(AUTH.user&&AUTH.user.role)||'';const box=$('#savedProgress');if(!box)return;const show=(role==='leader'||role==='manager'||role==='admin')&&progressCache.length;box.style.display=show?'':'none';if(!show)return;const sel_f=$('#savedProgFilter');const multi=(role==='manager'||role==='admin');sel_f.style.display=multi?'':'none';if(multi){const cur=sel_f.value;sel_f.innerHTML=['<option value="__all">All Projects</option>'].concat(progressCache.map(p=>`<option value="${esc(PN(p.project))}">${esc(PN(p.project))}</option>`)).join('');if(cur&&[...sel_f.options].some(o=>o.value===cur))sel_f.value=cur;sel_f.onchange=()=>renderSavedProgress();}const pick=multi?sel_f.value:'__all';const list=(pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;let html=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--danger)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--accent)">${pct}%</div><div>Progress</div></div></div>`;html+=list.map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;return `<div class="prog-row"><span class="pl">${esc(PN(p.project))}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%"></div></div><span class="pn">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');$('#savedProgBody').innerHTML=html;}
 
 const DONUT_COLORS=['#D93A2B','#3B82F6','#10B981','#8B5CF6','#EC4899','#F59E0B','#14B8A6','#6366F1','#EF4444','#84CC16'];
 let targetsCache=[];
@@ -1377,7 +1381,7 @@ function renderAssignStatsPanel(){
       myProjs.forEach(proj=>{
         if(!proj.inspectors.length)return;
         const dl=proj.projectDeadline;
-        html+=`<div style="margin-bottom:14px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><b style="font-size:13px">${esc(proj.project)}</b>${dl?daysChip(dl):''}</div>`;
+        html+=`<div style="margin-bottom:14px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><b style="font-size:13px">${esc(PN(proj.project))}</b>${dl?daysChip(dl):''}</div>`;
         proj.inspectors.forEach(ins=>{
           const pct=ins.total?Math.round(ins.done/ins.total*100):0;
           const barColor=pct>=80?'#10B981':pct>=50?'#3B82F6':'#F59E0B';
@@ -1402,7 +1406,7 @@ function renderAssignStatsPanel(){
         html+=`<div style="border:1px solid var(--line-soft);border-radius:12px;margin-bottom:8px;overflow:hidden">
           <div style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;background:var(--bg)" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.ac-caret').textContent=this.nextElementSibling.style.display==='none'?'▸':'▾'">
             <span class="ac-caret" style="font-size:13px;color:var(--ink-faint)">▸</span>
-            <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(proj.project)}</div>
+            <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(PN(proj.project))}</div>
             <div style="background:var(--line-soft);border-radius:4px;height:6px;overflow:hidden;margin-top:4px"><div style="width:${pct}%;height:100%;background:${barColor};border-radius:4px"></div></div></div>
             <div style="text-align:right;flex:none"><div style="font-size:12px;font-weight:700">${pct}%</div><div style="font-size:10px;color:var(--ink-soft)">${doneP}/${totalP}</div></div>
             ${dl?`<div style="flex:none">${daysChip(dl)}</div>`:''}
@@ -1432,7 +1436,7 @@ function renderDashAssign(){
   const fProj=$('#assignDashFProject');
   if(fProj){
     const prev=fProj.value;
-    fProj.innerHTML='<option value="">All Projects</option>'+assignStats.map(p=>`<option value="${escAttr(p.project)}">${esc(p.project)}</option>`).join('');
+    fProj.innerHTML='<option value="">All Projects</option>'+assignStats.map(p=>`<option value="${escAttr(p.project)}">${esc(PN(p.project))}</option>`).join('');
     if(prev)fProj.value=prev;
   }
   const filterProj=fProj?fProj.value:'';
@@ -1449,7 +1453,7 @@ function renderDashAssign(){
     const dl=proj.projectDeadline;
     html+=`<div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:8px">
-        <span style="font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(proj.project)}</span>
+        <span style="font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(PN(proj.project))}</span>
         <span style="font-size:11px;color:var(--ink-soft);white-space:nowrap">${doneP}/${totalP}</span>
         ${dl?daysChip(dl):''}
       </div>
@@ -1490,7 +1494,7 @@ function renderLeaderDashboard(){
       }
     });
   }
-  $('#leaderDonutList').innerHTML=list.map((p,i)=>{const pct=p.total?Math.round(p.done/p.total*100):0;const color=DONUT_COLORS[i%DONUT_COLORS.length];const t=getTargetForProject(p.project);return `<div class="proj-item" onclick="openProjDetail(${jsArg(p.project)})"><div class="proj-dot" style="background:${color}"></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(p.project)}</div><div class="proj-bar-track" style="margin:4px 0"><div class="proj-bar-fill" style="width:${pct}%;background:${color}"></div></div><div style="font-size:11px">${p.done}/${p.total} (${pct}%)</div><div style="font-size:11px;margin-top:2px">${t?deadlineLabel(t.deadline):'<span style="color:var(--ink-faint)">Target not set</span>'}</div></div></div>`;}).join('');
+  $('#leaderDonutList').innerHTML=list.map((p,i)=>{const pct=p.total?Math.round(p.done/p.total*100):0;const color=DONUT_COLORS[i%DONUT_COLORS.length];const t=getTargetForProject(p.project);return `<div class="proj-item" onclick="openProjDetail(${jsArg(p.project)})"><div class="proj-dot" style="background:${color}"></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(PN(p.project))}</div><div class="proj-bar-track" style="margin:4px 0"><div class="proj-bar-fill" style="width:${pct}%;background:${color}"></div></div><div style="font-size:11px">${p.done}/${p.total} (${pct}%)</div><div style="font-size:11px;margin-top:2px">${t?deadlineLabel(t.deadline):'<span style="color:var(--ink-faint)">Target not set</span>'}</div></div></div>`;}).join('');
   if($('#leaderDonutLegend'))$('#leaderDonutLegend').textContent=`${list.length} projects · ${doneAll}/${totalAll} records`;
 }
 
@@ -1501,7 +1505,7 @@ function fillMasterFilters(){
   const fp=$('#masterFProject'); if(!fp) return;
   const projects=uniq(master.map(m=>m.project)).filter(Boolean).sort((a,b)=>a.localeCompare(b,'th'));
   const prev=fp.value;
-  fp.innerHTML='<option value="">All Projects</option>'+projects.map(p=>`<option value="${escAttr(p)}">${esc(p)}</option>`).join('');
+  fp.innerHTML='<option value="">All Projects</option>'+projects.map(p=>`<option value="${escAttr(p)}">${esc(PN(p))}</option>`).join('');
   if(projects.includes(prev)) fp.value=prev;
   const fillDep=(el,src,key,defLabel)=>{
     if(!el) return;
@@ -1545,9 +1549,9 @@ function renderMaster(refill=true){
   else if(fmiss==='any') list=list.filter(m=>!m.brand||!m.model||!m.serial);
   list.sort((a,b)=>{const na=parseFloat(a.order)||0,nb=parseFloat(b.order)||0;return fsort==='order_desc'?nb-na:na-nb;});
   const body=$('#masterBody');const lm=$('#masterLoadMoreWrap');if($('#masterPill'))$('#masterPill').textContent=master.length;
-  if(!list.length){body.innerHTML=`<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--ink-faint)">${master.length?'No data matches the condition':'No data yet'}</td></tr>`;if(lm)lm.innerHTML='';return;}
+  if(!list.length){body.innerHTML=`<tr><td colspan="14" style="text-align:center;padding:30px;color:var(--ink-faint)">${master.length?'No data matches the condition':'No data yet'}</td></tr>`;if(lm)lm.innerHTML='';return;}
   const shown=Math.min(masterShown,list.length);
-  body.innerHTML=list.slice(0,shown).map(m=>`<tr data-id="${m.id}"><td class="codecell" style="text-align:center" data-label="Order">${esc(m.order)}</td><td data-label="Project"><span class="ellip" title="${escAttr(m.project)}">${esc(m.project)}</span></td><td data-label="System">${esc(m.system)}</td><td data-label="Location Type">${esc(m.typeLocation)}</td><td data-label="Location">${esc(m.locName)}</td><td data-label="Sub-location">${esc(m.subName)}</td><td class="codecell" data-label="Equipment Type">${esc(m.asset)}</td><td data-label="Equipment">${esc(m.equipment)}</td><td data-label="Brand">${esc(m.brand)}</td><td data-label="Model">${esc(m.model)}</td><td class="codecell" data-label="Serial">${esc(m.serial)}</td><td data-label="">${canEdit()?`<div class="rowact"><button class="icon-btn" data-act="edit">✎</button><button class="icon-btn del" data-act="del">🗑</button></div>`:'—'}</td></tr>`).join('');
+  body.innerHTML=list.slice(0,shown).map(m=>`<tr data-id="${m.id}"><td class="codecell" style="text-align:center" data-label="Order">${esc(m.order)}</td><td class="codecell" data-label="Project Code">${esc(m.projectCode||PCODE(m.project))}</td><td data-label="Project"><span class="ellip" title="${escAttr(m.project)}">${esc(m.project)}</span></td><td data-label="Alias">${esc(m.projectAlias||(PROJ_INFO[m.project]||{}).alias||'')}</td><td data-label="System">${esc(m.system)}</td><td data-label="Location Type">${esc(m.typeLocation)}</td><td data-label="Location">${esc(m.locName)}</td><td data-label="Sub-location">${esc(m.subName)}</td><td class="codecell" data-label="Equipment Type">${esc(m.asset)}</td><td data-label="Equipment">${esc(m.equipment)}</td><td data-label="Brand">${esc(m.brand)}</td><td data-label="Model">${esc(m.model)}</td><td class="codecell" data-label="Serial">${esc(m.serial)}</td><td data-label="">${canEdit()?`<div class="rowact"><button class="icon-btn" data-act="edit">✎</button><button class="icon-btn del" data-act="del">🗑</button></div>`:'—'}</td></tr>`).join('');
   if(lm){
     if(list.length>shown){
       lm.innerHTML=`<button class="ghost-btn" id="masterLoadMoreBtn">Load more (${shown}/${list.length})</button>`;
@@ -1688,17 +1692,24 @@ function showConfirmDialog(title,bodyHtml,onOk){
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
 }
 
-const masterToBackend=m=>({id:m.id,project:m.project,system:m.system,typeLocation:m.typeLocation,location:m.locName,sublocation:m.subName,equipment:m.equipment,brand:m.brand,model:m.model,asset:m.asset,serial:m.serial,order:m.order||''});
+const masterToBackend=m=>({id:m.id,project:m.project,system:m.system,typeLocation:m.typeLocation,location:m.locName,sublocation:m.subName,equipment:m.equipment,brand:m.brand,model:m.model,asset:m.asset,serial:m.serial,order:m.order||'',projectCode:m.projectCode||'',projectAlias:m.projectAlias||''});
+/* รหัส/ชื่อเล่นโครงการ: เก็บใน Master (projectCode, projectAlias) — ชื่อเต็มยังเป็นกุญแจ แสดงผลใช้ชื่อเล่น */
+let PROJ_INFO={};
+function rebuildProjInfo(){PROJ_INFO={};(master||[]).forEach(m=>{if(!m.project)return;const o=PROJ_INFO[m.project]||(PROJ_INFO[m.project]={code:'',alias:''});if(m.projectCode&&!o.code)o.code=m.projectCode;if(m.projectAlias&&!o.alias)o.alias=m.projectAlias;});}
+const PN=p=>{const i=PROJ_INFO[p];return (i&&i.alias)||p||'';};
+const PCODE=p=>(PROJ_INFO[p]&&PROJ_INFO[p].code)||'';
+const PSEARCH=p=>PN(p)+' '+PCODE(p);
+function PNREV(v){v=String(v||'').trim();if(!v||PROJ_INFO[v])return v;const k=v.toLowerCase();const hit=Object.keys(PROJ_INFO).find(n=>(PROJ_INFO[n].alias||'').toLowerCase()===k||(PROJ_INFO[n].code||'').toLowerCase()===k);return hit||v;}
 const masterNs=s=>String(s||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim();
-const masterFromBackend=m=>({id:m.id,project:masterNs(m.project),system:masterNs(m.system),typeLocation:masterNs(m.typeLocation),locName:masterNs(m.location),subName:masterNs(m.sublocation),equipment:masterNs(m.equipment),brand:masterNs(m.brand),model:masterNs(m.model),asset:masterNs(m.asset),serial:masterNs(m.serial),order:m.order||'',reading:m.reading||''});
-async function persistMaster(){await sSet(MASTER_KEY,JSON.stringify(master));refreshDerived();renderMaster();if(combos.project)setDisabledStates();}
+const masterFromBackend=m=>({id:m.id,project:masterNs(m.project),system:masterNs(m.system),typeLocation:masterNs(m.typeLocation),locName:masterNs(m.location),subName:masterNs(m.sublocation),equipment:masterNs(m.equipment),brand:masterNs(m.brand),model:masterNs(m.model),asset:masterNs(m.asset),serial:masterNs(m.serial),order:m.order||'',reading:m.reading||'',projectCode:masterNs(m.projectCode),projectAlias:masterNs(m.projectAlias)});
+async function persistMaster(){rebuildProjInfo();await sSet(MASTER_KEY,JSON.stringify(master));refreshDerived();renderMaster();if(combos.project)setDisabledStates();}
 async function loadMasterFromBackend(){if(!AUTH.token)return;const r=await api(ACT.listMaster,{});if(r&&r.ok&&Array.isArray(r.master)){master=r.master.map(masterFromBackend);await persistMaster();}}
 async function masterServer(action,payload){const r=await api(ACT[action],payload);if(!(r&&r.ok)){toast((r&&r.message)||'Could not save to the server, please try again',false);return null;}return r;}
 
 function updateStats(){$('#statCount').textContent=entries.length;$('#savedPill').textContent=entries.length;}
 
 $('#exportXlsx').addEventListener('click',async()=>{if(!entries.length){toast('No data to export yet',false);return;}try{await loadLib('xlsx');}catch(e){toast('Could not load the Excel library. Check your connection and try again',false); return;}const rows=entries.map(e=>({'Date recorded':fmtDate(e.createdAt,true),'Project':e.project,'System':e.system,'Location':e.locName,'Sub-location':e.subName,'Equipment':e.equipment,'Brand':e.brand,'Model':e.model,'Equipment Type':e.asset,'Serial Number':e.serial,'Inspector Name':e.inspector,'Note':e.note}));const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Records');XLSX.writeFile(wb,`records_${fileStamp(Date.now())}.xlsx`);toast(`Exported to Excel (${entries.length} records)`,true);});
-const MASTER_IMPORT_COLS=[['order','Order'],['project','Project'],['system','System'],['typeLocation','Location Type'],['locName','Location'],['subName','Sub-location'],['asset','Equipment Type'],['equipment','Equipment'],['brand','Brand'],['model','Model'],['serial','Serial Number']];
+const MASTER_IMPORT_COLS=[['order','Order'],['projectCode','Project Code'],['project','Project'],['projectAlias','Project Alias'],['system','System'],['typeLocation','Location Type'],['locName','Location'],['subName','Sub-location'],['asset','Equipment Type'],['equipment','Equipment'],['brand','Brand'],['model','Model'],['serial','Serial Number']];
 
 function masterOrderKey(o){return [o.project,o.typeLocation,o.locName,o.subName,o.equipment].map(x=>String(x||'').trim()).join('|');}
 function buildMasterOrderMap(){
@@ -2380,14 +2391,14 @@ function renderUsers(list){
   const projCell=u=>{
     const ps=(u.project||'').split(',').map(p=>p.trim()).filter(Boolean);
     if(!ps.length)return '-';
-    return `<select class="proj-select">${ps.map(p=>`<option>${esc(p)}</option>`).join('')}</select>`;
+    return `<select class="proj-select">${ps.map(p=>`<option title="${escAttr(p)}">${esc(PN(p))}</option>`).join('')}</select>`;
   };
   tb.innerHTML=list.map(u=>`<tr><td data-label="Username"><b>${esc(u.username)}</b></td><td class="codecell" style="font-size:12px" data-label="Password">${u.username!=='admin'?(u.plainPwd?esc(u.plainPwd):'—'):'••••••••'}</td><td data-label="Full Name">${esc(u.name||'-')}</td><td data-label="Role"><span class="role-badge role-${esc(u.role)}">${esc(u.role)}</span></td><td data-label="Project">${projCell(u)}</td><td style="font-size:12.5px" data-label="Email">${esc(u.email||'-')}</td><td data-label="Status"><span class="status-dot ${u.active?'active':'inactive'}"></span>${u.active?'Active':'Disabled'}</td><td data-label="">${u.username!=='admin'?`<div class="rowact"><button class="icon-btn" onclick="openEditUser(${jsArg(u.username)})">✎</button><button class="icon-btn del" onclick="deleteUser(${jsArg(u.username)})">🗑</button></div>`:`<div class="rowact"><button class="icon-btn" title="Change admin password" onclick="openEditUser(${jsArg(u.username)})">✎</button></div>`}</td></tr>`).join('');
 }
 
 function renderChips(containerId,arr){
   const box=$('#'+containerId); if(!box) return;
-  box.innerHTML=arr.map((p,i)=>`<span class="chip">${esc(p)}<span class="chip-x" data-i="${i}">×</span></span>`).join('');
+  box.innerHTML=arr.map((p,i)=>`<span class="chip" title="${escAttr(p)}">${esc(PN(p))}<span class="chip-x" data-i="${i}">×</span></span>`).join('');
   box.querySelectorAll('.chip-x').forEach(x=>{
     x.onclick=()=>{ arr.splice(parseInt(x.dataset.i,10),1); renderChips(containerId,arr); };
   });
@@ -2606,7 +2617,7 @@ function _buildAssignCards(list){
     return `<div class="assign-card">
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px">${esc(scopeLabel)}</div>
-        <div style="font-size:12px;color:var(--ink-soft)">Project: ${esc(a.project)}${a.note?' · '+esc(a.note):''}</div>
+        <div style="font-size:12px;color:var(--ink-soft)">Project: ${esc(PN(a.project))}${a.note?' · '+esc(a.note):''}</div>
         <div style="font-size:11px;color:var(--ink-faint);margin-top:2px">Assigned by ${esc(a.assignedBy)} · ${fmtDate(a.createdAt)}</div>
       </div>
       <span class="assign-badge-pending">Pending</span>
@@ -2840,7 +2851,7 @@ function openFillData(assignId){
   _fillingAssignId=assignId;
   const info=$('#fillDataInfo');
   const fields=$('#fillDataFields');
-  if(info)info.innerHTML=`<b>${esc(a.equipment)}</b><br><span style="color:var(--ink-faint)">${esc(a.subName)} · ${esc(a.locName)} · ${esc(a.project)}</span>`;
+  if(info)info.innerHTML=`<b>${esc(a.equipment)}</b><br><span style="color:var(--ink-faint)">${esc(a.subName)} · ${esc(a.locName)} · ${esc(PN(a.project))}</span>`;
   if(fields){
     fields.innerHTML=(a.missingFields||[]).map(f=>{
       const label={brand:'Brand',model:'Model',serial:'Serial Number'}[f]||f;
@@ -3827,7 +3838,7 @@ async function openRepairs(){
   if(!projects.length){toast('No project found',false);return;}
   const {dlg,body,foot}=simpleDlg('rpDlg',_tx('Repairs (CM)'),860);
   foot.style.display='none';
-  body.innerHTML=`<div class="rp-bar"><select id="rpProj" class="tin">${projects.map(p=>`<option>${esc(p)}</option>`).join('')}</select><select id="rpMonth" class="tin"></select><button type="button" class="btn btn-soft" id="rpAdd">+ ${esc(_tx('Add repair'))}</button><label class="btn btn-soft" for="rpFile" style="cursor:pointer">${esc(_tx('Import Excel'))}</label><input type="file" id="rpFile" accept=".xlsx,.xls" hidden></div><div id="rpInfo" class="st-hint"></div><div id="rpList" class="rp-list"></div>`;
+  body.innerHTML=`<div class="rp-bar"><select id="rpProj" class="tin">${projects.map(p=>`<option value="${escAttr(p)}">${esc(PN(p))}</option>`).join('')}</select><select id="rpMonth" class="tin"></select><button type="button" class="btn btn-soft" id="rpAdd">+ ${esc(_tx('Add repair'))}</button><label class="btn btn-soft" for="rpFile" style="cursor:pointer">${esc(_tx('Import Excel'))}</label><input type="file" id="rpFile" accept=".xlsx,.xls" hidden></div><div id="rpInfo" class="st-hint"></div><div id="rpList" class="rp-list"></div>`;
   const q=s=>body.querySelector(s);let all=[];
   const paint=()=>{
     const m=q('#rpMonth').value;const rows=all.filter(r=>!m||repairMonthKey(r)===m);
@@ -4322,22 +4333,6 @@ async function generateCctvReport(opt){
   }catch(err){closeWarpAnimation();toast('Failed to generate report: '+((err&&err.message)||'unknown error'),false);console.error('generateCctvReport error:',err);}
 }
 
-/* ── ตั้งค่าโครงการ (admin/manager): เลือกรูปแบบรายงานของแต่ละโครงการ ครั้งเดียว — Add Record ตามรูปแบบนั้นอัตโนมัติ ── */
-async function openProjectSettings(){
-  if(!canSetTemplate()){toast('Only admin or manager can set the report layout',false);return;}
-  let info=[];try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)info=r.info||[];}catch(e){}
-  const projects=uniq([...(master||[]).map(m=>m.project),...info.map(x=>x.project)].filter(Boolean)).sort((a,b)=>String(a).localeCompare(String(b),'th'));
-  const {dlg,body,foot}=simpleDlg('projSet',_tx('Project settings'),720);
-  foot.style.display='none';
-  const cur=p=>String((info.find(x=>x.project===p)||{}).reportTemplate||'');
-  const OPT=[['',_tx('Not set yet')],['equip',_tx('Equipment report')],['station',_tx('Station photo report')],['cctv',_tx('CCTV inspection report')]];
-  body.innerHTML=`<div class="st-hint">${esc(_tx('Each project has its own report layout. Add Record follows the layout: Equipment report = standard form, Station photo report = simplified form, CCTV report = checklist per location visit.'))}</div>`+
-    (projects.map(p=>{const c=cur(p),inf=inferTemplate(p);return `<div class="ps-row"><div class="ps-n">${esc(p)}</div><select class="tin ps-sel" data-p="${escAttr(p)}">${OPT.map(o=>`<option value="${o[0]}"${c===o[0]?' selected':''}>${esc(o[0]===''&&inf?_tx('Not set yet')+' → '+(OPT.find(x=>x[0]===inf)||['',''])[1]:o[1])}</option>`).join('')}</select></div>`;}).join('')||'<div class="st-hint">—</div>');
-  body.querySelectorAll('.ps-sel').forEach(sl=>sl.onchange=async()=>{
-    const r=await api(ACT.saveReportInfo,{row:{project:sl.dataset.p,reportTemplate:sl.value}});
-    if(r&&r.ok){toast('Layout saved',true);try{await loadReportInfoCache();}catch(e){}}else toast((r&&r.message)||'Save failed',false);
-  });
-}
 
 /* ── ค่าระดับน้ำแบบ IN / OUT: ช่องแยก 2 ช่อง ระบบต่อเป็น "IN x OUT y" ให้ ── */
 (function(){
@@ -4355,3 +4350,89 @@ async function openProjectSettings(){
   const sync=()=>{ensure();const r=rd();if(!r||!$('#rdIO'))return;const m=/IN\s*(-?[\d.]+)\D+OUT\s*(-?[\d.]+)/i.exec(r.value);const on=$('#rdIOon');if(m&&!on.checked){on.checked=true;on.onchange();}else if(!r.value&&on.checked&&document.activeElement&&document.activeElement.id!=='rdIn'&&document.activeElement.id!=='rdOut'){on.checked=false;on.onchange();$('#rdIn').value=$('#rdOut').value='';}};
   const _p=paintReadingField;paintReadingField=function(){_p();try{sync();}catch(e){}};
 })();
+
+/* ── ตั้งค่าโครงการ: รหัส + ชื่อเล่น (admin) และรูปแบบรายงาน (admin/manager) — ตั้งครั้งเดียวต่อโครงการ Add Record ตามรูปแบบอัตโนมัติ ── */
+Object.assign(I18N_TH,{'Project code':'รหัสโครงการ','Alias':'ชื่อเล่น','Layout':'รูปแบบ','Select projects':'เลือกโครงการ','Search projects...':'ค้นหาโครงการ...','Done':'เสร็จ','Clear all':'ล้างทั้งหมด','selected':'เลือกแล้ว','Saved':'บันทึกแล้ว','Loading data...':'กำลังโหลดข้อมูล...','Master data':'ข้อมูลหลัก','Records':'รายการที่บันทึก','Progress':'ความคืบหน้า','Assignments':'งานที่มอบหมาย','Users':'ผู้ใช้','Project settings':'ตั้งค่าโครงการ'});
+async function openProjectSettings(){
+  if(!canSetTemplate()){toast('Only admin or manager can set the report layout',false);return;}
+  const isAdm=(AUTH.user&&AUTH.user.role)==='admin';
+  let info=[];try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)info=r.info||[];}catch(e){}
+  const projects=uniq([...(master||[]).map(m=>m.project),...info.map(x=>x.project)].filter(Boolean)).sort((a,b)=>(PCODE(a)||a).localeCompare(PCODE(b)||b,'th'));
+  const {dlg,body,foot}=simpleDlg('projSet',_tx('Project settings'),860);
+  foot.style.display='none';
+  const cur=p=>String((info.find(x=>x.project===p)||{}).reportTemplate||'');
+  const OPT=[['',_tx('Not set yet')],['equip',_tx('Equipment report')],['station',_tx('Station photo report')],['cctv',_tx('CCTV inspection report')]];
+  body.innerHTML=`<div class="st-hint">${esc(_tx('Each project has its own report layout. Add Record follows the layout: Equipment report = standard form, Station photo report = simplified form, CCTV report = checklist per location visit.'))}</div>`+
+    (projects.map(p=>{const c=cur(p),inf=inferTemplate(p);return `<div class="ps-row ps-row3" data-p="${escAttr(p)}"><div class="ps-n"><b>${esc(PN(p))}</b><div class="ps-full">${esc(p)}</div></div>
+      <input class="tin ps-code" placeholder="${escAttr(_tx('Project code'))}" value="${escAttr(PCODE(p))}"${isAdm?'':' disabled'}>
+      <input class="tin ps-alias" placeholder="${escAttr(_tx('Alias'))}" value="${escAttr((PROJ_INFO[p]||{}).alias||'')}"${isAdm?'':' disabled'}>
+      <select class="tin ps-sel">${OPT.map(o=>`<option value="${o[0]}"${c===o[0]?' selected':''}>${esc(o[0]===''&&inf?_tx('Not set yet')+' → '+(OPT.find(x=>x[0]===inf)||['',''])[1]:o[1])}</option>`).join('')}</select></div>`;}).join('')||'<div class="st-hint">—</div>');
+  body.querySelectorAll('.ps-row').forEach(row=>{
+    const p=row.dataset.p;
+    row.querySelector('.ps-sel').onchange=async e=>{const r=await api(ACT.saveReportInfo,{row:{project:p,reportTemplate:e.target.value}});if(r&&r.ok){toast('Saved',true);try{await loadReportInfoCache();}catch(x){}}else toast((r&&r.message)||'Save failed',false);};
+    const saveCA=async()=>{
+      const code=row.querySelector('.ps-code').value.trim(),alias=row.querySelector('.ps-alias').value.trim();
+      if(code===PCODE(p)&&alias===((PROJ_INFO[p]||{}).alias||''))return;
+      const r=await api(ACT.setProjectInfo,{project:p,code,alias});
+      if(r&&r.ok){master.forEach(m=>{if(m.project===p){m.projectCode=code;m.projectAlias=alias;}});await persistMaster();toast('Saved',true);try{buildCombos();renderSaved();renderDashboard();renderUsers();}catch(x){}row.querySelector('.ps-n b').textContent=PN(p);}
+      else toast((r&&r.message)||'Save failed',false);
+    };
+    if(isAdm)row.querySelectorAll('.ps-code,.ps-alias').forEach(i=>i.onchange=saveCA);
+  });
+}
+
+/* ── เลือกโครงการให้ผู้ใช้: รายการติ๊กเลือก ค้นหาได้ (แทนช่องพิมพ์ + ปุ่ม +) ── */
+function openProjectPicker(getArr,chipsId){
+  const all=uniq([...(master||[]).map(m=>m.project),...(usersCache||[]).flatMap(u=>String(u.project||'').split(',').map(x=>x.trim()))].filter(Boolean)).sort((a,b)=>(PCODE(a)||a).localeCompare(PCODE(b)||b,'th'));
+  const {dlg,body,foot}=simpleDlg('projPick',_tx('Select projects'),560);
+  foot.style.display='flex';foot.innerHTML=`<button type="button" class="ghost-btn" id="ppClear" style="margin-right:auto">${esc(_tx('Clear all'))}</button><button type="button" class="btn btn-primary" id="ppDone">${esc(_tx('Done'))}</button>`;
+  body.innerHTML=`<input class="tin" id="ppQ" placeholder="${escAttr(_tx('Search projects...'))}" autocomplete="off"><div class="pp-count" id="ppCount"></div><div class="pp-list" id="ppList"></div>`;
+  const arr=()=>getArr();
+  const paint=()=>{
+    const q=body.querySelector('#ppQ').value.trim().toLowerCase();
+    const list=all.filter(p=>!q||(p+' '+PSEARCH(p)).toLowerCase().includes(q));
+    body.querySelector('#ppList').innerHTML=list.map(p=>`<label class="pp-row"><input type="checkbox" data-p="${escAttr(p)}"${arr().includes(p)?' checked':''}><span class="pp-t"><b>${esc(PN(p))}</b>${PCODE(p)?` <em>${esc(PCODE(p))}</em>`:''}<span class="pp-full">${esc(p)}</span></span></label>`).join('')||'<div class="st-hint">—</div>';
+    body.querySelector('#ppCount').textContent=arr().length+' '+_tx('selected');
+    body.querySelectorAll('#ppList input').forEach(c=>c.onchange=()=>{const a=arr(),p=c.dataset.p,i=a.indexOf(p);if(c.checked&&i<0)a.push(p);if(!c.checked&&i>=0)a.splice(i,1);renderChips(chipsId,a);body.querySelector('#ppCount').textContent=a.length+' '+_tx('selected');});
+  };
+  body.querySelector('#ppQ').oninput=paint;paint();
+  foot.querySelector('#ppClear').onclick=()=>{arr().length=0;renderChips(chipsId,arr());paint();};
+  foot.querySelector('#ppDone').onclick=()=>{dlg.style.display='none';};
+  setTimeout(()=>{try{body.querySelector('#ppQ').focus();}catch(e){}},50);
+}
+function mountProjectPicker(chipsId,getArr,hideEl){
+  const chips=$('#'+chipsId);if(!chips)return;
+  if(hideEl)hideEl.classList.add('pp-hide');
+  let b=chips.nextElementSibling;
+  if(!b||!b.classList.contains('pp-btn')){b=document.createElement('button');b.type='button';b.className='btn btn-soft pp-btn';b.textContent=_tx('Select projects');chips.insertAdjacentElement('afterend',b);}
+  b.onclick=()=>openProjectPicker(getArr,chipsId);
+  b.style.display=chips.style.display==='none'?'none':'';
+}
+(function(){
+  const nu=()=>{const f=$('#nuProject');if(f)mountProjectPicker('nuProjectChips',()=>nuProjects,f.closest('.field'));};
+  document.addEventListener('DOMContentLoaded',nu);if(document.readyState!=='loading')nu();
+  const _oeu=openEditUser;openEditUser=function(u){_oeu(u);try{const f=$('#euProject');mountProjectPicker('euProjectChips',()=>euProjects,$('#euProjectAdd')?$('#euProjectAdd').parentElement.parentElement:null);}catch(e){}};
+})();
+
+/* ── โหลดข้อมูลครบก่อนแสดงหน้า: แอนิเมชันโหลด + รายการที่กำลังโหลด ใช้ทั้งหลังเข้าสู่ระบบและตอนกดเปลี่ยนแท็บขณะข้อมูลยังไม่ครบ ── */
+let PL={n:0,steps:[],t:0,dead:0};
+function plEl(){let e=$('#pageLoad');if(!e){e=document.createElement('div');e.id='pageLoad';e.setAttribute('role','status');e.setAttribute('aria-live','polite');e.innerHTML='<div class="pl-card"><div class="pl-ring" aria-hidden="true"></div><div class="pl-title"></div><ul class="pl-steps"></ul></div>';document.body.appendChild(e);}return e;}
+function plPaint(){const e=plEl();e.querySelector('.pl-title').textContent=_tx('Loading data...');e.querySelector('.pl-steps').innerHTML=PL.steps.map(s=>`<li class="${s.done?'ok':''}">${esc(_tx(s.label))}</li>`).join('');}
+function pageLoadStart(){PL.n++;PL.t=Date.now();clearTimeout(PL.dead);plEl().classList.add('on');document.body.classList.add('pl-busy');plPaint();PL.dead=setTimeout(()=>{PL.n=1;pageLoadDone();},25000);}
+function pageLoadDone(){PL.n=Math.max(0,PL.n-1);if(PL.n)return;clearTimeout(PL.dead);const wait=Math.max(0,350-(Date.now()-PL.t));setTimeout(()=>{if(PL.n)return;plEl().classList.remove('on');document.body.classList.remove('pl-busy');PL.steps=[];},wait);}
+function plTrack(label,p){const s={label,done:false};PL.steps.push(s);plPaint();return Promise.resolve(p).catch(()=>{}).then(v=>{s.done=true;plPaint();return v;});}
+let LAST_FULL_LOAD=0;
+async function reloadAllData(){
+  pageLoadStart();PL.steps=[];
+  try{
+    const repaintMaster=async()=>{await loadMasterFromBackend();buildCombos();buildInspectorCombo();refreshDerived();renderMaster();};
+    const adm=AUTH.user&&AUTH.user.role==='admin';
+    await Promise.all([plTrack('Master data',repaintMaster()),plTrack('Records',loadRecords()),plTrack('Progress',loadProgress()),plTrack('Assignments',Promise.all([loadAssignments(),loadAssignStats()])),plTrack('Project settings',loadReportInfoCache()),...(adm?[plTrack('Users',loadUsers())]:[])]);
+    try{renderSaved();updateStats();renderDashboard();}catch(e){}
+    LAST_FULL_LOAD=Date.now();
+  }finally{pageLoadDone();}
+}
+document.addEventListener('click',e=>{const t=e.target&&e.target.closest&&e.target.closest('.tab');if(!t||!AUTH.token)return;
+  if(PL.n){return;}
+  if(Date.now()-LAST_FULL_LOAD>120000&&LAST_FULL_LOAD){reloadAllData().catch(()=>{});}
+},true);
