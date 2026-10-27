@@ -3573,7 +3573,7 @@ async function openStationReport(){
 }
 /* ช่องค่าที่วัดได้ (เช่น ค่าระดับน้ำ): แสดงเฉพาะโครงการที่ admin/manager ตั้งชื่อช่องไว้ (ReportInfo.readingLabel) */
 let RD_LABELS={},SIMPLE_FORM={};
-async function loadReportInfoCache(){try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok){RD_LABELS={};SIMPLE_FORM={};CHECK_COLS={};(r.info||[]).forEach(x=>{if(x.project&&x.checkCols){try{CHECK_COLS[x.project]=JSON.parse(x.checkCols);}catch(e){}}if(x.project&&(x.simpleForm===true||String(x.simpleForm)==='1'||String(x.simpleForm)==='true'))SIMPLE_FORM[x.project]=1;if(x.project&&String(x.readingLabel||'').trim())RD_LABELS[x.project]=String(x.readingLabel).trim();});paintReadingField();}}catch(e){}}
+async function loadReportInfoCache(){try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok){RD_LABELS={};SIMPLE_FORM={};CHECK_COLS={};TPL={};(r.info||[]).forEach(x=>{if(x.project)TPL[x.project]=String(x.reportTemplate||'');if(x.project&&x.checkCols){try{CHECK_COLS[x.project]=JSON.parse(x.checkCols);}catch(e){}}if(x.project&&(x.simpleForm===true||String(x.simpleForm)==='1'||String(x.simpleForm)==='true'))SIMPLE_FORM[x.project]=1;if(x.project&&String(x.readingLabel||'').trim())RD_LABELS[x.project]=String(x.readingLabel).trim();});paintReadingField();}}catch(e){}}
 function readingLabelOf(p){return RD_LABELS[p]||'';}
 /* Add Record แบบย่อ: โครงการที่ตั้งไว้จะเห็นเฉพาะช่องที่ใช้ทำรายงาน (ซ่อน Location Type, Equipment Type, Brand/Model, Note; Sub-location/Serial ซ่อนเมื่อมีตัวเลือกเดียวซึ่งระบบเลือกให้เอง) */
 function applySimpleForm(){
@@ -3687,10 +3687,11 @@ async function openDocPicker(force){
   const projects=uniq(list.map(e=>e.project).filter(Boolean));
   let info=[];try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)info=r.info||[];}catch(e){}
   const saved=uniq(projects.map(p=>String((info.find(x=>x.project===p)||{}).reportTemplate||'')));
-  const run=k=>{if(k==='station')openStationReport();else generateWordTemplate();};
+  const run=k=>{if(k==='station')openStationReport();else if(k==='cctv')openCctvReport();else generateWordTemplate();};
   /* ล็อกเทมเพลตตามโครงการ: ผู้ใช้ทั่วไปใช้เทมเพลตที่ admin/manager ตั้งไว้เท่านั้น */
   if(!force){
-    if(saved.length===1&&(saved[0]==='station'||saved[0]==='equip')){run(saved[0]);return;}
+    if(saved.length===1&&(saved[0]==='station'||saved[0]==='equip'||saved[0]==='cctv')){run(saved[0]);return;}
+    if(projects.length===1&&!saved[0]&&isCctv(projects[0])){run('cctv');return;}
     if(projects.length>1&&saved.length>1){toast('These projects use different report layouts. Filter to one project first',false);return;}
     if(!canSetTemplate()){toast('Report layout is not set for this project. Ask an admin or manager to set it',false);return;}
   }else if(!canSetTemplate()){toast('Only admin or manager can set the report layout',false);return;}
@@ -3699,6 +3700,7 @@ async function openDocPicker(force){
   foot.style.display='none';
   body.innerHTML=`<div class="st-hint" style="padding-bottom:8px">${esc(projects.join(', '))}</div><div class="dp-list">
     <button type="button" class="dp-opt${cur==='station'?' is-last':''}" data-k="station"><b>${esc(_tx('Station photo report'))}</b><span>${esc(_tx('Monthly report like the Excel template: title, one block per station with date and 4 photos (2x2).'))}</span></button>
+    <button type="button" class="dp-opt${cur==='cctv'?' is-last':''}" data-k="cctv"><b>${esc(_tx('CCTV inspection report'))}</b><span>${esc(_tx('Inspection tables per location with Normal/Abnormal results, then photos. Built from the visits recorded in Add Record.'))}</span></button>
     <button type="button" class="dp-opt${cur==='equip'?' is-last':''}" data-k="equip"><b>${esc(_tx('Equipment report'))}</b><span>${esc(_tx('With table of contents, grouped by location type and location, one equipment per block.'))}</span></button></div>
     <div class="st-hint" style="padding-bottom:12px">${esc(_tx('The layout is locked to the project. Everyone uses it from now on; only admin or manager can change it.'))}</div>`;
   body.querySelectorAll('.dp-opt').forEach(b=>b.onclick=async()=>{
@@ -3757,6 +3759,7 @@ function systemFromEquipment(code){
   return {FL:'Flood',FW:'Flow',TN:'Tunnel',RF:'Rain',RD:'Radar',PH:'Pump',PS:'Pump',CT:'Center'}[t]||'';
 }
 async function loadRepairs(project){const r=await api(ACT.listRepairs,project?{project}:{});return r&&r.ok?(r.repairs||[]):[];}
+function parseRepairPhotos(r){try{const a=JSON.parse((r&&r.photos)||'[]');return Array.isArray(a)?a.filter(Boolean).slice(0,4):[];}catch(e){return[];}}
 function repairFormDlg(rp,project,onSaved){
   const {dlg,body,foot}=simpleDlg('rpForm',_tx(rp&&rp.id?'Edit repair':'Add repair'),640);
   const v=k=>escAttr((rp&&rp[k])||'');
@@ -3773,7 +3776,12 @@ function repairFormDlg(rp,project,onSaved){
     <label class="st-l">${esc(_tx('Cause'))}<textarea id="rpCause" class="tin" rows="2">${esc((rp&&rp.cause)||'')}</textarea></label>
     <label class="st-l">${esc(_tx('Cause and fix'))}<textarea id="rpFix" class="tin" rows="2">${esc((rp&&rp.fix)||'')}</textarea></label>
     <div class="rp-2"><label class="st-l">${esc(_tx('Completed on'))}<input id="rpDone" type="date" class="tin" value="${dIso('doneDate')}"></label>
-    <label class="st-l">${esc(_tx('Staff'))}<input id="rpStaff" class="tin" value="${v('staff')}"></label></div></div>`;
+    <label class="st-l">${esc(_tx('Staff'))}<input id="rpStaff" class="tin" value="${v('staff')}"></label></div>
+    <div class="st-l">${esc(_tx('Photos (up to 4)'))}<div class="rp-ph">${[0,1,2,3].map(i=>`<label class="drop rp-drop" id="rpDrop${i}" for="rpFile${i}"><div class="ph-content"><div class="drop-hint"><b>+</b></div></div></label><input type="file" id="rpFile${i}" accept="image/*" hidden>`).join('')}</div></div></div>`;
+  const RPI=parseRepairPhotos(rp);
+  const paintRp=()=>[0,1,2,3].forEach(i=>{const l=body.querySelector('#rpDrop'+i);if(!l)return;const u=RPI[i];l.classList.toggle('has-img',!!u);l.style.backgroundImage=u?(String(u).indexOf('data:')===0?`url(${u})`:`url(${driveViewUrl(u,400)})`):'';const ph=l.querySelector('.ph-content');if(ph)ph.style.display=u?'none':'';});
+  paintRp();
+  [0,1,2,3].forEach(i=>body.querySelector('#rpFile'+i).addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{RPI[i]=await compressImage(f);paintRp();}catch(x){toast('Could not read this photo',false);}}));
   foot.style.display='flex';
   foot.innerHTML=`${rp&&rp.id?'<button type="button" class="ghost-btn" id="rpDel" style="margin-right:auto">Delete</button>':''}<button type="button" class="btn btn-primary" id="rpSave">Save</button>`;
   const q=s=>body.querySelector(s);
@@ -3781,9 +3789,9 @@ function repairFormDlg(rp,project,onSaved){
   q('#rpCat').onchange=()=>{q('#rpCat').dataset.touched='1';};
   q('#rpEq').oninput=()=>{if(!q('#rpSys').value){const s=systemFromEquipment(q('#rpEq').value);if(s)q('#rpSys').value=s;}};
   foot.querySelector('#rpSave').onclick=async()=>{
-    const row={id:rp&&rp.id||'',project,reportDate:q('#rpDate').value,jobNo:q('#rpJob').value.trim(),system:q('#rpSys').value.trim(),category:q('#rpCat').value,equipment:q('#rpEq').value.trim(),location:q('#rpLoc').value.trim(),detail:q('#rpDetail').value.trim(),cause:q('#rpCause').value.trim(),fix:q('#rpFix').value.trim(),doneDate:q('#rpDone').value,staff:q('#rpStaff').value.trim()};
+    const row={id:rp&&rp.id||'',project,reportDate:q('#rpDate').value,jobNo:q('#rpJob').value.trim(),system:q('#rpSys').value.trim(),category:q('#rpCat').value,equipment:q('#rpEq').value.trim(),location:q('#rpLoc').value.trim(),detail:q('#rpDetail').value.trim(),cause:q('#rpCause').value.trim(),fix:q('#rpFix').value.trim(),doneDate:q('#rpDone').value,staff:q('#rpStaff').value.trim(),photos:JSON.stringify(RPI.filter(Boolean).filter(u=>String(u).indexOf('data:')!==0))};
     if(!row.system||!(row.detail||row.cause||row.fix)){toast('Please enter the system and the problem',false);return;}
-    const r=await api(ACT.saveRepair,{repair:row});
+    const r=await api(ACT.saveRepair,{repair:row,images:RPI.filter(Boolean)});
     if(r&&r.ok){dlg.style.display='none';toast('Saved',true);onSaved&&onSaved();}else toast((r&&r.message)||'Save failed',false);
   };
   const d=foot.querySelector('#rpDel');if(d)d.onclick=()=>confirmDlg('Delete this repair?','Delete',async()=>{const r=await api(ACT.deleteRepair,{id:rp.id});if(r&&r.ok){dlg.style.display='none';toast('Deleted',true);onSaved&&onSaved();}else toast((r&&r.message)||'Delete failed',false);});
@@ -4100,3 +4108,210 @@ a11yTagAll();
 new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(a11yTagOverlay))).observe(document.body,{childList:true});
 
 initAuth();
+/* ═══ Phase 31: โครงการ CCTV (MA2025049) — Add Record เป็นเช็กลิสต์ต่อการเข้าตรวจ 1 สถานที่ + รายงาน Word ตามแบบ ═══
+   ข้อมูลหนึ่งการเข้าตรวจ = 1 Record: checks = {"d":"yyyy-mm-dd","ok":[รหัส...],"ng":{"รหัส":{"c":"สาเหตุ","n":"หมายเหตุ"}}}
+   โครงการนี้ใช้เทมเพลต 'cctv' อัตโนมัติ (ตั้งไว้ใน ReportInfo หรือชื่อโครงการมีคำว่า CCTV) — ไม่ต้องเลือกซ้ำ */
+Object.assign(I18N_TH,{'Include corrective maintenance (CM)':'รวมงานซ่อมแก้ไข (CM)','CM from':'CM ตั้งแต่','CM to':'ถึง','Photos (up to 4)':'รูปภาพ (สูงสุด 4 รูป)','Corrective maintenance (CM)':'การซ่อมแก้ไข (Corrective Maintenance)','Inspection visit (one location)':'การเข้าตรวจ (1 สถานที่)','Location visited':'สถานที่ที่เข้าตรวจ','Select location':'เลือกสถานที่','Inspection date':'วันที่ตรวจ','All normal':'ปกติทั้งหมด','Normal':'ปกติ','Abnormal':'ไม่ปกติ','Cause':'สาเหตุ','Remark':'หมายเหตุ','Checked':'ตรวจแล้ว','CCTV inspection report':'รายงานตรวจสภาพอุปกรณ์ CCTV','Inspection tables per location with Normal/Abnormal results, then photos. Built from the visits recorded in Add Record.':'ตารางตรวจสภาพอุปกรณ์แยกตามสถานที่ พร้อมผลปกติ/ไม่ปกติ แล้วตามด้วยรูป สร้างจากข้อมูลการเข้าตรวจที่บันทึกใน Add Record','Report heading (one line per row)':'หัวรายงาน (หนึ่งบรรทัดต่อหนึ่งแถว)','Include photos of each visit':'แนบรูปของแต่ละการเข้าตรวจ','Create Word report':'สร้างรายงาน Word'});
+const CC_EQUIP='ตรวจสภาพอุปกรณ์ (PM)';
+let TPL={};
+const CC={loc:'',date:'',st:{},why:{},note:{}};
+function isCctv(p){return !!p&&(TPL[p]==='cctv'||(!TPL[p]&&/cctv/i.test(p)));}
+const ccKey=m=>m.serial?String(m.serial):(String(m.subName||'')+'|'+String(m.equipment||''));
+const ccMaster=(p,loc)=>(typeof master!=='undefined'?master:[]).filter(m=>m.project===p&&(!loc||m.locName===loc));
+function ccReset(){CC.loc='';CC.date='';CC.st={};CC.why={};CC.note={};}
+function ccLoadFrom(json){
+  let o={};try{o=JSON.parse(json||'{}')||{};}catch(e){}
+  ccReset();CC.date=o.d||'';
+  (o.ok||[]).forEach(k=>{CC.st[k]='ok';});
+  Object.keys(o.ng||{}).forEach(k=>{CC.st[k]='ng';CC.why[k]=o.ng[k].c||'';CC.note[k]=o.ng[k].n||'';});
+}
+function readCctv(){
+  const ok=[],ng={};
+  Object.keys(CC.st).forEach(k=>{if(CC.st[k]==='ok')ok.push(k);else if(CC.st[k]==='ng')ng[k]={c:CC.why[k]||'',n:CC.note[k]||''};});
+  if(!ok.length&&!Object.keys(ng).length)return '';
+  return JSON.stringify({d:CC.date||isoOf(new Date()),ok,ng});
+}
+function cctvValidate(){
+  if(!sel.loc){toast('Please select a location',false);return false;}
+  const its=ccMaster(sel.project,sel.loc);
+  const keys=its.map(ccKey);
+  const done=keys.filter(k=>CC.st[k]).length;
+  if(!done){toast('Mark at least one item as Normal or Abnormal',false);return false;}
+  const bad=keys.find(k=>CC.st[k]==='ng'&&!String(CC.why[k]||'').trim());
+  if(bad){toast('Please enter the cause for every abnormal item',false);return false;}
+  if(done<keys.length&&!confirm((keys.length-done)+' / '+keys.length+' items are not marked yet. Save anyway?'))return false;
+  return true;
+}
+function paintCctv(){
+  const panel=$('#panel-add');if(!panel)return;
+  const on=isCctv(sel.project);
+  panel.classList.toggle('cc-mode',on);
+  let box=$('#cctvField');
+  if(!on){if(box)box.style.display='none';return;}
+  sel.system='';sel.equip=CC_EQUIP;
+  if(!box){
+    box=document.createElement('div');box.id='cctvField';box.className='card';
+    const first=panel.querySelector('.card');first.parentNode.insertBefore(box,first.nextSibling);
+  }
+  box.style.display='';
+  if(sel.loc&&CC.loc!==sel.loc){const keepDate=CC.date;ccReset();CC.loc=sel.loc;CC.date=keepDate;}
+  if(!sel.loc&&CC.loc)ccReset();
+  const locs=uniq(ccMaster(sel.project).map(m=>m.locName));
+  if(!CC.date)CC.date=isoOf(new Date());
+  const its=CC.loc?ccMaster(sel.project,CC.loc):[];
+  const groups=[];const gi={};
+  its.forEach(m=>{const g=(m.system||'')+'|'+(m.subName||'');if(!(g in gi)){gi[g]=groups.length;groups.push({t:m.subName||m.system||'',items:[]});}groups[gi[g]].items.push(m);});
+  const total=its.length,done=its.filter(m=>CC.st[ccKey(m)]).length,ngN=its.filter(m=>CC.st[ccKey(m)]==='ng').length;
+  box.innerHTML=`<div class="card-h"><span class="step">1b</span><h3>${esc(_tx('Inspection visit (one location)'))}</h3></div><div class="card-b">
+    <div class="cc-top"><label class="cc-l">${esc(_tx('Location visited'))} <span class="req">*</span><select id="ccLoc" class="tin"><option value="">${esc(_tx('Select location'))}</option>${locs.map(l=>`<option value="${escAttr(l)}"${l===CC.loc?' selected':''}>${esc(l)}</option>`).join('')}</select></label>
+    <label class="cc-l">${esc(_tx('Inspection date'))}<input id="ccDate" class="tin" type="date" value="${escAttr(CC.date)}"></label></div>
+    ${CC.loc?`<div class="cc-bar"><span>${esc(_tx('Checked'))} <b>${done}/${total}</b>${ngN?` · <b class="cc-ngc">${esc(_tx('Abnormal'))} ${ngN}</b>`:''}</span><button type="button" class="btn btn-soft cc-all" data-g="*">${esc(_tx('All normal'))}</button></div>
+    ${groups.map((g,gx)=>`<div class="cc-grp"><div class="cc-gh"><b>${esc(g.t)}</b><button type="button" class="cc-gall" data-gx="${gx}">${esc(_tx('All normal'))}</button></div>${g.items.map((m,ix)=>{const k=ccKey(m),s=CC.st[k]||'';return `<div class="cc-row" data-k="${escAttr(k)}"><div class="cc-n"><b>${ix+1}. ${esc(m.equipment||'')}</b>${m.serial?`<span>${esc(m.serial)}</span>`:''}</div><div class="cc-seg"><button type="button" data-v="ok" class="${s==='ok'?'on-ok':''}">${esc(_tx('Normal'))}</button><button type="button" data-v="ng" class="${s==='ng'?'on-ng':''}">${esc(_tx('Abnormal'))}</button></div>${s==='ng'?`<div class="cc-why"><input class="tin" data-f="c" placeholder="${escAttr(_tx('Cause'))}" value="${escAttr(CC.why[k]||'')}"><input class="tin" data-f="n" placeholder="${escAttr(_tx('Remark'))}" value="${escAttr(CC.note[k]||'')}"></div>`:''}</div>`;}).join('')}</div>`).join('')}`:''}
+  </div>`;
+  box._groups=groups;
+  $('#ccLoc').onchange=e=>{choose('loc',e.target.value);CC.loc='';sel.loc=e.target.value;paintCctv();};
+  $('#ccDate').onchange=e=>{CC.date=e.target.value;};
+  box.querySelectorAll('.cc-row').forEach(r=>{
+    const k=r.dataset.k;
+    r.querySelectorAll('.cc-seg button').forEach(b=>b.onclick=()=>{CC.st[k]=CC.st[k]===b.dataset.v?'':b.dataset.v;if(!CC.st[k])delete CC.st[k];paintCctv();});
+    r.querySelectorAll('.cc-why input').forEach(i=>i.oninput=()=>{(i.dataset.f==='c'?CC.why:CC.note)[k]=i.value;});
+  });
+  box.querySelectorAll('.cc-gall').forEach(b=>b.onclick=()=>{box._groups[+b.dataset.gx].items.forEach(m=>{const k=ccKey(m);if(CC.st[k]!=='ng')CC.st[k]='ok';});paintCctv();});
+  const all=box.querySelector('.cc-all');if(all)all.onclick=()=>{its.forEach(m=>{const k=ccKey(m);if(CC.st[k]!=='ng')CC.st[k]='ok';});paintCctv();};
+}
+/* ผูกเข้ากับของเดิม: อ่านค่า/เติมค่า/ตรวจรายการใหม่/รีเซ็ต */
+(function(){
+  const _rc=readChecks;readChecks=function(){return isCctv(sel.project)?readCctv():_rc();};
+  const _fc=fillChecks;fillChecks=function(j){if(isCctv(sel.project)){ccLoadFrom(j);CC.loc=sel.loc;paintCctv();}else _fc(j);};
+  const _dn=detectNewFields;detectNewFields=function(){return isCctv(sel.project)?[]:_dn();};
+  const _pr=paintReadingField;paintReadingField=function(){_pr();try{paintCctv();}catch(e){}};
+  const _rf=resetForm;resetForm=function(){ccReset();_rf();try{paintCctv();}catch(x){}};
+  /* หัวหน้าทีม/ผู้ตรวจที่มีโครงการเดียว: เลือกโครงการให้อัตโนมัติเมื่อเปิดหน้า Add Record */
+  document.addEventListener('click',e=>{const t=e.target&&e.target.closest&&e.target.closest('.tab[data-tab="add"]');if(!t)return;setTimeout(()=>{try{const role=AUTH.user&&AUTH.user.role;const ps=String((AUTH.user&&AUTH.user.project)||'').split(',').map(x=>x.trim()).filter(Boolean);if(!sel.project&&(role==='leader'||role==='inspector')&&ps.length===1)choose('project',ps[0]);}catch(x){}},60);});
+  document.addEventListener('click',e=>{if(e.target&&e.target.id==='saveBtn'&&isCctv(sel.project)&&!cctvValidate()){e.stopImmediatePropagation();e.preventDefault();}},true);
+})();
+
+/* ── รายงาน Word ── */
+function ccThDate(iso){const d=parseAnyDate(iso);return d?pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+(d.getFullYear()+543):'';}
+function ccVisitsOf(list){
+  return list.filter(e=>e.checks).map(e=>{let o=null;try{o=JSON.parse(e.checks);}catch(x){}return o&&(o.ok||o.ng)?{e,o,d:o.d||isoOf(new Date(e.createdAt))}:null;}).filter(Boolean).sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.e.createdAt-b.e.createdAt);
+}
+function ccDefaultHeading(visits){
+  let a='',b='';visits.forEach(v=>{if(!a||v.d<a)a=v.d;if(!b||v.d>b)b=v.d;});
+  const da=parseAnyDate(a),db=parseAnyDate(b);
+  const per=da&&db?`ประจำเดือน ${TH_MONTHS[db.getMonth()]} ${db.getFullYear()+543} (ระหว่างวันที่ ${da.getDate()}${da.getMonth()!==db.getMonth()?' '+TH_MONTHS[da.getMonth()]:''} - ${db.getDate()} ${TH_MONTHS[db.getMonth()]} ${db.getFullYear()+543} )`:'ประจำเดือน ';
+  return ['รายงานผลการตรวจสภาพอุปกรณ์และทำความสะอาดระบบกล้องโทรทัศน์วงจรปิด','งานจ้างบำรุงรักษาระบบกล้องโทรทัศน์วงจรปิด (CCTV) พร้อมอุปกรณ์ประกอบและการเชื่อมโยงสัญญาณไปยังกองรักษาการณ์ประจำพระราชฐานหรือสถานีตำรวจนครบาลโดยรอบเขตพระราชฐานสถานที่สำคัญ',per,'สัญญาจ้างเลขที่ 22-2-69 ลงวันที่ 31 ตุลาคม 2568'].join('\n');
+}
+async function openCctvReport(){
+  const list=getSavedFilteredList();
+  const projects=uniq(list.map(e=>e.project).filter(Boolean));
+  if(projects.length!==1){toast('Filter to one project first',false);return;}
+  const visits=ccVisitsOf(list);
+  if(!visits.length){toast('No inspection visits in the current list',false);return;}
+  let info=[];try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)info=r.info||[];}catch(e){}
+  const pi=info.find(x=>x.project===projects[0])||{};
+  const saved=String(pi.reportTitle||'');
+  const heading=/\n/.test(saved)?saved:ccDefaultHeading(visits);
+  const {dlg,body,foot}=simpleDlg('ccDlg',_tx('CCTV inspection report'),640);
+  body.innerHTML=`<div class="st-hint">${esc(projects[0])} · ${visits.length} ${esc(_tx('visits'))}</div><label class="st-l">${esc(_tx('Report heading (one line per row)'))}<textarea id="ccHead" class="tin" rows="6">${esc(heading)}</textarea></label><label class="st-chk"><input type="checkbox" id="ccPh" checked> ${esc(_tx('Include photos of each visit'))}</label>
+    <label class="st-chk"><input type="checkbox" id="ccCm" checked> ${esc(_tx('Include corrective maintenance (CM)'))}</label>
+    <div class="rp-2"><label class="st-l">${esc(_tx('CM from'))}<input id="ccFrom" type="date" class="tin" value="${escAttr(visits[0].d)}"></label><label class="st-l">${esc(_tx('CM to'))}<input id="ccTo" type="date" class="tin" value="${escAttr(visits[visits.length-1].d)}"></label></div>`;
+  foot.style.display='';foot.innerHTML=`<button class="btn btn-primary" id="ccGo">${esc(_tx('Create Word report'))}</button>`;
+  $('#ccGo').onclick=async()=>{
+    const h=$('#ccHead').value,ph=$('#ccPh').checked;dlg.style.display='none';
+    try{await api(ACT.saveReportInfo,{row:{project:projects[0],reportTitle:h}});}catch(e){}
+    generateCctvReport({project:projects[0],visits,heading:h.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),photos:ph,cm:$('#ccCm').checked?{from:$('#ccFrom').value,to:$('#ccTo').value}:null});
+  };
+}
+async function generateCctvReport(opt){
+  try{await loadLib('docx');}catch(e){toast('Could not load the Word library. Check your connection and try again',false);return;}
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,ImageRun,AlignmentType,BorderStyle,WidthType,Header,PageNumber,TableLayoutType,VerticalAlign}=docx;
+  startWarpAnimation();setWarpStatus('Preparing data...');
+  try{
+    const PAGE={width:11906,height:16838},MARGIN={top:1300,bottom:900,left:1130,right:1130,header:500,footer:300};
+    const CONTENT=PAGE.width-MARGIN.left-MARGIN.right,FONT='TH Sarabun New';
+    const T=(t,o={})=>new TextRun({text:t,font:o.font||FONT,size:o.size||28,bold:!!o.bold,color:o.color||'000000'});
+    const bd={style:BorderStyle.SINGLE,size:4,color:'000000'};const B={top:bd,bottom:bd,left:bd,right:bd};
+    const none=()=>{const n={style:BorderStyle.NONE,size:0,color:'FFFFFF'};return{top:n,bottom:n,left:n,right:n,insideHorizontal:n,insideVertical:n};};
+    let logo=null;try{if(LOGO_SRC&&LOGO_SRC.startsWith('data:')){const bin=atob(LOGO_SRC.split(',')[1]);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);logo=u.buffer;}}catch(e){logo=null;}
+    /* ผลล่าสุดของแต่ละรายการในแต่ละสถานที่ */
+    const res={};
+    opt.visits.forEach(v=>{const L=v.e.locName||'';res[L]=res[L]||{};(v.o.ok||[]).forEach(k=>{res[L][k]={r:'ok',d:v.d};});Object.keys(v.o.ng||{}).forEach(k=>{res[L][k]={r:'ng',d:v.d,c:v.o.ng[k].c,n:v.o.ng[k].n};});});
+    const locs=uniq(ccMaster(opt.project).map(m=>m.locName)).filter(l=>res[l]);
+    const W=[700,3400,720,720,1500,1250,CONTENT-700-3400-720-720-1500-1250];
+    const cell=(t,w,o={})=>new TableCell({borders:B,width:{size:w,type:WidthType.DXA},columnSpan:o.span,verticalAlign:VerticalAlign.CENTER,shading:o.fill?{fill:o.fill,type:'clear',color:'auto'}:undefined,margins:{top:30,bottom:30,left:70,right:70},children:[new Paragraph({alignment:o.al||AlignmentType.LEFT,children:Array.isArray(t)?t:[T(t,{size:o.size||26,bold:o.bold})]})]});
+    const kids=[];
+    opt.heading.forEach((h,i)=>kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:i===0?60:20},children:[T(h,{size:i===0?36:30,bold:i===0})]})));
+    kids.push(new Paragraph({spacing:{before:200,after:120},children:[T('การตรวจสอบและดูแลรักษาระบบตามกำหนดเวลาปกติ (Regular Preventive Maintenance)',{size:30,bold:true})]}));
+    const imgJobs=[];
+    locs.forEach((L,li)=>{
+      const its=ccMaster(opt.project,L);const groups=[];const gi={};
+      its.forEach(m=>{const g=(m.system||'')+'|'+(m.subName||'');if(!(g in gi)){gi[g]=groups.length;groups.push({t:m.subName||m.system||'',items:[]});}groups[gi[g]].items.push(m);});
+      kids.push(new Paragraph({pageBreakBefore:li>0,alignment:AlignmentType.CENTER,spacing:{before:120,after:120},children:[T(L,{size:34,bold:true})]}));
+      const hdr=[new TableRow({tableHeader:true,cantSplit:true,children:[cell('ลำดับที่',W[0],{bold:true,al:AlignmentType.CENTER,fill:'D9D9D9',size:22}),cell('รายการอุปกรณ์',W[1],{bold:true,al:AlignmentType.CENTER,fill:'D9D9D9'}),cell('ผลการตรวจสอบ',W[2]+W[3],{span:2,bold:true,al:AlignmentType.CENTER,fill:'D9D9D9',size:24}),cell('วันที่ตรวจสอบ',W[4],{bold:true,al:AlignmentType.CENTER,fill:'D9D9D9',size:24}),cell('สาเหตุ',W[5],{bold:true,al:AlignmentType.CENTER,fill:'D9D9D9'}),cell('หมายเหตุ',W[6],{bold:true,al:AlignmentType.CENTER,fill:'D9D9D9'})]}),
+        new TableRow({tableHeader:true,cantSplit:true,children:[cell('',W[0],{fill:'D9D9D9'}),cell('',W[1],{fill:'D9D9D9'}),cell('ปกติ',W[2],{bold:true,al:AlignmentType.CENTER,fill:'D9D9D9',size:22}),cell('ไม่ปกติ',W[3],{bold:true,al:AlignmentType.CENTER,fill:'D9D9D9',size:22}),cell('',W[4],{fill:'D9D9D9'}),cell('',W[5],{fill:'D9D9D9'}),cell('',W[6],{fill:'D9D9D9'})]})];
+      const rows=[];
+      groups.forEach(g=>{
+        rows.push(new TableRow({cantSplit:true,children:[cell(g.t,CONTENT,{span:7,bold:true,fill:'F2F2F2'})]}));
+        g.items.forEach((m,ix)=>{
+          const r=res[L][ccKey(m)];
+          const nm=(m.equipment||'')+(m.serial?'  '+m.serial:'');
+          const mk=(on,ch)=>on?[new TextRun({text:ch,font:'Wingdings 2',size:28})]:[T('')];
+          rows.push(new TableRow({cantSplit:true,children:[cell(String(ix+1),W[0],{al:AlignmentType.CENTER}),cell(nm,W[1]),cell(mk(r&&r.r==='ok','P'),W[2],{al:AlignmentType.CENTER}),cell(mk(r&&r.r==='ng','R'),W[3],{al:AlignmentType.CENTER}),cell(r?ccThDate(r.d):'',W[4],{al:AlignmentType.CENTER,size:24}),cell(r&&r.c||'',W[5],{size:24}),cell(r&&r.n||'',W[6],{size:24})]}));
+        });
+      });
+      kids.push(new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:W,layout:TableLayoutType.FIXED,rows:hdr.concat(rows)}));
+      if(opt.photos){
+        opt.visits.filter(v=>(v.e.locName||'')===L).forEach(v=>{
+          const slots=[v.e.thumbMain||v.e.imgMain,v.e.thumbSticker||v.e.imgSticker,v.e.thumb3||v.e.img3,v.e.thumb4||v.e.img4].filter(Boolean);
+          if(!slots.length)return;
+          const holder={cap:'ภาพประกอบการตรวจสอบ '+L+' วันที่ '+ccThDate(v.d),urls:slots,imgs:[],at:kids.length};
+          kids.push(null);imgJobs.push(holder);
+        });
+      }
+    });
+    if(opt.cm){
+      let reps=[];try{reps=await loadRepairs(opt.project);}catch(e){reps=[];}
+      const f=opt.cm.from||'0000',t=opt.cm.to||'9999';
+      reps=reps.filter(r=>{const d=isoOf(parseAnyDate(r.doneDate)||parseAnyDate(r.reportDate));return d&&d>=f&&d<=t;}).sort((a,b)=>String(a.reportDate).localeCompare(String(b.reportDate)));
+      kids.push(new Paragraph({pageBreakBefore:true,spacing:{after:120},children:[T('การซ่อมแก้ไข (Corrective Maintenance)',{size:32,bold:true})]}));
+      if(!reps.length)kids.push(new Paragraph({children:[T('ไม่มีงานซ่อมแก้ไขในช่วงนี้',{size:28})]}));
+      const LB=[2300,CONTENT-2300];
+      reps.forEach((r,i)=>{
+        const row=(a,b)=>new TableRow({cantSplit:true,children:[cell(a,LB[0],{bold:true,fill:'F2F2F2'}),cell(b||'',LB[1])]});
+        kids.push(new Paragraph({keepNext:true,spacing:{before:i?300:80,after:60},children:[T((i+1)+'. '+(r.jobNo||'')+(r.equipment?'  '+r.equipment:''),{size:28,bold:true})]}));
+        kids.push(new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:LB,layout:TableLayoutType.FIXED,rows:[row('วันที่แจ้ง',ccThDate(r.reportDate)),row('สถานที่',r.location),row('อาการที่แจ้ง',r.detail),row('สาเหตุ',r.cause),row('การแก้ไข',r.fix),row('วันที่แล้วเสร็จ',ccThDate(r.doneDate)),row('ผู้ดำเนินการ',r.staff)]}));
+        const ph=parseRepairPhotos(r);if(ph.length){imgJobs.push({cap:'',urls:ph,imgs:[],at:kids.length});kids.push(null);}
+      });
+    }
+    setWarpStatus('Loading images...');
+    const jobs=[];imgJobs.forEach(h=>h.urls.forEach(u=>jobs.push({h,u})));
+    let n=0;await runPool(jobs,5,async j=>{let r=null;try{const b=await fetchImageBuffer(j.u);if(b)r=await shrinkImage(b,640);}catch(e){r=null;}if(r)j.h.imgs.push(r);n++;if(n%5===0||n===jobs.length)setWarpStatus('Loading images... '+n+'/'+jobs.length);});
+    setWarpStatus('Building document...');
+    const BOX_W=250,BOX_H=188,COL=Math.round(CONTENT/2);
+    const fit=r=>{const k=Math.min(BOX_W/r.w,BOX_H/r.h);return{width:Math.round(r.w*k),height:Math.round(r.h*k)};};
+    const out=[];let ji=0;
+    kids.forEach(k=>{
+      if(k){out.push(k);return;}
+      const h=imgJobs[ji++];
+      if(h.cap)out.push(new Paragraph({keepNext:true,spacing:{before:280,after:80},children:[T(h.cap,{size:28,bold:true})]}));else out.push(new Paragraph({keepNext:true,spacing:{before:80,after:0},children:[T(' ',{size:8})]}));
+      if(!h.imgs.length)return;
+      const rows=[];
+      for(let i=0;i<h.imgs.length;i+=2){
+        const c=r=>new TableCell({borders:none(),width:{size:COL,type:WidthType.DXA},verticalAlign:VerticalAlign.CENTER,children:[new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:40,after:40},children:r?[new ImageRun(Object.assign({data:r.buf||r.data,type:'jpg'},{transformation:fit(r)}))]:[T(' ')]})]});
+        rows.push(new TableRow({cantSplit:true,children:[c(h.imgs[i]),c(h.imgs[i+1]||null)]}));
+      }
+      out.push(new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:[COL,CONTENT-COL],layout:TableLayoutType.FIXED,borders:none(),rows}));
+    });
+    const LW=Math.round(CONTENT*0.3);
+    const header=new Header({children:[new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:[LW,CONTENT-LW],layout:TableLayoutType.FIXED,borders:none(),rows:[new TableRow({children:[
+      new TableCell({borders:none(),width:{size:LW,type:WidthType.DXA},children:[logo?new Paragraph({children:[new ImageRun({data:logo,type:'png',transformation:{width:90,height:56}})]}):new Paragraph({children:[T('AMR ASIA',{bold:true,color:'E2231A'})]})]}),
+      new TableCell({borders:none(),width:{size:CONTENT-LW,type:WidthType.DXA},verticalAlign:VerticalAlign.BOTTOM,children:[new Paragraph({alignment:AlignmentType.RIGHT,children:[new TextRun({text:'หน้าที่ ',font:FONT,size:24}),new TextRun({children:[PageNumber.CURRENT],font:FONT,size:24}),new TextRun({text:' / ',font:FONT,size:24}),new TextRun({children:[PageNumber.TOTAL_PAGES],font:FONT,size:24})]})]})
+    ]})]})]});
+    const doc=new Document({styles:{default:{document:{run:{font:FONT,size:28}}}},sections:[{properties:{page:{size:PAGE,margin:MARGIN}},headers:{default:header},children:out}]});
+    const blob=await Packer.toBlob(doc);
+    const fn=`CCTV Inspection Report_${String(opt.project).split(/[_ ]/)[0].replace(/[^\w.-]/g,"")}_${fileStamp(Date.now())}.docx`;
+    finishWarpAnimation();
+    setTimeout(()=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Word document generated',true);setTimeout(closeWarpAnimation,1500);},800);
+  }catch(err){closeWarpAnimation();toast('Failed to generate report: '+((err&&err.message)||'unknown error'),false);console.error('generateCctvReport error:',err);}
+}
