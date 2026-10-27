@@ -647,7 +647,7 @@ $('#saveBtn').addEventListener('click',async()=>{
   if(!sel.project){toast('Please select a project',false);return;}
   if(!sel.loc){toast('Please select a location',false);return;}
   if(!sel.equip){toast('Please select equipment',false);return;}
-  if(readingLabelOf(sel.project)&&!($('#inpReading')&&$('#inpReading').value.trim())){toast('Please enter: '+readingLabelOf(sel.project),false);try{$('#inpReading').focus();}catch(e){}return;}
+  if(readingLabelOf(sel.project,sel.system)&&!($('#inpReading')&&$('#inpReading').value.trim())){toast('Please enter: '+readingLabelOf(sel.project,sel.system),false);try{$('#inpReading').focus();}catch(e){}return;}
   if(imgBusy>0){toast('A photo is still being processed, please wait a moment',false);return;}
   if(!imgMain&&!imgSticker){toast('Please attach at least one photo',false);return;}
   if(!insp){toast('Please enter the inspector name',false);return;}
@@ -3574,7 +3574,8 @@ async function openStationReport(){
 /* ช่องค่าที่วัดได้ (เช่น ค่าระดับน้ำ): แสดงเฉพาะโครงการที่ admin/manager ตั้งชื่อช่องไว้ (ReportInfo.readingLabel) */
 let RD_LABELS={},SIMPLE_FORM={};
 async function loadReportInfoCache(){try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok){RD_LABELS={};SIMPLE_FORM={};CHECK_COLS={};TPL={};(r.info||[]).forEach(x=>{if(x.project)TPL[x.project]=String(x.reportTemplate||'');if(x.project&&x.checkCols){try{CHECK_COLS[x.project]=JSON.parse(x.checkCols);}catch(e){}}if(x.project&&(x.simpleForm===true||String(x.simpleForm)==='1'||String(x.simpleForm)==='true'))SIMPLE_FORM[x.project]=1;if(x.project&&String(x.readingLabel||'').trim())RD_LABELS[x.project]=String(x.readingLabel).trim();});paintReadingField();}}catch(e){}}
-function readingLabelOf(p){return RD_LABELS[p]||'';}
+/* ช่องค่าระดับน้ำ: ใช้ชื่อที่ admin ตั้ง; ถ้าไม่ได้ตั้ง โครงการแบบรูปรายสถานีจะบังคับกรอกเฉพาะระบบ Flood Detector / Water */
+function readingLabelOf(p,system){return RD_LABELS[p]||((system&&tplOf(p)==='station'&&/flood|water/i.test(system))?'ค่าระดับน้ำ (ม.รทก.)':'');}
 /* Add Record แบบย่อ: โครงการที่ตั้งไว้จะเห็นเฉพาะช่องที่ใช้ทำรายงาน (ซ่อน Location Type, Equipment Type, Brand/Model, Note; Sub-location/Serial ซ่อนเมื่อมีตัวเลือกเดียวซึ่งระบบเลือกให้เอง) */
 function applySimpleForm(){
   const on=!!SIMPLE_FORM[sel.project]||tplOf(sel.project)==='station';
@@ -3588,7 +3589,7 @@ function paintReadingField(){
   try{applySimpleForm();}catch(e){}
   try{paintChecks();}catch(e){}
   const w=$('#readingField');if(!w)return;
-  const lb=readingLabelOf(sel.project);
+  const lb=readingLabelOf(sel.project,sel.system);
   w.style.display=lb?'':'none';
   if(!lb)return;
   const l=$('#readingLbl');if(l)l.textContent=lb;
@@ -3604,6 +3605,8 @@ function stationText(e,opt){
   const rv=String(((opt.rd||{})[e.id]||e.reading||'')).trim();
   const i=std.indexOf('{reading}');
   if(i<0)return rv?(std?std+' ':'')+rv:std;
+  const io=rv.match(/IN\s*:?\s*(-?\d*\.?\d+)\D+?OUT\s*:?\s*(-?\d*\.?\d+)/i);
+  if(rv&&io){const pre=std.slice(0,i),post=std.slice(i+9),lab=(pre.match(/ค่า\S*\s*$/)||['ค่าระดับน้ำ'])[0].trim();return (pre+'IN '+io[1]+post+' '+lab+' OUT '+io[2]+post).replace(/\s+/g,' ').trim();}
   if(rv)return std.split('{reading}').join(rv).replace(/\s+/g,' ').trim();
   const head=std.slice(0,i),k=head.lastIndexOf('ค่า');
   return std.slice(0,k>=0?k:i).trim();
@@ -4335,3 +4338,20 @@ async function openProjectSettings(){
     if(r&&r.ok){toast('Layout saved',true);try{await loadReportInfoCache();}catch(e){}}else toast((r&&r.message)||'Save failed',false);
   });
 }
+
+/* ── ค่าระดับน้ำแบบ IN / OUT: ช่องแยก 2 ช่อง ระบบต่อเป็น "IN x OUT y" ให้ ── */
+(function(){
+  Object.assign(I18N_TH,{'Has IN / OUT levels':'มีค่า IN / OUT (ทางเข้า/ทางออก)','IN':'IN','OUT':'OUT'});
+  const rd=()=>$('#inpReading');
+  function ensure(){
+    const w=$('#readingField');if(!w||$('#rdIO'))return;
+    const d=document.createElement('div');d.id='rdIO';d.style.marginTop='8px';
+    d.innerHTML=`<label class="st-chk"><input type="checkbox" id="rdIOon"> ${esc(_tx('Has IN / OUT levels'))}</label><div id="rdIOin" class="rp-2" style="display:none;margin-top:6px"><label class="st-l">IN<input class="tin" id="rdIn" inputmode="decimal" placeholder="-0.00"></label><label class="st-l">OUT<input class="tin" id="rdOut" inputmode="decimal" placeholder="-0.00"></label></div>`;
+    w.appendChild(d);
+    const comp=()=>{const a=$('#rdIn').value.trim(),b=$('#rdOut').value.trim();rd().value=a&&b?'IN '+a+' OUT '+b:'';};
+    $('#rdIOon').onchange=()=>{const on=$('#rdIOon').checked;$('#rdIOin').style.display=on?'':'none';rd().style.display=on?'none':'';if(on){const m=rd().value.match(/IN\s*(-?[\d.]+)\D+OUT\s*(-?[\d.]+)/i);$('#rdIn').value=m?m[1]:'';$('#rdOut').value=m?m[2]:'';comp();}};
+    $('#rdIn').oninput=$('#rdOut').oninput=comp;
+  }
+  const sync=()=>{ensure();const r=rd();if(!r||!$('#rdIO'))return;const m=/IN\s*(-?[\d.]+)\D+OUT\s*(-?[\d.]+)/i.exec(r.value);const on=$('#rdIOon');if(m&&!on.checked){on.checked=true;on.onchange();}else if(!r.value&&on.checked&&document.activeElement&&document.activeElement.id!=='rdIn'&&document.activeElement.id!=='rdOut'){on.checked=false;on.onchange();$('#rdIn').value=$('#rdOut').value='';}};
+  const _p=paintReadingField;paintReadingField=function(){_p();try{sync();}catch(e){}};
+})();
