@@ -3577,7 +3577,7 @@ async function loadReportInfoCache(){try{const r=await api(ACT.listReportInfo,{}
 function readingLabelOf(p){return RD_LABELS[p]||'';}
 /* Add Record แบบย่อ: โครงการที่ตั้งไว้จะเห็นเฉพาะช่องที่ใช้ทำรายงาน (ซ่อน Location Type, Equipment Type, Brand/Model, Note; Sub-location/Serial ซ่อนเมื่อมีตัวเลือกเดียวซึ่งระบบเลือกให้เอง) */
 function applySimpleForm(){
-  const on=!!SIMPLE_FORM[sel.project];
+  const on=!!SIMPLE_FORM[sel.project]||tplOf(sel.project)==='station';
   const fld=lv=>{const c=document.querySelector('.combo[data-level="'+lv+'"]');return c&&c.closest('.field');};
   const hide=(el,h)=>{if(el)el.style.display=h?'none':'';};
   hide(fld('typeloc'),on);hide($('#inpAsset')&&$('#inpAsset').closest('.field'),on);hide(document.querySelector('.bm-row'),on);hide($('#inpNote')&&$('#inpNote').closest('.field'),on);
@@ -3691,7 +3691,7 @@ async function openDocPicker(force){
   /* ล็อกเทมเพลตตามโครงการ: ผู้ใช้ทั่วไปใช้เทมเพลตที่ admin/manager ตั้งไว้เท่านั้น */
   if(!force){
     if(saved.length===1&&(saved[0]==='station'||saved[0]==='equip'||saved[0]==='cctv')){run(saved[0]);return;}
-    if(projects.length===1&&!saved[0]&&isCctv(projects[0])){run('cctv');return;}
+    if(projects.length===1&&!saved[0]&&inferTemplate(projects[0])){run(inferTemplate(projects[0]));return;}
     if(projects.length>1&&saved.length>1){toast('These projects use different report layouts. Filter to one project first',false);return;}
     if(!canSetTemplate()){toast('Report layout is not set for this project. Ask an admin or manager to set it',false);return;}
   }else if(!canSetTemplate()){toast('Only admin or manager can set the report layout',false);return;}
@@ -3709,7 +3709,7 @@ async function openDocPicker(force){
     dlg.style.display='none';if(!force)run(k);else toast('Report layout saved');
   });
 }
-document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('openDocChooseBtn');if(b){b.addEventListener('click',()=>openDocPicker(true));const sync=()=>{b.style.display=canSetTemplate()?'':'none';};sync();setInterval(sync,1000);}});
+document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('openDocChooseBtn');if(b){b.addEventListener('click',()=>openProjectSettings());const sync=()=>{b.style.display=canSetTemplate()?'':'none';};sync();setInterval(sync,1000);}});
 
 /* ═══ Phase 24e: ค่าตรวจรายสถานี (checks) + งานซ่อม CM ═══ */
 /* ReportInfo.checkCols = JSON {"ชื่อระบบ":[{"g":"กลุ่มหัวตาราง","l":"ชื่อคอลัมน์"},...]} — admin/manager กำหนด, คนหน้างานกรอกในหน้า Add Record */
@@ -4111,11 +4111,14 @@ initAuth();
 /* ═══ Phase 31: โครงการ CCTV (MA2025049) — Add Record เป็นเช็กลิสต์ต่อการเข้าตรวจ 1 สถานที่ + รายงาน Word ตามแบบ ═══
    ข้อมูลหนึ่งการเข้าตรวจ = 1 Record: checks = {"d":"yyyy-mm-dd","ok":[รหัส...],"ng":{"รหัส":{"c":"สาเหตุ","n":"หมายเหตุ"}}}
    โครงการนี้ใช้เทมเพลต 'cctv' อัตโนมัติ (ตั้งไว้ใน ReportInfo หรือชื่อโครงการมีคำว่า CCTV) — ไม่ต้องเลือกซ้ำ */
-Object.assign(I18N_TH,{'Include corrective maintenance (CM)':'รวมงานซ่อมแก้ไข (CM)','CM from':'CM ตั้งแต่','CM to':'ถึง','Photos (up to 4)':'รูปภาพ (สูงสุด 4 รูป)','Corrective maintenance (CM)':'การซ่อมแก้ไข (Corrective Maintenance)','Inspection visit (one location)':'การเข้าตรวจ (1 สถานที่)','Location visited':'สถานที่ที่เข้าตรวจ','Select location':'เลือกสถานที่','Inspection date':'วันที่ตรวจ','All normal':'ปกติทั้งหมด','Normal':'ปกติ','Abnormal':'ไม่ปกติ','Cause':'สาเหตุ','Remark':'หมายเหตุ','Checked':'ตรวจแล้ว','CCTV inspection report':'รายงานตรวจสภาพอุปกรณ์ CCTV','Inspection tables per location with Normal/Abnormal results, then photos. Built from the visits recorded in Add Record.':'ตารางตรวจสภาพอุปกรณ์แยกตามสถานที่ พร้อมผลปกติ/ไม่ปกติ แล้วตามด้วยรูป สร้างจากข้อมูลการเข้าตรวจที่บันทึกใน Add Record','Report heading (one line per row)':'หัวรายงาน (หนึ่งบรรทัดต่อหนึ่งแถว)','Include photos of each visit':'แนบรูปของแต่ละการเข้าตรวจ','Create Word report':'สร้างรายงาน Word'});
+Object.assign(I18N_TH,{'Project settings (report layout)':'ตั้งค่าโครงการ (รูปแบบรายงาน)','Project settings':'ตั้งค่าโครงการ','Report layout & Add Record form':'รูปแบบรายงานและฟอร์ม Add Record','Not set yet':'ยังไม่ได้ตั้ง','Each project has its own report layout. Add Record follows the layout: Equipment report = standard form, Station photo report = simplified form, CCTV report = checklist per location visit.':'แต่ละโครงการมีรูปแบบรายงานของตัวเอง และฟอร์ม Add Record ตามรูปแบบนั้น: รายงานอุปกรณ์ = ฟอร์มมาตรฐาน, รายงานรูปรายสถานี = ฟอร์มย่อ, รายงาน CCTV = เช็กลิสต์ต่อการเข้าตรวจ 1 สถานที่','Layout saved':'บันทึกแล้ว','Include corrective maintenance (CM)':'รวมงานซ่อมแก้ไข (CM)','CM from':'CM ตั้งแต่','CM to':'ถึง','Photos (up to 4)':'รูปภาพ (สูงสุด 4 รูป)','Corrective maintenance (CM)':'การซ่อมแก้ไข (Corrective Maintenance)','Inspection visit (one location)':'การเข้าตรวจ (1 สถานที่)','Location visited':'สถานที่ที่เข้าตรวจ','Select location':'เลือกสถานที่','Inspection date':'วันที่ตรวจ','All normal':'ปกติทั้งหมด','Normal':'ปกติ','Abnormal':'ไม่ปกติ','Cause':'สาเหตุ','Remark':'หมายเหตุ','Checked':'ตรวจแล้ว','CCTV inspection report':'รายงานตรวจสภาพอุปกรณ์ CCTV','Inspection tables per location with Normal/Abnormal results, then photos. Built from the visits recorded in Add Record.':'ตารางตรวจสภาพอุปกรณ์แยกตามสถานที่ พร้อมผลปกติ/ไม่ปกติ แล้วตามด้วยรูป สร้างจากข้อมูลการเข้าตรวจที่บันทึกใน Add Record','Report heading (one line per row)':'หัวรายงาน (หนึ่งบรรทัดต่อหนึ่งแถว)','Include photos of each visit':'แนบรูปของแต่ละการเข้าตรวจ','Create Word report':'สร้างรายงาน Word'});
 const CC_EQUIP='ตรวจสภาพอุปกรณ์ (PM)';
 let TPL={};
 const CC={loc:'',date:'',st:{},why:{},note:{}};
-function isCctv(p){return !!p&&(TPL[p]==='cctv'||(!TPL[p]&&/cctv/i.test(p)));}
+/* เทมเพลตเริ่มต้นตามชื่อโครงการ (เมื่อ admin ยังไม่ได้ตั้ง): CCTV → cctv, โทรมาตร → รูปรายสถานี */
+function inferTemplate(p){const n=String(p||'');if(/cctv/i.test(n))return 'cctv';if(/โทรมาตร|telemetry/i.test(n))return 'station';if(/สายสัญญาณ/.test(n))return 'equip';return '';}
+const tplOf=p=>TPL[p]||inferTemplate(p);
+function isCctv(p){return !!p&&tplOf(p)==='cctv';}
 const ccKey=m=>m.serial?String(m.serial):(String(m.subName||'')+'|'+String(m.equipment||''));
 const ccMaster=(p,loc)=>(typeof master!=='undefined'?master:[]).filter(m=>m.project===p&&(!loc||m.locName===loc));
 function ccReset(){CC.loc='';CC.date='';CC.st={};CC.why={};CC.note={};}
@@ -4314,4 +4317,21 @@ async function generateCctvReport(opt){
     finishWarpAnimation();
     setTimeout(()=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Word document generated',true);setTimeout(closeWarpAnimation,1500);},800);
   }catch(err){closeWarpAnimation();toast('Failed to generate report: '+((err&&err.message)||'unknown error'),false);console.error('generateCctvReport error:',err);}
+}
+
+/* ── ตั้งค่าโครงการ (admin/manager): เลือกรูปแบบรายงานของแต่ละโครงการ ครั้งเดียว — Add Record ตามรูปแบบนั้นอัตโนมัติ ── */
+async function openProjectSettings(){
+  if(!canSetTemplate()){toast('Only admin or manager can set the report layout',false);return;}
+  let info=[];try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)info=r.info||[];}catch(e){}
+  const projects=uniq([...(master||[]).map(m=>m.project),...info.map(x=>x.project)].filter(Boolean)).sort((a,b)=>String(a).localeCompare(String(b),'th'));
+  const {dlg,body,foot}=simpleDlg('projSet',_tx('Project settings'),720);
+  foot.style.display='none';
+  const cur=p=>String((info.find(x=>x.project===p)||{}).reportTemplate||'');
+  const OPT=[['',_tx('Not set yet')],['equip',_tx('Equipment report')],['station',_tx('Station photo report')],['cctv',_tx('CCTV inspection report')]];
+  body.innerHTML=`<div class="st-hint">${esc(_tx('Each project has its own report layout. Add Record follows the layout: Equipment report = standard form, Station photo report = simplified form, CCTV report = checklist per location visit.'))}</div>`+
+    (projects.map(p=>{const c=cur(p),inf=inferTemplate(p);return `<div class="ps-row"><div class="ps-n">${esc(p)}</div><select class="tin ps-sel" data-p="${escAttr(p)}">${OPT.map(o=>`<option value="${o[0]}"${c===o[0]?' selected':''}>${esc(o[0]===''&&inf?_tx('Not set yet')+' → '+(OPT.find(x=>x[0]===inf)||['',''])[1]:o[1])}</option>`).join('')}</select></div>`;}).join('')||'<div class="st-hint">—</div>');
+  body.querySelectorAll('.ps-sel').forEach(sl=>sl.onchange=async()=>{
+    const r=await api(ACT.saveReportInfo,{row:{project:sl.dataset.p,reportTemplate:sl.value}});
+    if(r&&r.ok){toast('Layout saved',true);try{await loadReportInfoCache();}catch(e){}}else toast((r&&r.message)||'Save failed',false);
+  });
 }

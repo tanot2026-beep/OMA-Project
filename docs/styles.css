@@ -1137,3 +1137,4 @@ body{background:var(--bg)}
 #cctvField .cc-why{flex:1 1 100%;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media(max-width:560px){#cctvField .cc-top{grid-template-columns:1fr}#cctvField .cc-why{grid-template-columns:1fr}#cctvField .cc-seg{width:100%}#cctvField .cc-seg button{flex:1}}
 .rp-ph{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.rp-drop{aspect-ratio:1/1;min-height:0!important;padding:0!important}
+.ps-row{display:grid;grid-template-columns:1fr 230px;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line,#ddd)}.ps-n{font-size:13.5px;word-break:break-word}@media(max-width:560px){.ps-row{grid-template-columns:1fr}}
