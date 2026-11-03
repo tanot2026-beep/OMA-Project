@@ -1149,3 +1149,63 @@ body{background:var(--bg)}
 #pageLoad.on{display:flex}
 .pl-ring{width:54px;height:54px;border-radius:50%;border:5px solid color-mix(in srgb,#D93A2B 18%,transparent);border-top-color:#D93A2B;animation:plspin .85s linear infinite}
 @keyframes plspin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.pl-ring{animation-duration:2.4s}}
+</style>
+
+/* Phase 36: ฟอร์ม PM / CM โครงการแผ่นป้ายทะเบียน */
+#panel-add.pl-mode .cascade .field:not(:first-child),#panel-add.pl-mode .bm-row,#panel-add.pl-mode #readingField,#panel-add.pl-mode #checksField{display:none!important}
+#plateField .pl-tabs{display:flex;gap:8px;margin-bottom:12px}
+#plateField .pl-tabs button{flex:1;padding:10px;border:1px solid var(--line,#ccc);border-radius:8px;background:var(--surface,#fff);color:inherit;font-weight:600;font-size:15px}
+#plateField .pl-tabs button.on{background:var(--brand,#c8102e);border-color:var(--brand,#c8102e);color:#fff}
+#plateField .pl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#plateField .pl-wide{grid-column:1/-1}
+#plateField .st-l{display:flex;flex-direction:column;gap:5px;font-size:13px}
+#plateField:not(.is-cm) .pl-cm{display:none!important}
+#plateField.is-cm .pl-pm{display:none!important}
+#plateField .pl-sp{margin-top:12px}
+#plateField .pl-sprow{display:grid;grid-template-columns:1.2fr 2fr .8fr .7fr auto;gap:6px;margin-bottom:6px}
+#plateField .pl-req{margin-top:12px;padding:8px 10px;border-radius:8px;background:#fdecea;color:#8a1c14;font-size:13px}
+#plateField .pl-req.ok{background:#e8f5e9;color:#1b5e20}
+.pl-det{margin:10px 0}.pl-planrow{display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center;margin:4px 0;font-size:13px}
+@media(max-width:560px){#plateField .pl-grid{grid-template-columns:1fr}#plateField .pl-sprow{grid-template-columns:1fr 1fr}}
+
+/* Phase 37: แถบซ้าย 2 แถบ (จอกว้าง) / สวิตช์ 2 ปุ่มด้านบน (มือถือ) */
+.nav-off{display:none!important}
+.side-nav{display:flex;gap:0;background:var(--surface,#fff);border-bottom:1px solid var(--line-soft,#e5e5e5)}
+.side-item{flex:1;padding:12px 10px;font-size:14px;font-weight:500;color:var(--ink-soft);border-bottom:3px solid transparent;text-align:center;background:none}
+.side-item:hover{background:var(--surface-2,#f6f6f6)}
+.side-item.active{color:var(--accent-deep,#b00020);border-bottom-color:var(--accent,#d32f2f);font-weight:600}
+.oma-sub{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;overflow-x:auto;padding:10px 18px;background:var(--surface-2,#f6f6f6);border-bottom:1px solid var(--line-soft,#e5e5e5)}
+.oma-sec{flex:0 0 auto;font-size:12px;color:var(--ink-soft);padding:0 2px 0 10px;border-left:1px solid var(--line,#ccc);margin-left:4px}
+.oma-sec:first-child{border-left:0;margin-left:0;padding-left:0}
+.oma-chip{flex:0 0 auto;padding:7px 12px;border:1px solid var(--line,#d6d6d6);border-radius:999px;background:var(--surface,#fff);color:var(--ink);font-size:13px;white-space:nowrap}
+.oma-chip b{color:var(--ink-soft);font-weight:600;margin-right:3px}
+.oma-chip:hover{border-color:var(--accent,#d32f2f)}
+.oma-chip.active{background:var(--accent-wash,#fdecea);border-color:var(--accent,#d32f2f);color:var(--accent-deep,#b00020)}
+.oma-chip.active b{color:inherit}
+.om-badge{display:inline-block;background:var(--accent-wash,#fdecea);color:var(--accent-deep,#b00020);border-radius:6px;padding:2px 8px;font-size:14px;margin-right:6px}
+.om-card{border:1px dashed var(--line,#ccc);border-radius:12px;padding:18px;background:var(--surface,#fff)}
+.om-empty{color:var(--ink-soft);padding:28px 0;text-align:center}
+.om-ref{margin-top:8px;font-size:13px}.om-ref summary{cursor:pointer;color:var(--ink-soft)}
+.om-ref dl{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;margin:10px 0 0}.om-ref dt{color:var(--ink-soft)}.om-ref dd{margin:0}
+.om-d{margin-top:10px}
+@media(max-width:560px){.om-ref dl{grid-template-columns:1fr}.oma-sub{padding:8px 12px}}
+@media(min-width:1000px){
+  :root{--sideW:232px}
+  body.has-side .side-nav{position:fixed;left:0;top:var(--hdrH,72px);bottom:0;width:var(--sideW);flex-direction:column;padding:14px 0;border-bottom:0;border-right:1px solid var(--line-soft,#e5e5e5);z-index:34}
+  body.has-side .side-item{flex:0 0 auto;text-align:left;padding:12px 20px;border-bottom:0;border-left:3px solid transparent;line-height:1.35}
+  body.has-side .side-item.active{border-left-color:var(--accent,#d32f2f);background:var(--accent-wash,#fdecea)}
+  .oma-sub{flex-wrap:wrap;overflow-x:visible}
+  body.has-side .tabs,body.has-side .oma-sub,body.has-side main,body.has-side #oqBar{margin-left:var(--sideW)}
+}
+@media print{.side-nav,#omaTabs,#omaSub{display:none!important}body.has-side main,body.has-side #oqBar{margin-left:0!important}}
+
+/* Phase 38: แถบยังขาดอะไร */
+#addReady{flex:0 0 100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-radius:10px;font-size:13px;justify-content:flex-start}
+#addReady.miss{background:var(--accent-wash,#fdecea);color:var(--accent-deep,#8a1c14)}
+#addReady.ok{background:var(--ok-wash,#e8f5e9);color:var(--ok-text,#1b5e20)}
+#addReady .ar-h{font-weight:600;margin-right:2px}
+#addReady .ar-chip{padding:4px 10px;border-radius:999px;border:1px solid currentColor;background:var(--surface,#fff);color:inherit;font-size:12.5px;white-space:nowrap}
+.ar-flash{outline:2px solid var(--accent,#d32f2f);outline-offset:3px;border-radius:8px}
+.form-actions{flex-wrap:wrap}
+@media(max-width:760px){#panel-add.active{padding-bottom:calc(74px + var(--readyH,0px))}#addReady{max-height:96px;overflow-y:auto}}
+@media print{#addReady{display:none}}

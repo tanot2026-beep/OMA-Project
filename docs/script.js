@@ -278,9 +278,10 @@ const LIB_SRC={
   docx:'https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js',
   html2pdf:'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
   qrscan:'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js',
-  tesseract:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'
+  tesseract:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+  pdfjs:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
 };
-const LIB_READY={xlsx:()=>typeof XLSX!=='undefined',docx:()=>typeof docx!=='undefined',html2pdf:()=>typeof html2pdf!=='undefined',qrscan:()=>typeof Html5Qrcode!=='undefined',tesseract:()=>typeof Tesseract!=='undefined'};
+const LIB_READY={xlsx:()=>typeof XLSX!=='undefined',docx:()=>typeof docx!=='undefined',html2pdf:()=>typeof html2pdf!=='undefined',qrscan:()=>typeof Html5Qrcode!=='undefined',tesseract:()=>typeof Tesseract!=='undefined',pdfjs:()=>typeof pdfjsLib!=='undefined'};
 const _libP={};
 // โหลดไลบรารีหนักเมื่อต้องใช้จริง (ครั้งแรกเท่านั้น) — ทำให้หน้าแรกเปิดเร็วขึ้นมาก
 function loadLib(k){
@@ -811,7 +812,7 @@ function renderSaved(){
   const sig=[$('#savedSearch').value,...['savedFProject','savedFSystem','savedFLoc','savedFSub','savedFEquip','savedSort'].map(id=>document.getElementById(id)?.value||''),recordsDateFilter,recordsStatusFilter,!!$('#savedFPending')?.checked].join('|');
   if(sig!==_savedSig){_savedSig=sig;savedShown=SAVED_PAGE;}
   const fullList=list;lastSavedList=fullList;list=fullList.slice(0,savedShown);
-  grid.innerHTML=list.map(e=>{const thumb=driveViewUrl(e.thumbMain||e.thumbSticker||e.imgMain||e.imgSticker||'',300);const n=(e.imgMain?1:0)+(e.imgSticker?1:0);const title=esc([e.equipment,e.brand,e.model].filter(Boolean).join(' · '))||'(Equipment not specified)';const loc=esc([PN(e.project),e.locName,e.subName].filter(Boolean).join(' › '));const pendingBadge=e.pendingReview?`<div class="loc" style="color:var(--warn-text);font-weight:600">Pending Review${e.newFields?': '+esc(e.newFields):''}</div>`:'';const retBadge=e.returnReason?`<div class="loc rr-ret"><label class="rr-ret-lbl">Returned:</label> ${esc(e.returnReason)}${e.returnedBy?` <span class="rr-ret-by">(${esc(e.returnedBy)})</span>`:''}</div>`:'';return `<div class="rrow${e.returnReason?' is-returned':''}" data-id="${e.id}"><div class="thumb" style="background-image:url(${thumb})">${n?`<span class="cnt">${n} photos</span>`:''}</div><div class="body"><div class="tt">${title}</div>${loc?`<div class="loc">${loc}</div>`:''}${pendingBadge}${retBadge}<div class="meta"><span>${esc(e.inspector||'-')}</span>${e.serial?`<span>SN: ${esc(e.serial)}</span>`:''}<span>${fmtDate(e.createdAt,true)}</span>${['admin','manager','leader'].includes((AUTH.user&&AUTH.user.role)||'')?'<button type="button" class="rr-hist" data-act="hist">History</button>':''}</div></div><div class="acts">${canEdit()?'<button data-act="edit">Edit</button>':''}<button data-act="img">Photos</button>${canReturn?`<button data-act="ret">${e.returnReason?'Returned':'Return'}</button>`:''}${e.pendingReview&&canConfirm?'<button data-act="confirm" style="color:var(--warn-text)">Confirmed</button>':''}${canDelete()?'<button data-act="del" class="del">Delete</button>':''}</div></div>`;}).join('')+(fullList.length>list.length?`<div style="text-align:center;padding:14px"><button class="ghost-btn" id="savedLoadMore">Load more (${list.length}/${fullList.length})</button></div>`:`<div style="text-align:center;padding:10px;color:var(--ink-faint);font-size:12.5px">Showing all ${fullList.length} records</div>`);
+  grid.innerHTML=list.map(e=>{const thumb=driveViewUrl(e.thumbMain||e.thumbSticker||e.imgMain||e.imgSticker||'',300);const n=(e.imgMain?1:0)+(e.imgSticker?1:0);const title=esc([e.equipment,e.brand,e.model].filter(Boolean).join(' · '))||'(Equipment not specified)';const loc=esc([PN(e.project),e.locName,e.subName].filter(Boolean).join(' › '));const pendingBadge=e.pendingReview?`<div class="loc" style="color:var(--warn-text);font-weight:600">Pending Review${e.newFields?': '+esc(e.newFields):''}</div>`:'';const retBadge=e.returnReason?`<div class="loc rr-ret"><label class="rr-ret-lbl">Returned:</label> ${esc(e.returnReason)}${e.returnedBy?` <span class="rr-ret-by">(${esc(e.returnedBy)})</span>`:''}</div>`:'';return `<div class="rrow${e.returnReason?' is-returned':''}" data-id="${e.id}"><div class="thumb" style="background-image:url(${thumb})">${n?`<span class="cnt">${n} photos</span>`:''}</div><div class="body"><div class="tt">${title}</div>${loc?`<div class="loc">${loc}</div>`:''}${pendingBadge}${retBadge}<div class="meta"><span>${esc(e.inspector||'-')}</span>${e.serial?`<span>SN: ${esc(e.serial)}</span>`:''}${plWoSpan(e)}<span>${fmtDate(e.createdAt,true)}</span>${['admin','manager','leader'].includes((AUTH.user&&AUTH.user.role)||'')?'<button type="button" class="rr-hist" data-act="hist">History</button>':''}</div></div><div class="acts">${canEdit()?'<button data-act="edit">Edit</button>':''}<button data-act="img">Photos</button>${canReturn?`<button data-act="ret">${e.returnReason?'Returned':'Return'}</button>`:''}${e.pendingReview&&canConfirm?'<button data-act="confirm" style="color:var(--warn-text)">Confirmed</button>':''}${canDelete()?'<button data-act="del" class="del">Delete</button>':''}</div></div>`;}).join('')+(fullList.length>list.length?`<div style="text-align:center;padding:14px"><button class="ghost-btn" id="savedLoadMore">Load more (${list.length}/${fullList.length})</button></div>`:`<div style="text-align:center;padding:10px;color:var(--ink-faint);font-size:12.5px">Showing all ${fullList.length} records</div>`);
   paintReturnedBanner();
   const lmBtn=$('#savedLoadMore');if(lmBtn)lmBtn.onclick=()=>{savedShown+=SAVED_PAGE;renderSaved();};
   grid.querySelectorAll('.rrow').forEach(c=>{const id=c.dataset.id;const be=c.querySelector('[data-act="edit"]');if(be)be.onclick=()=>editEntry(id);c.querySelector('[data-act="img"]').onclick=()=>viewImgs(id);const bc=c.querySelector('[data-act="confirm"]');if(bc)bc.onclick=()=>confirmRecordReviewed(id);const bd=c.querySelector('[data-act="del"]');if(bd)bd.onclick=()=>delEntry(id);const br=c.querySelector('[data-act="ret"]');if(br)br.onclick=()=>openReturnDlg(id);const bh=c.querySelector('[data-act="hist"]');if(bh)bh.onclick=ev=>{ev.stopPropagation();openHistory(id);};});
@@ -3584,7 +3585,7 @@ async function openStationReport(){
 }
 /* ช่องค่าที่วัดได้ (เช่น ค่าระดับน้ำ): แสดงเฉพาะโครงการที่ admin/manager ตั้งชื่อช่องไว้ (ReportInfo.readingLabel) */
 let RD_LABELS={},SIMPLE_FORM={};
-async function loadReportInfoCache(){try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok){RD_LABELS={};SIMPLE_FORM={};CHECK_COLS={};TPL={};(r.info||[]).forEach(x=>{if(x.project)TPL[x.project]=String(x.reportTemplate||'');if(x.project&&x.checkCols){try{CHECK_COLS[x.project]=JSON.parse(x.checkCols);}catch(e){}}if(x.project&&(x.simpleForm===true||String(x.simpleForm)==='1'||String(x.simpleForm)==='true'))SIMPLE_FORM[x.project]=1;if(x.project&&String(x.readingLabel||'').trim())RD_LABELS[x.project]=String(x.readingLabel).trim();});paintReadingField();}}catch(e){}}
+async function loadReportInfoCache(){try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok){RD_LABELS={};SIMPLE_FORM={};CHECK_COLS={};TPL={};(r.info||[]).forEach(x=>{if(x.project)TPL[x.project]=String(x.reportTemplate||'');if(x.reportData){try{RPT_DATA[x.project]=JSON.parse(x.reportData);}catch(e){}}if(x.project&&x.checkCols){try{CHECK_COLS[x.project]=JSON.parse(x.checkCols);}catch(e){}}if(x.project&&(x.simpleForm===true||String(x.simpleForm)==='1'||String(x.simpleForm)==='true'))SIMPLE_FORM[x.project]=1;if(x.project&&String(x.readingLabel||'').trim())RD_LABELS[x.project]=String(x.readingLabel).trim();});paintReadingField();}}catch(e){}}
 /* ช่องค่าระดับน้ำ: ใช้ชื่อที่ admin ตั้ง; ถ้าไม่ได้ตั้ง โครงการแบบรูปรายสถานีจะบังคับกรอกเฉพาะระบบ Flood Detector / Water */
 function readingLabelOf(p,system){return RD_LABELS[p]||((system&&tplOf(p)==='station'&&/flood|water/i.test(system))?'ค่าระดับน้ำ (ม.รทก.)':'');}
 /* Add Record แบบย่อ: โครงการที่ตั้งไว้จะเห็นเฉพาะช่องที่ใช้ทำรายงาน (ซ่อน Location Type, Equipment Type, Brand/Model, Note; Sub-location/Serial ซ่อนเมื่อมีตัวเลือกเดียวซึ่งระบบเลือกให้เอง) */
@@ -3701,10 +3702,10 @@ async function openDocPicker(force){
   const projects=uniq(list.map(e=>e.project).filter(Boolean));
   let info=[];try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)info=r.info||[];}catch(e){}
   const saved=uniq(projects.map(p=>String((info.find(x=>x.project===p)||{}).reportTemplate||'')));
-  const run=k=>{if(k==='station')openStationReport();else if(k==='cctv')openCctvReport();else generateWordTemplate();};
+  const run=k=>{if(k==='station')openStationReport();else if(k==='cctv')openCctvReport();else if(k==='plate')openPlateReport();else generateWordTemplate();};
   /* ล็อกเทมเพลตตามโครงการ: ผู้ใช้ทั่วไปใช้เทมเพลตที่ admin/manager ตั้งไว้เท่านั้น */
   if(!force){
-    if(saved.length===1&&(saved[0]==='station'||saved[0]==='equip'||saved[0]==='cctv')){run(saved[0]);return;}
+    if(saved.length===1&&(saved[0]==='station'||saved[0]==='equip'||saved[0]==='cctv'||saved[0]==='plate')){run(saved[0]);return;}
     if(projects.length===1&&!saved[0]&&inferTemplate(projects[0])){run(inferTemplate(projects[0]));return;}
     if(projects.length>1&&saved.length>1){toast('These projects use different report layouts. Filter to one project first',false);return;}
     if(!canSetTemplate()){toast('Report layout is not set for this project. Ask an admin or manager to set it',false);return;}
@@ -4127,10 +4128,10 @@ initAuth();
    โครงการนี้ใช้เทมเพลต 'cctv' อัตโนมัติ (ตั้งไว้ใน ReportInfo หรือชื่อโครงการมีคำว่า CCTV) — ไม่ต้องเลือกซ้ำ */
 Object.assign(I18N_TH,{'Project settings (report layout)':'ตั้งค่าโครงการ (รูปแบบรายงาน)','Project settings':'ตั้งค่าโครงการ','Report layout & Add Record form':'รูปแบบรายงานและฟอร์ม Add Record','Not set yet':'ยังไม่ได้ตั้ง','Each project has its own report layout. Add Record follows the layout: Equipment report = standard form, Station photo report = simplified form, CCTV report = checklist per location visit.':'แต่ละโครงการมีรูปแบบรายงานของตัวเอง และฟอร์ม Add Record ตามรูปแบบนั้น: รายงานอุปกรณ์ = ฟอร์มมาตรฐาน, รายงานรูปรายสถานี = ฟอร์มย่อ, รายงาน CCTV = เช็กลิสต์ต่อการเข้าตรวจ 1 สถานที่','Layout saved':'บันทึกแล้ว','Include corrective maintenance (CM)':'รวมงานซ่อมแก้ไข (CM)','CM from':'CM ตั้งแต่','CM to':'ถึง','Photos (up to 4)':'รูปภาพ (สูงสุด 4 รูป)','Corrective maintenance (CM)':'การซ่อมแก้ไข (Corrective Maintenance)','Inspection visit (one location)':'การเข้าตรวจ (1 สถานที่)','Location visited':'สถานที่ที่เข้าตรวจ','Select location':'เลือกสถานที่','Inspection date':'วันที่ตรวจ','All normal':'ปกติทั้งหมด','Normal':'ปกติ','Abnormal':'ไม่ปกติ','Cause':'สาเหตุ','Remark':'หมายเหตุ','Checked':'ตรวจแล้ว','CCTV inspection report':'รายงานตรวจสภาพอุปกรณ์ CCTV','Inspection tables per location with Normal/Abnormal results, then photos. Built from the visits recorded in Add Record.':'ตารางตรวจสภาพอุปกรณ์แยกตามสถานที่ พร้อมผลปกติ/ไม่ปกติ แล้วตามด้วยรูป สร้างจากข้อมูลการเข้าตรวจที่บันทึกใน Add Record','Report heading (one line per row)':'หัวรายงาน (หนึ่งบรรทัดต่อหนึ่งแถว)','Include photos of each visit':'แนบรูปของแต่ละการเข้าตรวจ','Create Word report':'สร้างรายงาน Word'});
 const CC_EQUIP='ตรวจสภาพอุปกรณ์ (PM)';
-let TPL={};
+let TPL={};const RPT_DATA={};
 const CC={loc:'',date:'',st:{},why:{},note:{}};
 /* เทมเพลตเริ่มต้นตามชื่อโครงการ (เมื่อ admin ยังไม่ได้ตั้ง): CCTV → cctv, โทรมาตร → รูปรายสถานี */
-function inferTemplate(p){const n=String(p||'');if(/cctv/i.test(n))return 'cctv';if(/โทรมาตร|telemetry/i.test(n))return 'station';if(/สายสัญญาณ/.test(n))return 'equip';return '';}
+function inferTemplate(p){const n=String(p||'');if(/cctv/i.test(n))return 'cctv';if(/โทรมาตร|telemetry/i.test(n))return 'station';if(/สายสัญญาณ/.test(n))return 'equip';if(/แผ่นป้ายทะเบียน|license ?plate/i.test(n))return 'plate';return '';}
 const tplOf=p=>TPL[p]||inferTemplate(p);
 function isCctv(p){return !!p&&tplOf(p)==='cctv';}
 const ccKey=m=>m.serial?String(m.serial):(String(m.subName||'')+'|'+String(m.equipment||''));
@@ -4361,8 +4362,8 @@ async function openProjectSettings(){
   const {dlg,body,foot}=simpleDlg('projSet',_tx('Project settings'),860);
   foot.style.display='none';
   const cur=p=>String((info.find(x=>x.project===p)||{}).reportTemplate||'');
-  const OPT=[['',_tx('Not set yet')],['equip',_tx('Equipment report')],['station',_tx('Station photo report')],['cctv',_tx('CCTV inspection report')]];
-  body.innerHTML=`<div class="st-hint">${esc(_tx('Each project has its own report layout. Add Record follows the layout: Equipment report = standard form, Station photo report = simplified form, CCTV report = checklist per location visit.'))}</div>`+
+  const OPT=[['',_tx('Not set yet')],['equip',_tx('Equipment report')],['station',_tx('Station photo report')],['cctv',_tx('CCTV inspection report')],['plate',_tx('License plate machine report (PM/CM)')]];
+  body.innerHTML=`<div class="st-hint">${esc(_tx('Each project has its own report layout. Add Record follows the layout: Equipment report = standard form, Station photo report = simplified form, CCTV report = checklist per location visit, License plate = PM / CM work orders.'))}</div>`+
     (projects.map(p=>{const c=cur(p),inf=inferTemplate(p);return `<div class="ps-row ps-row3" data-p="${escAttr(p)}"><div class="ps-n"><b>${esc(PN(p))}</b><div class="ps-full">${esc(p)}</div></div>
       <input class="tin ps-code" placeholder="${escAttr(_tx('Project code'))}" value="${escAttr(PCODE(p))}"${isAdm?'':' disabled'}>
       <input class="tin ps-alias" placeholder="${escAttr(_tx('Alias'))}" value="${escAttr((PROJ_INFO[p]||{}).alias||'')}"${isAdm?'':' disabled'}>
@@ -4436,3 +4437,536 @@ document.addEventListener('click',e=>{const t=e.target&&e.target.closest&&e.targ
   if(PL.n){return;}
   if(Date.now()-LAST_FULL_LOAD>120000&&LAST_FULL_LOAD){reloadAllData().catch(()=>{});}
 },true);
+
+/* ═══ Phase 36: โครงการเครื่องผลิตแผ่นป้ายทะเบียน — Add Record แบบ PM / CM + รายงานรายเดือน ═══
+   1 Record = 1 ใบงาน: system = 'PM' | 'CM', location = เครื่อง (MOTO1/CAR1/AIR1...), equipment = อุปกรณ์จาก Master
+   รูป: main = ใบงาน (PDF/รูป), sticker = ภาพก่อนซ่อม (CM), img3 = ภาพหลังซ่อม (CM)
+   checks = {"t":"PM","wo","fq","d","desc"} หรือ {"t":"CM","wo","rd","code","prob","cause","fix","d","st","sp":[{c,n,u,q}]} */
+Object.assign(I18N_TH,{'License plate machine report (PM/CM)':'รายงานเครื่องผลิตแผ่นป้ายทะเบียน (PM/CM)','License plate = PM / CM work orders.':'แผ่นป้ายทะเบียน = ใบงาน PM / CM','Work order no.':'เลขที่ใบงาน','Machine':'เครื่อง','Frequency':'ความถี่','Weekly (W1)':'รายสัปดาห์ (W1)','Monthly (M1)':'รายเดือน (M1)','Quarterly (M3)':'ราย 3 เดือน (M3)','Yearly (Y1)':'รายปี (Y1)','Date performed':'วันที่ปฏิบัติงาน','Activity description':'รายละเอียดการปฏิบัติงาน','Reported on':'วันที่แจ้ง','Equipment code / detail':'รหัส/รายละเอียดอุปกรณ์','Problem reported':'อาการที่แจ้ง','Repair done':'การแก้ไข','Status':'สถานะ','Complete':'เสร็จสิ้น','In progress':'อยู่ระหว่างดำเนินการ','Spare parts used':'อะไหล่ที่ใช้เปลี่ยน','Part no.':'รหัสอะไหล่','Part name':'ชื่ออะไหล่','Unit':'หน่วย','Qty':'จำนวน','Add part':'เพิ่มอะไหล่','Attachments':'ไฟล์แนบ','Work order form (PDF or image)':'ใบงาน (PDF หรือรูป)','Before repair photo':'ภาพก่อนซ่อม','After repair photo':'ภาพหลังซ่อม','Required':'ต้องแนบ','Please attach the work order form':'กรุณาแนบใบงาน','Please attach the before and after photos':'กรุณาแนบภาพก่อนซ่อมและภาพหลังซ่อม','Could not read this PDF. Please attach a photo or screenshot of the work order instead':'อ่านไฟล์ PDF นี้ไม่ได้ กรุณาแนบเป็นรูปถ่ายหรือภาพหน้าจอของใบงานแทน'});
+const PLATE_FQ=[['W1','Weekly (W1)'],['M1','Monthly (M1)'],['M3','Quarterly (M3)'],['Y1','Yearly (Y1)']];
+const isPlate=p=>!!p&&tplOf(p)==='plate';
+const PLS={type:'PM',sp:[],built:false};
+function plParse(e){try{const o=JSON.parse((e&&e.checks)||'{}');return o&&o.t?o:null;}catch(x){return null;}}
+function plWoSpan(e){const o=plParse(e);return o&&o.wo?`<span><b>${esc(e.system||o.t)}</b> ${esc(o.wo)}</span>`:'';}
+const plQ=s=>document.querySelector('#plateField '+s);
+function plateBuild(box){
+  box.innerHTML=`<div class="card-h"><span class="step">1b</span><h3>${esc(_tx('Work order'))}</h3></div><div class="card-b">
+  <div class="pl-tabs" role="tablist"><button type="button" role="tab" data-t="PM" class="on">PM</button><button type="button" role="tab" data-t="CM">CM</button></div>
+  <div class="pl-grid">
+    <label class="st-l">${esc(_tx('Work order no.'))} <span class="req">*</span><input id="plWo" class="tin" placeholder="PM25-173073" autocomplete="off"></label>
+    <label class="st-l">${esc(_tx('Machine'))} <span class="req">*</span><select id="plLoc" class="tin"></select></label>
+    <label class="st-l pl-wide">${esc(_tx('Equipment'))} <span class="req">*</span><select id="plEq" class="tin"></select></label>
+    <label class="st-l pl-pm">${esc(_tx('Frequency'))} <span class="req">*</span><select id="plFq" class="tin">${PLATE_FQ.map(f=>`<option value="${f[0]}">${esc(_tx(f[1]))}</option>`).join('')}</select></label>
+    <label class="st-l pl-pm">${esc(_tx('Date performed'))} <span class="req">*</span><input id="plDate" class="tin" type="date"></label>
+    <label class="st-l pl-cm">${esc(_tx('Reported on'))}<input id="plRd" class="tin" type="date"></label>
+    <label class="st-l pl-cm">${esc(_tx('Date performed'))} <span class="req">*</span><input id="plDate2" class="tin" type="date"></label>
+    <label class="st-l pl-cm pl-wide">${esc(_tx('Equipment code / detail'))}<input id="plCode" class="tin" placeholder="CAR1-PACK-KUKA-GRIP" autocomplete="off"></label>
+    <label class="st-l pl-cm pl-wide">${esc(_tx('Problem reported'))} <span class="req">*</span><textarea id="plProb" class="tin" rows="2"></textarea></label>
+    <label class="st-l pl-cm pl-wide">${esc(_tx('Cause'))}<textarea id="plCause" class="tin" rows="2"></textarea></label>
+    <label class="st-l pl-cm pl-wide">${esc(_tx('Repair done'))} <span class="req">*</span><textarea id="plFix" class="tin" rows="2"></textarea></label>
+    <label class="st-l pl-cm">${esc(_tx('Status'))}<select id="plSt" class="tin"><option value="Complete">${esc(_tx('Complete'))}</option><option value="In progress">${esc(_tx('In progress'))}</option></select></label>
+    <label class="st-l pl-pm pl-wide">${esc(_tx('Activity description'))}<textarea id="plDesc" class="tin" rows="2"></textarea></label>
+  </div>
+  <div class="pl-cm pl-sp"><div class="st-l">${esc(_tx('Spare parts used'))}</div><div id="plSpRows"></div><button type="button" class="btn btn-soft" id="plSpAdd">+ ${esc(_tx('Add part'))}</button></div>
+  <div id="plReq" class="pl-req"></div></div>`;
+  box.querySelectorAll('.pl-tabs button').forEach(b=>b.onclick=()=>plSetType(b.dataset.t));
+  plQ('#plLoc').onchange=e=>{choose('loc',e.target.value);plRefresh();};
+  plQ('#plEq').onchange=e=>{choose('equip',e.target.value);};
+  plQ('#plSpAdd').onclick=()=>{PLS.sp.push({c:'',n:'',u:'',q:''});plPaintSp();};
+  PLS.built=true;
+}
+function plPaintSp(){
+  const w=plQ('#plSpRows');if(!w)return;
+  w.innerHTML=PLS.sp.map((r,i)=>`<div class="pl-sprow" data-i="${i}"><input class="tin" data-f="c" placeholder="${escAttr(_tx('Part no.'))}" value="${escAttr(r.c)}"><input class="tin" data-f="n" placeholder="${escAttr(_tx('Part name'))}" value="${escAttr(r.n)}"><input class="tin" data-f="u" placeholder="${escAttr(_tx('Unit'))}" value="${escAttr(r.u)}"><input class="tin" data-f="q" placeholder="${escAttr(_tx('Qty'))}" inputmode="decimal" value="${escAttr(r.q)}"><button type="button" class="icon-btn del" data-del="${i}" aria-label="Delete">🗑</button></div>`).join('');
+  w.querySelectorAll('.pl-sprow').forEach(r=>{const i=+r.dataset.i;r.querySelectorAll('input').forEach(inp=>inp.oninput=()=>{PLS.sp[i][inp.dataset.f]=inp.value;});r.querySelector('[data-del]').onclick=()=>{PLS.sp.splice(i,1);plPaintSp();};});
+}
+function plSetType(t){
+  PLS.type=t;sel.system=t;
+  document.querySelectorAll('#plateField .pl-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  const f=$('#plateField');if(f){f.classList.toggle('is-cm',t==='CM');}
+  plSlots();plReqPaint();
+}
+function plSlots(){
+  const on=isPlate(sel.project),cm=PLS.type==='CM';
+  const slots=document.querySelectorAll('#panel-add .imgs .imgslot');
+  const caps=[['Work order form (PDF or image)',true],['Before repair photo',cm],['After repair photo',cm],['',false]];
+  slots.forEach((sl,i)=>{
+    const cap=sl.querySelector('.cap');
+    if(cap&&cap.dataset.o===undefined)cap.dataset.o=cap.innerHTML;
+    if(on){sl.style.display=caps[i][1]?'':'none';if(cap&&caps[i][0])cap.innerHTML=`<span class="tagn">${i===0?'1':i===1?'2':'3'}</span> ${esc(_tx(caps[i][0]))} <span class="req">*</span>`;}
+    else{sl.style.display='';if(cap&&cap.dataset.o!==undefined)cap.innerHTML=cap.dataset.o;}
+  });
+  const fm=$('#fileMain');if(fm)fm.accept=on?'image/*,application/pdf':'image/*';
+}
+function plReqPaint(){
+  const e=plQ('#plReq');if(!e)return;
+  const cm=PLS.type==='CM';const n=(imgMain?1:0)+(cm?(imgSticker?1:0)+(img3?1:0):0),need=cm?3:1;
+  e.innerHTML=`<b>${esc(_tx('Attachments'))}: ${n}/${need}</b> — ${esc(_tx('Required'))}: ${esc(_tx('Work order form (PDF or image)'))}${cm?', '+esc(_tx('Before repair photo'))+', '+esc(_tx('After repair photo')):''}`;
+  e.classList.toggle('ok',n>=need);
+}
+function plRefresh(){
+  const box=$('#plateField');if(!box||!PLS.built)return;
+  const ms=ccMaster(sel.project);
+  const locs=uniq(ms.map(m=>m.locName));
+  const sig=locs.join('|')+'#'+sel.loc;
+  const L=plQ('#plLoc');
+  if(L.dataset.sig!==locs.join('|')){L.dataset.sig=locs.join('|');L.innerHTML=`<option value="">${esc(_tx('Select location'))}</option>`+locs.map(l=>`<option value="${escAttr(l)}">${esc(l)}</option>`).join('');}
+  L.value=sel.loc||'';
+  const eqs=sel.loc?uniq(ms.filter(m=>m.locName===sel.loc).map(m=>m.equipment)):[];
+  const E=plQ('#plEq');
+  if(E.dataset.sig!==sig){E.dataset.sig=sig;E.innerHTML=`<option value="">—</option>`+eqs.map(x=>`<option value="${escAttr(x)}">${esc(x)}</option>`).join('');}
+  E.value=eqs.includes(sel.equip)?sel.equip:'';
+}
+function paintPlate(){
+  const panel=$('#panel-add');if(!panel)return;
+  const on=isPlate(sel.project);
+  panel.classList.toggle('pl-mode',on);
+  let box=$('#plateField');
+  if(!on){if(box)box.style.display='none';plSlots();return;}
+  if(!box){box=document.createElement('div');box.id='plateField';box.className='card';const first=panel.querySelector('.card');first.parentNode.insertBefore(box,first.nextSibling);}
+  if(!PLS.built||!box.firstChild)plateBuild(box);
+  box.style.display='';
+  sel.system=PLS.type;
+  if(!plQ('#plDate').value)plQ('#plDate').value=plQ('#plDate2').value=isoOf(new Date());
+  plRefresh();plSlots();plReqPaint();plPaintSp();
+}
+function plRead(){
+  if(PLS.type==='PM')return JSON.stringify({t:'PM',wo:plQ('#plWo').value.trim(),fq:plQ('#plFq').value,d:plQ('#plDate').value,desc:plQ('#plDesc').value.trim()});
+  return JSON.stringify({t:'CM',wo:plQ('#plWo').value.trim(),rd:plQ('#plRd').value,code:plQ('#plCode').value.trim(),prob:plQ('#plProb').value.trim(),cause:plQ('#plCause').value.trim(),fix:plQ('#plFix').value.trim(),d:plQ('#plDate2').value,st:plQ('#plSt').value,sp:PLS.sp.filter(r=>r.c||r.n).map(r=>({c:r.c.trim(),n:r.n.trim(),u:r.u.trim(),q:String(r.q).trim()}))});
+}
+function plLoad(json,system){
+  let o=null;try{o=JSON.parse(json||'{}');}catch(e){}
+  if(!o||!o.t)return;
+  paintPlate();plSetType(o.t);
+  plQ('#plWo').value=o.wo||'';
+  if(o.t==='PM'){plQ('#plFq').value=o.fq||'W1';plQ('#plDate').value=o.d||'';plQ('#plDesc').value=o.desc||'';}
+  else{plQ('#plRd').value=o.rd||'';plQ('#plCode').value=o.code||'';plQ('#plProb').value=o.prob||'';plQ('#plCause').value=o.cause||'';plQ('#plFix').value=o.fix||'';plQ('#plDate2').value=o.d||'';plQ('#plSt').value=o.st||'Complete';PLS.sp=(o.sp||[]).map(r=>({c:r.c||'',n:r.n||'',u:r.u||'',q:r.q||''}));plPaintSp();}
+  plRefresh();plReqPaint();
+}
+function plReset(){
+  PLS.type='PM';PLS.sp=[];
+  const b=$('#plateField');if(b&&PLS.built){b.querySelectorAll('input,textarea').forEach(i=>{if(i.type!=='file')i.value='';});plQ('#plSt').value='Complete';plQ('#plFq').value='W1';b.classList.remove('is-cm');b.querySelectorAll('.pl-tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t==='PM'));}
+}
+function plValidate(){
+  const v=s=>plQ(s).value.trim(),cm=PLS.type==='CM';
+  if(!v('#plWo')){toast('Please enter the work order number',false);plQ('#plWo').focus();return false;}
+  if(!sel.loc){toast('Please select a machine',false);return false;}
+  if(!sel.equip){toast('Please select equipment',false);return false;}
+  if(!cm&&!v('#plDate')){toast('Please enter the date performed',false);return false;}
+  if(cm){if(!v('#plDate2')){toast('Please enter the date performed',false);return false;}if(!v('#plProb')){toast('Please enter the problem reported',false);return false;}if(!v('#plFix')){toast('Please enter what was repaired',false);return false;}}
+  if(imgBusy>0){toast('A photo is still being processed, please wait a moment',false);return false;}
+  if(!imgMain){toast('Please attach the work order form',false);return false;}
+  if(cm&&(!imgSticker||!img3)){toast('Please attach the before and after photos',false);return false;}
+  return true;
+}
+async function plPdfToJpeg(file){
+  await loadLib('pdfjs');
+  try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){}
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  const pg=await pdf.getPage(1);const v0=pg.getViewport({scale:1});
+  const k=Math.min(3,1900/Math.max(v0.width,v0.height));const vp=pg.getViewport({scale:k});
+  const c=document.createElement('canvas');c.width=Math.round(vp.width);c.height=Math.round(vp.height);
+  const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);
+  await pg.render({canvasContext:g,viewport:vp}).promise;
+  const d=c.toDataURL('image/jpeg',0.82);c.width=c.height=0;return d;
+}
+(function(){
+  const _rc=readChecks;readChecks=function(){return isPlate(sel.project)?plRead():_rc();};
+  const _fc=fillChecks;fillChecks=function(j){if(isPlate(sel.project))plLoad(j);else _fc(j);};
+  const _dn=detectNewFields;detectNewFields=function(){return isPlate(sel.project)?[]:_dn();};
+  const _pr=paintReadingField;paintReadingField=function(){_pr();try{paintPlate();}catch(e){}};
+  const _rf=resetForm;resetForm=function(){plReset();_rf();try{paintPlate();}catch(x){}};
+  document.addEventListener('click',e=>{if(e.target&&e.target.id==='saveBtn'&&isPlate(sel.project)){sel.system=PLS.type;if(!plValidate()){e.stopImmediatePropagation();e.preventDefault();}}},true);
+  /* ไฟล์ใบงาน: รับ PDF (แปลงหน้าแรกเป็นรูป) และรูปความละเอียดสูงกว่าปกติ เพื่อให้ตัวหนังสือในใบงานอ่านออก */
+  document.addEventListener('change',async e=>{
+    const t=e.target;if(!t||t.id!=='fileMain'||!isPlate(sel.project))return;
+    const f=t.files&&t.files[0];if(!f)return;
+    e.stopImmediatePropagation();
+    const lbl=$('#dropMain');imgBusy++;lbl.classList.add('img-busy');
+    try{
+      const data=/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)?await plPdfToJpeg(f):await compressImage(f,1900,900000);
+      imgMain=data;lbl.classList.add('has-img');lbl.style.backgroundImage=`url(${data})`;const ph=lbl.querySelector('.ph-content');if(ph)ph.style.display='none';
+    }catch(err){t.value='';toast('Could not read this PDF. Please attach a photo or screenshot of the work order instead',false);}
+    finally{imgBusy--;lbl.classList.remove('img-busy');plReqPaint();}
+  },true);
+  ['fileSticker','fileImg3'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('change',()=>setTimeout(plReqPaint,900));});
+})();
+
+/* ── รายงาน Word ของโครงการเครื่องผลิตแผ่นป้ายทะเบียน ── */
+const PLATE_COL={H:'#4F9DDE',A:'#F28C38',R:'#9AA0A6',O:'#F5C542'};
+const plFmtD=iso=>{const d=parseAnyDate(iso);return d?pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear():'';};
+const plNum=s=>{const n=parseFloat(String(s).replace(/,/g,''));return isFinite(n)?n:null;};
+function plRecs(list){
+  return list.map(e=>{const o=plParse(e);return o?{e,o,d:o.d||isoOf(new Date(e.createdAt)),loc:e.locName||'',eq:e.equipment||''}:null;}).filter(Boolean).sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:String(a.o.wo).localeCompare(String(b.o.wo)));
+}
+/* บรรทัด "ชื่อ n1 n2 ..." (วางจาก Excel ได้) → [{m,v:[...]}]; บรรทัดที่ไม่มีตัวเลขเป็นชื่อเครื่อง (ใช้กับ HARO) */
+function plParseRows(txt,nCols){
+  const out=[];let cur=null;const groups={};
+  String(txt||'').split(/\r?\n/).forEach(ln=>{
+    ln=ln.trim();if(!ln)return;
+    const parts=ln.split(/[\t,;]+|\s+/).map(x=>x.trim()).filter(x=>x!=='');
+    let nums=[],name=[];
+    for(let i=parts.length-1;i>=0;i--){const n=plNum(parts[i]);if(n!==null&&nums.length<nCols)nums.unshift(n);else{name=parts.slice(0,i+1);break;}}
+    if(!name.length&&parts.length===1&&nums.length===1){name=[parts[0]];nums=[];}
+    if(nums.length===nCols&&name.length){const r={m:name.join(' '),v:nums};if(cur){(groups[cur]=groups[cur]||[]).push(r);}out.push(r);}
+    else if(!nums.length&&parts.length){cur=parts.join(' ');groups[cur]=groups[cur]||[];}
+  });
+  return {rows:out,groups};
+}
+function plCanvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,w,h);return {c,g};}
+async function plPng(c){const b=await new Promise(r=>c.toBlob(r,'image/png'));const ab=await b.arrayBuffer();const o={buf:ab,w:c.width,h:c.height};c.width=c.height=0;return o;}
+async function plBarChart(title,rows,names,colors){
+  const W=1100,H=520,{c,g}=plCanvas(W,H);g.font='bold 22px sans-serif';g.fillStyle='#222';g.textAlign='center';g.fillText(title,W/2,32);
+  const L=80,R=30,T=60,B=90,pw=W-L-R,ph=H-T-B;let mx=0;rows.forEach(r=>r.v.forEach(x=>{if(x>mx)mx=x;}));if(!mx)mx=1;
+  const st=Math.pow(10,Math.floor(Math.log10(mx)));let top=Math.ceil(mx/st)*st;if(top/st<3)top=Math.ceil(mx/(st/2))*(st/2);
+  g.font='14px sans-serif';g.textAlign='right';g.strokeStyle='#ddd';g.fillStyle='#555';
+  for(let i=0;i<=5;i++){const y=T+ph-ph*i/5;g.beginPath();g.moveTo(L,y);g.lineTo(W-R,y);g.stroke();g.fillText(String(Math.round(top*i/5)),L-8,y+5);}
+  const gw=pw/Math.max(1,rows.length),bw=Math.min(40,gw*0.7/names.length);
+  rows.forEach((r,i)=>{const x0=L+gw*i+(gw-bw*names.length)/2;r.v.forEach((v,k)=>{const bh=ph*v/top;g.fillStyle=colors[k];g.fillRect(x0+bw*k,T+ph-bh,bw-2,bh);g.fillStyle='#333';g.textAlign='center';g.font='11px sans-serif';g.fillText(String(v),x0+bw*k+bw/2,T+ph-bh-4);});g.fillStyle='#333';g.font='14px sans-serif';g.textAlign='center';g.fillText(r.m,L+gw*i+gw/2,T+ph+22);});
+  names.forEach((n,k)=>{const x=W/2-names.length*60+k*130;g.fillStyle=colors[k];g.fillRect(x,H-34,16,16);g.fillStyle='#333';g.textAlign='left';g.font='15px sans-serif';g.fillText(n,x+22,H-21);});
+  return plPng(c);
+}
+async function plLineChart(title,rows,names,colors){
+  const W=1100,H=520,{c,g}=plCanvas(W,H);g.font='bold 22px sans-serif';g.fillStyle='#222';g.textAlign='center';g.fillText(title,W/2,32);
+  const L=80,R=30,T=60,B=90,pw=W-L-R,ph=H-T-B;let mx=0;rows.forEach(r=>r.v.forEach(x=>{if(x>mx)mx=x;}));if(!mx)mx=1;const top=mx*1.15;
+  g.font='14px sans-serif';g.textAlign='right';g.strokeStyle='#ddd';g.fillStyle='#555';
+  for(let i=0;i<=5;i++){const y=T+ph-ph*i/5;g.beginPath();g.moveTo(L,y);g.lineTo(W-R,y);g.stroke();g.fillText((top*i/5).toFixed(top<5?2:0),L-8,y+5);}
+  const step=pw/Math.max(1,rows.length-1);
+  names.forEach((n,k)=>{g.strokeStyle=colors[k];g.lineWidth=3;g.beginPath();rows.forEach((r,i)=>{const x=rows.length>1?L+step*i:L+pw/2,y=T+ph-ph*r.v[k]/top;i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();rows.forEach((r,i)=>{const x=rows.length>1?L+step*i:L+pw/2,y=T+ph-ph*r.v[k]/top;g.fillStyle=colors[k];g.beginPath();g.arc(x,y,4,0,7);g.fill();g.font='11px sans-serif';g.fillStyle='#333';g.textAlign='center';g.fillText(String(r.v[k]),x,y-8);});});
+  g.fillStyle='#333';g.font='14px sans-serif';g.textAlign='center';rows.forEach((r,i)=>g.fillText(r.m,rows.length>1?L+step*i:L+pw/2,T+ph+22));
+  names.forEach((n,k)=>{const x=W/2-names.length*80+k*170;g.fillStyle=colors[k];g.fillRect(x,H-34,16,16);g.fillStyle='#333';g.textAlign='left';g.font='15px sans-serif';g.fillText(n,x+22,H-21);});
+  return plPng(c);
+}
+async function plPieChart(title,vals){
+  const W=900,H=520,{c,g}=plCanvas(W,H);g.font='22px sans-serif';g.fillStyle='#222';g.textAlign='center';g.fillText(title,W/2,32);
+  const keys=['H','A','R','O'],tot=vals.reduce((a,b)=>a+b,0);
+  if(tot>0){let a0=-Math.PI/2;vals.forEach((v,i)=>{if(!v)return;const a1=a0+Math.PI*2*v/tot;g.fillStyle=PLATE_COL[keys[i]];g.beginPath();g.moveTo(W/2,H/2+10);g.arc(W/2,H/2+10,170,a0,a1);g.closePath();g.fill();g.strokeStyle='#fff';g.lineWidth=2;g.stroke();const am=(a0+a1)/2;g.fillStyle='#222';g.font='bold 17px sans-serif';g.textAlign='center';g.fillText(Math.round(v/tot*100)+'%',W/2+Math.cos(am)*120,H/2+10+Math.sin(am)*120+6);a0=a1;});}
+  keys.forEach((k,i)=>{const x=W/2-190+i*100;g.fillStyle=PLATE_COL[k];g.fillRect(x,H-36,16,16);g.fillStyle='#333';g.font='15px sans-serif';g.textAlign='left';g.fillText('Sum of '+k,x+22,H-23);});
+  return plPng(c);
+}
+/* หน้าฟอร์ม CM ที่สแกน: แถบลายเซ็น/วันที่อยู่ท้ายฟอร์ม ตัดมาใช้ในหน้ารูปก่อน/หลังซ่อม (ถ้าสัดส่วนภาพไม่ใช่ A4 ถือว่าไม่ใช่ฟอร์มสแกนเต็มหน้า → ไม่ตัด) */
+async function cropSignatureStrip(buf){
+  const url=URL.createObjectURL(new Blob([buf]));
+  try{
+    const img=await new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=url;});
+    const W=img.naturalWidth,H=img.naturalHeight,r=H/W;if(r<1.3||r>1.55)return null;
+    const sx=Math.round(W*PL_SIG.x0),sw=Math.round(W*(PL_SIG.x1-PL_SIG.x0)),sy=Math.round(H*PL_SIG.y0),sh=Math.round(H*(PL_SIG.y1-PL_SIG.y0));
+    const c=document.createElement('canvas');c.width=sw;c.height=sh;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,sw,sh);g.drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
+    const b=await new Promise(res=>c.toBlob(res,'image/jpeg',0.85));const ab=await b.arrayBuffer();c.width=c.height=0;return {buf:ab,w:sw,h:sh};
+  }finally{URL.revokeObjectURL(url);}
+}
+const PL_SIG={x0:0.05,x1:0.95,y0:0.8115,y1:0.8555};
+async function plFetchBuf(url,sz){
+  if(!url)return null;
+  try{
+    if(String(url).startsWith('data:')){const bin=atob(url.split(',')[1]);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer;}
+    const m=String(url).match(/[-\w]{25,}/);const u=m?DRIVE_THUMB+m[0]+'&sz=w'+sz:url;
+    const r=await api('fetchImageAsBase64',{url:u});if(!r||!r.ok||!r.base64)return null;
+    const bin=atob(r.base64);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a.buffer;
+  }catch(e){return null;}
+}
+function plDefaultHeading(project,recs){
+  let a='',b='';recs.forEach(v=>{if(!a||v.d<a)a=v.d;if(!b||v.d>b)b=v.d;});
+  const da=parseAnyDate(a),db=parseAnyDate(b);
+  const per=da&&db?`ประจำเดือน ${TH_MONTHS[db.getMonth()]} ${db.getFullYear()+543}\n(ระหว่างวันที่ ${da.getDate()} ${TH_MONTHS[da.getMonth()]} ${da.getFullYear()+543} - ${db.getDate()} ${TH_MONTHS[db.getMonth()]} ${db.getFullYear()+543})`:'';
+  return ['สรุปรายงานการปฏิบัติงานบำรุงรักษาและซ่อมแซมแก้ไขเครื่องจักรผลิตแผ่นป้ายทะเบียนรถแบบอัตโนมัติ',per].filter(Boolean).join('\n');
+}
+function plPmRows(recs,planned){
+  const pm=recs.filter(v=>v.o.t==='PM');const tree={};
+  pm.forEach(v=>{const L=v.loc||'-',E=v.eq||'-',F=v.o.fq||'';((tree[L]=tree[L]||{})[E]=tree[L][E]||{})[F]=(tree[L][E][F]||0)+1;});
+  const FQO={W1:0,M1:1,M3:2,Y1:3},out=[];
+  Object.keys(tree).forEach(L=>Object.keys(tree[L]).forEach(E=>Object.keys(tree[L][E]).sort((a,b)=>(FQO[a]??9)-(FQO[b]??9)).forEach(F=>{const done=tree[L][E][F],key=L+'|'+E+'|'+F;const p=planned&&planned[key]!==undefined&&planned[key]!==''?+planned[key]:done;out.push({L,E,F,key,done,plan:p});})));
+  return out;
+}
+async function openPlateReport(){
+  const list=getSavedFilteredList();
+  const projects=uniq(list.map(e=>e.project).filter(Boolean));
+  if(projects.length!==1){toast('Filter to one project first',false);return;}
+  const recs=plRecs(list);
+  if(!recs.length){toast('No PM / CM work orders in the current list',false);return;}
+  let pi={};try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok)pi=(r.info||[]).find(x=>x.project===projects[0])||{};}catch(e){}
+  let rd={};try{rd=JSON.parse(pi.reportData||'{}')||{};}catch(e){rd={};}
+  const saved=String(pi.reportTitle||'');
+  const heading=/\n/.test(saved)?saved:plDefaultHeading(projects[0],recs);
+  const rows=plPmRows(recs,rd.planned);
+  const {dlg,body,foot}=simpleDlg('plDlg',_tx('License plate machine report (PM/CM)'),680);
+  const ta=(id,lbl,val,rw,ph)=>`<label class="st-l">${esc(_tx(lbl))}<textarea id="${id}" class="tin" rows="${rw}" placeholder="${escAttr(ph||'')}">${esc(val||'')}</textarea></label>`;
+  body.innerHTML=`<div class="st-hint">${esc(PN(projects[0]))} · PM ${recs.filter(v=>v.o.t==='PM').length} · CM ${recs.filter(v=>v.o.t==='CM').length}</div>
+  <label class="st-l">${esc(_tx('Machine status summary'))}<input id="plStat" class="tin" value="${escAttr(rd.stat||'The machine status can produce plates normally on both machines (Car and Motorcycle).')}"></label>
+  ${ta('plInc','Major incidents and service interruptions',rd.inc,3,'CAR1\nThe OCR malfunction ...')}
+  <label class="st-l">${esc(_tx('Safety and security issues'))}<input id="plSaf" class="tin" value="${escAttr(rd.saf||'N/A')}"></label>
+  <details class="pl-det"><summary>${esc(_tx('Planned PM tasks (default = completed)'))}</summary><div id="plPlan">${rows.map((r,i)=>`<div class="pl-planrow"><span>${esc(r.L)} · ${esc(r.E)} · ${esc(r.F)}</span><input class="tin" data-k="${escAttr(r.key)}" inputmode="numeric" value="${escAttr(String(r.plan))}"></div>`).join('')}</div></details>
+  ${ta('plHaro','HARO (machine name line, then: Month H A R O)',rd.haro,6,'MOTO1\nJanuary 0 0 0 0\nFebruary 3 4 0 26\n\nCAR1\nJanuary 1 17 0 1')}
+  ${ta('plProd','Production (Month MOTO1 CAR1)',rd.prod,4,'Jan 12000 30000\nFeb 11500 28000')}
+  ${ta('plDef','Defect rate (Month MOTO1 CAR1)',rd.def,4,'Jan 0.05 0.08\nFeb 0.03 0.1')}
+  <label class="st-l">${esc(_tx('Appendix A image (master plan, optional)'))}<input id="plAppA" type="file" accept="image/*" class="tin"></label>
+  <label class="st-chk"><input type="checkbox" id="plForms" checked> ${esc(_tx('Attach work order forms (Appendix B / C)'))}</label>`;
+  Object.assign(I18N_TH,{'Machine status summary':'สรุปสถานะเครื่อง','Major incidents and service interruptions':'เหตุขัดข้องสำคัญในเดือน','Safety and security issues':'ประเด็นด้านความปลอดภัย','Planned PM tasks (default = completed)':'จำนวนงาน PM ที่วางแผน (ค่าเริ่มต้น = ทำแล้ว)','HARO (machine name line, then: Month H A R O)':'HARO (บรรทัดชื่อเครื่อง แล้วตามด้วย เดือน H A R O)','Production (Month MOTO1 CAR1)':'ยอดผลิต (เดือน MOTO1 CAR1)','Defect rate (Month MOTO1 CAR1)':'อัตราของเสีย (เดือน MOTO1 CAR1)','Appendix A image (master plan, optional)':'ภาพภาคผนวก A (แผน PM, ไม่บังคับ)','Attach work order forms (Appendix B / C)':'แนบใบงาน (ภาคผนวก B / C)'});
+  foot.style.display='';foot.innerHTML=`<button class="btn btn-primary" id="plGo">${esc(_tx('Create Word report'))}</button>`;
+  $('#plGo').onclick=async()=>{
+    const planned={};dlg.querySelectorAll('#plPlan input').forEach(i=>{planned[i.dataset.k]=i.value;});
+    const data={stat:$('#plStat').value,inc:$('#plInc').value,saf:$('#plSaf').value,haro:$('#plHaro').value,prod:$('#plProd').value,def:$('#plDef').value,planned};
+    let appA=null;const f=$('#plAppA').files&&$('#plAppA').files[0];
+    if(f){try{appA=await compressImage(f,1800,900000);}catch(e){appA=null;}}
+    const forms=$('#plForms').checked;dlg.style.display='none';
+    try{await api(ACT.saveReportInfo,{row:{project:projects[0],reportData:JSON.stringify(data)}});}catch(e){}
+    generatePlateReport({project:projects[0],recs,data,appA,forms});
+  };
+}
+async function generatePlateReport(opt){
+  try{await loadLib('docx');}catch(e){toast('Could not load the Word library. Check your connection and try again',false);return;}
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,ImageRun,AlignmentType,BorderStyle,WidthType,Header,Footer,PageNumber,PageBreak,TableLayoutType,VerticalAlign}=docx;
+  startWarpAnimation();setWarpStatus('Preparing data...');
+  try{
+    const PAGE={width:11906,height:16838},MARGIN={top:1500,bottom:900,left:1130,right:1130,header:400,footer:300};
+    const CONTENT=PAGE.width-MARGIN.left-MARGIN.right,FONT='Times New Roman',FT='TH Sarabun New';
+    const T=(t,o={})=>new TextRun({text:String(t),font:o.font||FONT,size:o.size||22,bold:!!o.bold,color:o.color||'000000'});
+    const P=(t,o={})=>new Paragraph({alignment:o.al,keepNext:!!o.kn,spacing:{before:o.b??0,after:o.a??80},indent:o.ind?{left:o.ind}:undefined,children:Array.isArray(t)?t:[T(t,o)]});
+    const H1=t=>P(t,{size:28,bold:true,al:AlignmentType.CENTER,b:120,a:200,kn:true}),H2=t=>P(t,{size:24,bold:true,b:200,a:100,kn:true}),H3=t=>P(t,{size:22,bold:true,b:120,a:80,kn:true});
+    const brk=()=>new Paragraph({children:[new PageBreak()]});
+    const bd={style:BorderStyle.SINGLE,size:4,color:'000000'},B={top:bd,bottom:bd,left:bd,right:bd};
+    const nn={style:BorderStyle.NONE,size:0,color:'FFFFFF'},none=()=>({top:nn,bottom:nn,left:nn,right:nn,insideHorizontal:nn,insideVertical:nn});
+    const cell=(t,w,o={})=>new TableCell({borders:B,width:{size:w,type:WidthType.DXA},rowSpan:o.rs,columnSpan:o.cs,verticalAlign:VerticalAlign.CENTER,shading:o.fill?{fill:o.fill,type:'clear',color:'auto'}:undefined,margins:{top:30,bottom:30,left:70,right:70},children:[new Paragraph({alignment:o.al||AlignmentType.CENTER,children:[T(t,{size:o.size||20,bold:!!o.bold,font:o.font})]})]});
+    const table=(W,rows)=>new Table({width:{size:W.reduce((a,b)=>a+b,0),type:WidthType.DXA},columnWidths:W,layout:TableLayoutType.FIXED,rows});
+    const HF='D9D9D9',HY='FFF2CC';
+    let logo=null;try{if(LOGO_SRC&&LOGO_SRC.startsWith('data:')){const bin=atob(LOGO_SRC.split(',')[1]);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);logo=u.buffer;}}catch(e){logo=null;}
+    const logoP=(w,h)=>logo?new Paragraph({children:[new ImageRun({data:logo,type:'png',transformation:{width:w,height:h}})]}):new Paragraph({children:[T('AMR ASIA',{bold:true,color:'E2231A',size:26})]});
+    const recs=opt.recs,pm=recs.filter(v=>v.o.t==='PM'),cm=recs.filter(v=>v.o.t==='CM');
+    const mon=(()=>{let b='';recs.forEach(v=>{if(!b||v.d>b)b=v.d;});const d=parseAnyDate(b);return d?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear():'';})();
+    const kids=[];const tables=[],figs=[];
+    /* สารบัญ (รายการหัวข้อ) */
+    const toc=['1  Executive Summary','   1.1  Executive Summary','   1.2  Major incidents and service interruptions in the month','   1.3  Safety and security issues','2  Monthly Reviews of Maintenance Services','   2.1  Overall Preventive Maintenance','   2.2  Overall AMR Corrective Maintenance','   2.3  Equipment Replacement','3  Production summary','4  Appendix','   Appendix A: Master plan of AMR PM','   Appendix B: PM Work Order','   Appendix C: CM Work Order'];
+    kids.push(P('Table of Contents',{size:26,bold:true,al:AlignmentType.CENTER,a:200}),...toc.map(t=>P(t,{size:22,a:40})),brk());
+    /* 1 */
+    kids.push(H1('1   Executive Summary'),H2('1.1   Executive Summary'),P('-  '+(opt.data.stat||'-'),{ind:200}),H2('1.2   Major incidents and service interruptions in the month'));
+    const inc=String(opt.data.inc||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    if(!inc.length)kids.push(P('-  N/A',{ind:200}));
+    else inc.forEach(l=>{const head=/^[A-Za-z0-9_ -]{2,16}( machine)?:?$/.test(l);kids.push(head?P(l.replace(/:$/,'')+(/machine/i.test(l)?'':' machine'),{bold:true,b:120,ind:300,kn:true}):P('-  '+l,{ind:200}));});
+    kids.push(H2('1.3   Safety and security issues'),P('-  '+(opt.data.saf||'N/A'),{ind:200}),brk());
+    /* 2.1 PM */
+    const prow=plPmRows(recs,opt.data.planned);
+    kids.push(H1('2   Monthly Reviews of Maintenance Services'),H2('2.1   Overall Preventive Maintenance'),P('2.1.1   Summary of Preventive Maintenance',{size:20,bold:true}));
+    tables.push('Table 1 The Summary of AMR Preventive Maintenance '+mon);
+    kids.push(P('Table 1 The Summary of AMR Preventive Maintenance '+mon,{bold:true,al:AlignmentType.CENTER,b:100,a:100,kn:true}));
+    if(!prow.length)kids.push(P('No preventive maintenance work orders in this period.',{ind:200}));
+    else{
+      const W=[700,1700,1900,1900,1700,CONTENT-7900];const trs=[new TableRow({tableHeader:true,children:['Item','Department','Equipment Type','Description','Planed','Completed'].map((t,i)=>cell(t,W[i],{bold:true,fill:HF}))})];
+      const byL={};prow.forEach(r=>{((byL[r.L]=byL[r.L]||{})[r.E]=byL[r.L][r.E]||[]).push(r);});
+      let item=0,sp=0,sd=0;
+      Object.keys(byL).forEach(L=>{const eqs=Object.keys(byL[L]);const nL=eqs.reduce((a,E)=>a+byL[L][E].length,0);let firstL=true;
+        eqs.forEach(E=>{const fs=byL[L][E];item++;fs.forEach((r,i)=>{sp+=r.plan;sd+=r.done;const c=[];
+          if(i===0)c.push(cell(String(item),W[0],{rs:fs.length}));
+          if(firstL){c.push(cell(L,W[1],{rs:nL}));firstL=false;}
+          if(i===0)c.push(cell(E,W[2],{rs:fs.length}));
+          c.push(cell(r.F.replace(/^(\w)(\d)$/,'$2$1'),W[3]),cell(String(r.plan),W[4]),cell(String(r.done),W[5]));
+          trs.push(new TableRow({cantSplit:true,children:c}));});});});
+      trs.push(new TableRow({children:[cell('Sum',W[0]+W[1]+W[2]+W[3],{cs:4,fill:'FFFF00',bold:true}),cell(String(sp),W[4],{bold:true}),cell(String(sd),W[5],{bold:true})]}));
+      kids.push(table(W,trs));
+    }
+    kids.push(brk());
+    /* 2.2 CM */
+    kids.push(H2('2.2   Overall AMR Corrective Maintenance'),P('2.2.1   Summary of Corrective Maintenance:',{size:20,bold:true}));
+    tables.push('Table 2 The Summary of AMR Corrective Maintenance '+mon);
+    kids.push(P('Table 2 The Summary of AMR Corrective Maintenance '+mon,{bold:true,al:AlignmentType.CENTER,b:100,a:100,kn:true}));
+    if(!cm.length)kids.push(P('No corrective maintenance work orders in this period.',{ind:200}));
+    uniq(cm.map(v=>v.loc)).forEach(L=>{
+      const W=[700,1300,1500,2300,CONTENT-700-1300-1500-2300-1300,1300];const mine=cm.filter(v=>v.loc===L);
+      kids.push(P(L+' machine:',{bold:true,b:160,kn:true}));
+      kids.push(table(W,[new TableRow({tableHeader:true,children:['Item','Date','WO No.','Equipment','Problem Details','Status'].map((t,i)=>cell(t,W[i],{bold:true,fill:HF}))}),...mine.map((v,i)=>new TableRow({cantSplit:true,children:[cell(String(i+1),W[0]),cell(plFmtD(v.d),W[1]),cell(v.o.wo||'',W[2]),cell(v.o.code||v.eq,W[3]),cell(v.o.prob||'',W[4],{al:AlignmentType.LEFT,font:FT,size:22}),cell(v.o.st==='In progress'?'In progress':'Complete',W[5])]}))]));
+      const dn=mine.filter(v=>v.o.st!=='In progress').length;
+      kids.push(P([T('Summary '+L+' work order: ',{bold:true}),T('Total work '+mine.length+', Complete '+dn)],{b:120}));
+    });
+    /* HARO */
+    const haro=plParseRows(opt.data.haro,4),charts=[];
+    kids.push(H3('2.2.2   Summary of HARO:'));
+    tables.push('Table 3 The summary of HARO');
+    kids.push(P('Table 3 The summary of HARO',{bold:true,al:AlignmentType.CENTER,a:100,kn:true}));
+    const hm=Object.keys(haro.groups).filter(k=>haro.groups[k].length);
+    if(!hm.length)kids.push(P('No HARO data entered.',{ind:200}));
+    for(let gi=0;gi<hm.length;gi++){
+      const m=hm[gi],rs=haro.groups[m],W=[700,2200,1400,1400,1400,1400,CONTENT-8500];
+      kids.push(P(m+' machine:',{bold:true,b:120,kn:true}),table(W,[new TableRow({tableHeader:true,children:['Item','Month','H','A','R','O','Total'].map((t,i)=>cell(t,W[i],{bold:true,fill:HF}))}),...rs.map((r,i)=>new TableRow({cantSplit:true,children:[cell(String(i+1),W[0]),cell(r.m,W[1]),...r.v.map((x,k)=>cell(String(x),W[2+k])),cell(String(r.v.reduce((a,b)=>a+b,0)),W[6])]}))]));
+      const sums=[0,1,2,3].map(k=>rs.reduce((a,r)=>a+r.v[k],0));
+      const png=await plPieChart('HARO '+m+' Year '+(mon.split(' ')[1]||''),sums);charts.push(png);
+      figs.push('Figure 2-'+(gi+1)+' The summary of HARO '+m);
+      kids.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:160,after:40},keepNext:true,children:[new ImageRun({data:png.buf,type:'png',transformation:{width:420,height:243}})]}),P('Figure 2-'+(gi+1)+' The summary of HARO '+m+' Year '+(mon.split(' ')[1]||''),{bold:true,al:AlignmentType.CENTER,a:200}));
+    }
+    kids.push(brk());
+    /* 2.3 อะไหล่ */
+    const rep=cm.filter(v=>(v.o.sp||[]).length);
+    kids.push(H2('2.3   Equipment Replacement'),P('The AMR warranty equipment was replaced during PM and CM in '+mon+', as mentioned in the table below.'));
+    tables.push('Table 4 The summary of the AMR equipment replaced in '+mon);
+    kids.push(P('Table 4 The summary of the AMR equipment replaced in '+mon,{bold:true,al:AlignmentType.CENTER,b:100,a:100,kn:true}));
+    if(!rep.length)kids.push(P('No equipment was replaced in this period.',{ind:200}));
+    else{const W=[600,1200,1300,1700,CONTENT-600-1200-1300-1700-1900-1100,1900,1100];
+      kids.push(table(W,[new TableRow({tableHeader:true,children:['Item','Date','WO No.','Equipment','Problem Details','Spare part replaced','Status'].map((t,i)=>cell(t,W[i],{bold:true,fill:HY}))}),...rep.map((v,i)=>new TableRow({cantSplit:true,children:[cell(String(i+1),W[0]),cell(plFmtD(v.d),W[1]),cell(v.o.wo||'',W[2]),cell(v.o.code||v.eq,W[3]),cell(v.o.prob||'',W[4],{al:AlignmentType.LEFT,font:FT,size:22}),cell(v.o.sp.map(s=>(s.n||s.c)+' '+(s.q||'')+' '+(s.u||'')).join('\n').replace(/\s+\n/g,'\n').trim(),W[5],{al:AlignmentType.LEFT,font:FT,size:22}),cell(v.o.st==='In progress'?'In progress':'Complete',W[6])]}))]));}
+    kids.push(brk());
+    /* 3 ผลิต */
+    kids.push(H1('3   Production summary'),H2('3.1   Number of plate production in '+mon));
+    const prod=plParseRows(opt.data.prod,2).rows,def=plParseRows(opt.data.def,2).rows;
+    if(prod.length){const png=await plBarChart('PRODUCTION SUMMARY',prod,['MOTO1','CAR1'],['#4F9DDE','#F28C38']);figs.push('Figure 3-1 Production summary chart in '+mon);kids.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:png.buf,type:'png',transformation:{width:560,height:264}})]}),P('Figure 3-1 Production summary chart in '+mon,{bold:true,al:AlignmentType.CENTER,a:200}));}
+    else kids.push(P('No production data entered.',{ind:200}));
+    kids.push(H2('3.2   Defect rate from production in '+mon));
+    if(def.length){const png=await plLineChart('MACHINE DEFECT RATE',def,['MOTO1','CAR1'],['#4F9DDE','#F28C38']);figs.push('Figure 3-2 Defect rate data in '+mon);kids.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:png.buf,type:'png',transformation:{width:560,height:264}})]}),P('Figure 3-2 Defect rate data in '+mon,{bold:true,al:AlignmentType.CENTER,a:200}));}
+    else kids.push(P('No defect rate data entered.',{ind:200}));
+    kids.push(brk());
+    /* 4 ภาคผนวก */
+    kids.push(H1('4   Appendix.'),P('Appendix A: Master plan of AMR PM',{bold:true,size:24,b:200}));
+    if(opt.appA){const k=await shrinkImage(await (await fetch(opt.appA)).arrayBuffer(),1800);const s=Math.min(CONTENT/15/k.w,860/k.h);kids.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:k.buf,type:'jpg',transformation:{width:Math.round(k.w*s*15)/1,height:Math.round(k.h*s*15)}})]}));}
+    /* ฟอร์มใบงาน */
+    const FW=Math.round(CONTENT/15),FH=870;
+    const fitImg=r=>{const k=Math.min(FW/r.w,FH/r.h);return{width:Math.round(r.w*k),height:Math.round(r.h*k)};};
+    const imgPage=(r)=>new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:r.buf,type:'jpg',transformation:fitImg(r)})]});
+    if(opt.forms){
+      const jobs=[];pm.forEach(v=>jobs.push({v,k:'pm',u:v.e.imgMain}));cm.forEach(v=>{jobs.push({v,k:'cmf',u:v.e.imgMain});jobs.push({v,k:'bef',u:v.e.imgSticker});jobs.push({v,k:'aft',u:v.e.img3});});
+      setWarpStatus('Loading images...');let n=0;
+      await runPool(jobs,4,async j=>{let r=null;try{const b=await plFetchBuf(j.u,j.k==='pm'||j.k==='cmf'?1600:1000);if(b){r=await shrinkImage(b,j.k==='pm'||j.k==='cmf'?1500:900);if(j.k==='cmf')j.v.sig=await cropSignatureStrip(b).catch(()=>null);}}catch(e){r=null;}j.r=r;j.v[j.k]=r;n++;if(n%4===0||n===jobs.length)setWarpStatus('Loading images... '+n+'/'+jobs.length);});
+      kids.push(brk(),P('Appendix B: PM Work Order',{bold:true,size:24,a:100}));
+      pm.forEach((v,i)=>{if(i)kids.push(brk());kids.push(v.pm?imgPage(v.pm):P('(Work order form not available) '+(v.o.wo||''),{al:AlignmentType.CENTER}));});
+      kids.push(brk(),P('Appendix C: CM Work Order',{bold:true,size:24,a:100}));
+      const BW=CONTENT;
+      cm.forEach((v,i)=>{
+        if(i)kids.push(brk());
+        kids.push(v.cmf?imgPage(v.cmf):P('(Work order form not available) '+(v.o.wo||''),{al:AlignmentType.CENTER}),brk());
+        /* หน้ารูปก่อน/หลังซ่อม เลียนแบบฟอร์ม: หัวกระดาษ + กรอบก่อนซ่อม + กรอบหลังซ่อม + แถวลายเซ็น (ตัดจากฟอร์ม CM) */
+        const bw=Math.round(BW/15)-20,imgCell=(r,lab)=>[new TableRow({children:[cell(lab,BW,{al:AlignmentType.LEFT,bold:true,fill:HF,font:FT,size:20})]}),new TableRow({cantSplit:true,children:[new TableCell({borders:B,width:{size:BW,type:WidthType.DXA},margins:{top:80,bottom:80,left:80,right:80},children:[new Paragraph({alignment:AlignmentType.CENTER,children:r?[new ImageRun({data:r.buf,type:'jpg',transformation:(()=>{const k=Math.min(420/r.w,300/r.h);return{width:Math.round(r.w*k),height:Math.round(r.h*k)};})()})]:[T('-')]})]})]})];
+        const sigRows=v.sig?[new TableRow({children:[new TableCell({borders:B,width:{size:BW,type:WidthType.DXA},margins:{top:20,bottom:20,left:40,right:40},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:v.sig.buf,type:'jpg',transformation:{width:bw-30,height:Math.round((bw-30)*v.sig.h/v.sig.w)}})]})]})]})]:[new TableRow({height:{value:900,rule:'atLeast'},children:[cell('Operator                                 Supervisor                                 Customer/Request By',BW,{size:18})]})];
+        kids.push(new Table({width:{size:BW,type:WidthType.DXA},columnWidths:[LW0(BW)],layout:TableLayoutType.FIXED,borders:none(),rows:[new TableRow({children:[new TableCell({borders:none(),width:{size:BW,type:WidthType.DXA},children:[new Paragraph({children:[logo?new ImageRun({data:logo,type:'png',transformation:{width:90,height:56}}):T('AMR ASIA',{bold:true,color:'E2231A'}),T('        Corrective Maintenance   ',{bold:true,size:22}),]}),P('(Corrective Maintenance Work Order)   '+(v.o.wo||''),{size:20,bold:true,ind:1500})]})]})]})
+        ,new Paragraph({children:[T(' ',{size:8})]}),new Table({width:{size:BW,type:WidthType.DXA},columnWidths:[BW],layout:TableLayoutType.FIXED,rows:[...imgCell(v.bef,'ภาพก่อนซ่อม (Before)'),...imgCell(v.aft,'ภาพหลังซ่อม (After)'),...sigRows]}));
+      });
+    }
+    function LW0(x){return x;}
+    const header=new Header({children:[new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:[2400,CONTENT-2400],layout:TableLayoutType.FIXED,borders:none(),rows:[new TableRow({children:[new TableCell({borders:none(),width:{size:2400,type:WidthType.DXA},children:[logoP(90,56)]}),new TableCell({borders:none(),width:{size:CONTENT-2400,type:WidthType.DXA},verticalAlign:VerticalAlign.CENTER,children:[new Paragraph({alignment:AlignmentType.CENTER,children:[T('Licence Plate Machine Maintenance Project',{bold:true,size:20})]})]})]})]})]});
+    const footer=new Footer({children:[new Paragraph({alignment:AlignmentType.RIGHT,children:[new TextRun({text:'Page ',font:FONT,size:18}),new TextRun({children:[PageNumber.CURRENT],font:FONT,size:18}),new TextRun({text:' of ',font:FONT,size:18}),new TextRun({children:[PageNumber.TOTAL_PAGES],font:FONT,size:18})]})]});
+    setWarpStatus('Building document...');
+    const doc=new Document({styles:{default:{document:{run:{font:FONT,size:22}}}},sections:[{properties:{page:{size:PAGE,margin:MARGIN}},headers:{default:header},footers:{default:footer},children:kids}]});
+    const blob=await Packer.toBlob(doc);
+    const fn=`License Plate Machine Report_${String(opt.project).split(/[_ ]/)[0].replace(/[^\w.-]/g,"")}_${fileStamp(Date.now())}.docx`;
+    finishWarpAnimation();
+    setTimeout(()=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Word document generated',true);setTimeout(closeWarpAnimation,1500);},800);
+  }catch(err){closeWarpAnimation();toast('Failed to generate report: '+((err&&err.message)||'unknown error'),false);console.error('generatePlateReport error:',err);}
+}
+
+
+/* ═══ Phase 37: แถบซ้าย 2 แถบ — "เอกสารรายงาน" (หน้าเดิม) และ "การจัดการงานภายใน OMA" (เฉพาะผู้รับผิดชอบ) ═══
+   OMA: แถวบน = หมวดงาน (A/B/C ไม่แสดงตัวอักษรนำหน้า) · แถวถัดมา = งานในหมวด · แต่ละงานเป็นหน้าเปล่า
+   ข้อมูลงานมาจาก Job Handover Checklist - Admin OMA เฉพาะรายการที่ผู้รับมอบงานคือ ศุภกฤต */
+const OM_OWNER='ศุภกฤต';
+const OM_GROUP={A:'งานธุรการ',B:'งานคลังอะไหล่และเครื่องมือ',C:'งานผู้ดูแลข้อมูลระบบ CMMS'};
+const OM_TASKS=[{"c": "A2.3", "sec": "A2 บันทึกในระบบ ERP", "n": "จัดทำใบเตรียมเบิกวัสดุ", "d": "จัดทำใบเตรียมเบิกและอีเมลส่ง Warehouse", "f": "เมื่อมีรายการ", "t": "เมื่อมีการขอเบิกของจาก ERP", "s": "ERP / อีเมล", "r": "Warehouse", "o": "ศุภกฤต (OMA)"}, {"c": "A5.1", "sec": "A5 อัปเดตข้อมูลในระบบ", "n": "อัปเดต AMR KPI Dashboard", "d": "", "f": "รายเดือน", "t": "", "s": "KPI Dashboard", "r": "Manager", "o": "ศุภกฤต (OMA)"}, {"c": "A5.2", "sec": "A5 อัปเดตข้อมูลในระบบ", "n": "OMA One Stop Service", "d": "- ข้อมูลโครงการ\n– ข้อมูลการเก็บเงิน การรับเงิน และ BG\n– ข้อมูลการเก็บเงิน การรับเงิน Solar Cell\n – KPI แผนก (Budget, การรับเงิน, การสำรวจความพึงพอใจ, การปิดโครงการ)\n– ข้อมูลพนักงานแผนก OMA", "f": "เมื่อมีการเปลี่ยนแปลง", "t": "เมื่อได้โครงการใหม่ / เมื่อข้อมูลเปลี่ยนแปลง", "s": "OMA One Stop Service", "r": "Project Lead / Manager", "o": "ศุภกฤต (OMA)"}, {"c": "A6.2", "sec": "A6 สิทธิ์การใช้งาน ERP", "n": "เปลี่ยนแปลงสิทธิ์ ERP", "d": "อีเมลขออนุมัติ และแจ้ง IT ดำเนินการ", "f": "เมื่อมีการเปลี่ยนแปลง", "t": "", "s": "แบบฟอร์ม / อีเมล", "r": "IT / Manager", "o": "ศุภกฤต (OMA) / อรุณี (GA)"}, {"c": "A7.1", "sec": "A7 งาน ISO", "n": "ควบคุมเอกสาร ISO แผนก แทน", "d": "จัดเก็บ ควบคุม ติดตามการจัดทำ ทำลาย ตามระเบียบปฏิบัติ", "f": "ต่อเนื่อง", "t": "", "s": "Central File", "r": "ผู้บริหารโครงการ, DCC AMR", "o": "ศุภกฤต (OMA)"}, {"c": "B2.1", "sec": "B2 ส่งซ่อม / เคลมอะไหล่และเครื่องมือเสีย", "n": "ขั้นที่ 1: เปิดใบงานใน CMMS MA", "d": "ใบงาน RO หรือ CL", "f": "เมื่อมีรายการ", "t": "", "s": "CMMS", "r": "Project Lead", "o": "ศุภกฤต (OMA)"}, {"c": "B2.2", "sec": "B2 ส่งซ่อม / เคลมอะไหล่และเครื่องมือเสีย", "n": "ขั้นที่ 2: จัดทำใบส่งอุปกรณ์ MA", "d": "", "f": "เมื่อมีรายการ", "t": "", "s": "-", "r": "Project Lead", "o": "ศุภกฤต (OMA)"}, {"c": "B2.3", "sec": "B2 ส่งซ่อม / เคลมอะไหล่และเครื่องมือเสีย", "n": "ขั้นที่ 3: ประสานผู้รับจ้างซ่อมเข้ารับ หรือนำส่ง MA", "d": "", "f": "เมื่อมีรายการ", "t": "", "s": "-", "r": "ผู้รับจ้างซ่อม", "o": "ศุภกฤต (OMA)"}, {"c": "B2.5", "sec": "B2 ส่งซ่อม / เคลมอะไหล่และเครื่องมือเสีย", "n": "ขั้นที่ 5: ติดตามใบเสนอราคา และเปิด PR ใน ERP", "d": "", "f": "เมื่อมีรายการ", "t": "", "s": "ERP", "r": "ผู้รับจ้างซ่อม, จัดซื้อ", "o": "ศุภกฤต (OMA) / GA"}, {"c": "B2.7", "sec": "B2 ส่งซ่อม / เคลมอะไหล่และเครื่องมือเสีย", "n": "ขั้นที่ 7: ปิดใบงานใน CMMS", "d": "", "f": "เมื่อมีรายการ", "t": "", "s": "CMMS", "r": "Project Lead", "o": "ศุภกฤต (OMA)"}, {"c": "B2.8", "sec": "B2 ส่งซ่อม / เคลมอะไหล่และเครื่องมือเสีย", "n": "ขั้นที่ 8: ตรวจรับงานใน ERP", "d": "เพื่อให้ผู้รับจ้างนำมาวางบิล", "f": "เมื่อมีรายการ", "t": "", "s": "ERP", "r": "ผู้รับจ้างซ่อม", "o": "ศุภกฤต (OMA)"}, {"c": "B2.9", "sec": "B2 ส่งซ่อม / เคลมอะไหล่และเครื่องมือเสีย", "n": "ขั้นที่ 9: อีเมลแจ้งทีมช่างว่าของซ่อมกลับมาแล้ว", "d": "", "f": "เมื่อมีรายการ", "t": "", "s": "อีเมล", "r": "ทีมช่าง / Project Lead", "o": "ศุภกฤต (OMA)"}, {"c": "B3.2", "sec": "B3 ตัดจำหน่าย / ส่งคืน", "n": "รวบรวมอะไหล่ที่เป็นครุภัณฑ์ลูกค้า และทำเอกสารส่งคืนลูกค้า", "d": "", "f": "เมื่อมีรายการ", "t": "", "s": "-", "r": "ลูกค้า / Project Lead / Manager", "o": "Warehouse / ศุภกฤต (OMA)"}, {"c": "B4.1", "sec": "B4 ควบคุมสต็อก", "n": "Monitor อะไหล่ประเภท Consumable เพื่อสั่งซื้อทดแทน /แทน", "d": "ประสานงานขอใบเสนอราคาเพื่อขอเปิด PR  สั่งซื้อ", "f": "ต่อเนื่อง", "t": "เมื่อถึงจุดสั่งซื้อ", "s": "CMMS", "r": "จัดซื้อ", "o": "ศุภกฤต (OMA)"}, {"c": "B4.2", "sec": "B4 ควบคุมสต็อก", "n": "ส่งเครื่องมือสอบเทียบตามแผนงาน อั้ม แทน", "d": "ตามแผนสอบเทียบในระบบ CMMS", "f": "ตามแผน", "t": "ตามแผนสอบเทียบ", "s": "CMMS", "r": "GA", "o": "ศุภกฤต (OMA)"}, {"c": "B5.1", "sec": "B5 รายงาน", "n": "รายงานอะไหล่เสียส่งคืนไม่ครบ", "d": "เรียกรายงานจากระบบ CMMS ส่งอีเมลแจ้งหัวหน้างาน", "f": "รายสัปดาห์", "t": "วันทำการแรกของทุกสัปดาห์", "s": "CMMS", "r": "Project Lead / Manager", "o": "ศุภกฤต (OMA)"}, {"c": "B5.2", "sec": "B5 รายงาน", "n": "รายงานสถานะการติดตามงานซ่อมชิ้นส่วนอะไหล่ ประจำเดือน", "d": "ติดตามสถานะงานซ่อม/เคลม คงค้างจากผู้รับจ้างซ่อม-> อีเมลรายงาน Project Lead", "f": "รายเดือน", "t": "ภายในวันที่ 15 ของทุกเดือน", "s": "CMMS / อีเมล", "r": "ผู้รับจ้างซ่อม / Project Lead / Manager", "o": "ศุภกฤต (OMA)"}, {"c": "B5.3", "sec": "B5 รายงาน", "n": "สรุปการเบิกใช้ Consumable ประจำเดือน MA", "d": "เรียกรายงานจากระบบ CMMS -> นำข้อมูลเข้า Power BI-> Share แจ้งหัวหน้างาน", "f": "รายเดือน", "t": "ภายในวันที่ 7 ของทุกเดือน", "s": "Power BI / อีเมล", "r": "Project Lead / Manager", "o": "ศุภกฤต (OMA)"}, {"c": "C1.1", "sec": "C1 ข้อมูลหลักในระบบ CMMS", "n": "Create User / Inactive User ผู้ใช้งาน CMMS", "d": "", "f": "เมื่อมีการเปลี่ยนแปลง", "t": "", "s": "CMMS", "r": "หัวหน้างาน/Manager", "o": "ศุภกฤต (OMA)"}, {"c": "C1.2", "sec": "C1 ข้อมูลหลักในระบบ CMMS", "n": "บันทึกแก้ไขข้อมูลตามคำขอดำเนินการข้อมูล CMMS", "d": "ตามคำขอที่ได้รับอนุมัติ", "f": "เมื่อมีรายการ", "t": "", "s": "CMMS", "r": "ผู้ขอ/หัวหน้างาน/Manager", "o": "ศุภกฤต (OMA)"}, {"c": "C1.3", "sec": "C1 ข้อมูลหลักในระบบ CMMS", "n": "สร้าง Mat ตามใบคำขอขึ้นทะเบียนรายการบัญชีอุปกรณ์", "d": "ตามคำขอที่ได้รับอนุมัติ", "f": "เมื่อมีรายการ", "t": "", "s": "CMMS", "r": "ผู้ขอ/หัวหน้างาน/Manager", "o": "ศุภกฤต (OMA)"}, {"c": "C1.4", "sec": "C1 ข้อมูลหลักในระบบ CMMS", "n": "สร้าง Equipment ตามคำขอเพิ่มโครงการกำหนดค่าเครื่องจักรอุปกรณ์ ระบบ CMMS", "d": "ตามคำขอที่ได้รับอนุมัติ", "f": "เมื่อมีรายการ", "t": "", "s": "CMMS", "r": "ผู้ขอ/หัวหน้างาน/Manager", "o": "ศุภกฤต (OMA)"}, {"c": "C1.5", "sec": "C1 ข้อมูลหลักในระบบ CMMS", "n": "PR ระบบ CMMS", "d": "", "f": "", "t": "", "s": "", "r": "ผู้ขอ/หัวหน้างาน/Manager", "o": "ศุภกฤต (OMA)"}];
+const omId=c=>'om-'+c.replace(/\./g,'-');
+const canSeeOma=()=>{const u=AUTH&&AUTH.user;if(!u)return false;if(u.role==='admin')return true;return String(u.name||'').includes(OM_OWNER)||String(u.username||'').includes(OM_OWNER);};
+const OMS={side:'doc',group:'',task:'',lastDoc:'dash',built:false};
+function omClearPanels(){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));}
+function omBuild(){
+  if(OMS.built)return;OMS.built=true;
+  const main=document.querySelector('main');
+  $('#omaTabs').innerHTML=Object.keys(OM_GROUP).filter(g=>OM_TASKS.some(t=>t.c[0]===g)).map(g=>`<button type="button" class="tab" data-og="${g}">${esc(OM_GROUP[g])}</button>`).join('');
+  OM_TASKS.forEach(t=>{
+    const s=document.createElement('section');s.className='panel';s.id='panel-'+omId(t.c);
+    const rows=[['ความถี่',t.f],['ช่วงเวลา / เงื่อนไข',t.t],['ระบบ / เครื่องมือ',t.s],['ผู้เกี่ยวข้อง',t.r],['ผู้รับมอบงาน',t.o]].filter(r=>r[1]);
+    s.innerHTML=`<div class="panel-title"><span class="om-badge">${esc(t.c)}</span> ${esc(t.n)}</div>
+      <div class="om-card"><div class="om-empty">หน้านี้ยังว่างอยู่ รอรายละเอียดการทำงาน</div>
+      <details class="om-ref"><summary>ข้อมูลจาก Handover Checklist</summary>${t.d?`<div class="om-d">${esc(t.d).replace(/\n/g,'<br>')}</div>`:''}<dl>${rows.map(r=>`<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl></details></div>`;
+    main.appendChild(s);
+  });
+  $('#omaTabs').querySelectorAll('[data-og]').forEach(b=>b.addEventListener('click',()=>omOpenGroup(b.dataset.og)));
+}
+function omOpenGroup(g,code){
+  OMS.group=g;
+  $('#omaTabs').querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.og===g));
+  const list=OM_TASKS.filter(t=>t.c[0]===g);let html='',lastSec='';
+  list.forEach(t=>{if(t.sec!==lastSec){lastSec=t.sec;html+=`<span class="oma-sec" title="${escAttr(t.sec)}">${esc(t.sec.replace(/^[A-Z]\d+\s*/,''))}</span>`;}
+    html+=`<button type="button" class="oma-chip" data-oc="${t.c}" title="${escAttr(t.n)}"><b>${esc(t.c)}</b> ${esc(t.n)}</button>`;});
+  $('#omaSub').innerHTML=html;
+  $('#omaSub').querySelectorAll('[data-oc]').forEach(b=>b.addEventListener('click',()=>omOpenTask(b.dataset.oc)));
+  omOpenTask(code||(list[0]&&list[0].c));
+}
+function omOpenTask(c){
+  OMS.task=c;omClearPanels();
+  $('#omaSub').querySelectorAll('.oma-chip').forEach(b=>{const on=b.dataset.oc===c;b.classList.toggle('active',on);if(on)try{b.scrollIntoView({block:'nearest',inline:'nearest'});}catch(e){}});
+  const p=$('#panel-'+omId(c));if(p)p.classList.add('active');
+  window.scrollTo(0,0);
+}
+function setSide(side){
+  if(side==='oma'&&!canSeeOma())side='doc';
+  omBuild();OMS.side=side;
+  document.querySelectorAll('#sideNav .side-item').forEach(b=>{const on=b.dataset.side===side;b.classList.toggle('active',on);b.setAttribute('aria-selected',on);});
+  $('#mainNav').classList.toggle('nav-off',side==='oma');
+  $('#omaTabs').classList.toggle('nav-off',side!=='oma');$('#omaSub').classList.toggle('nav-off',side!=='oma');
+  if(side==='oma'){const act=document.querySelector('#mainNav .tab.active');if(act)OMS.lastDoc=act.dataset.tab;omOpenGroup(OMS.group||Object.keys(OM_GROUP).find(g=>OM_TASKS.some(t=>t.c[0]===g)),OMS.task||undefined);}
+  else{omClearPanels();document.querySelectorAll('#omaTabs .tab').forEach(x=>x.classList.remove('active'));const t=document.querySelector(`#mainNav .tab[data-tab="${OMS.lastDoc}"]`)||$('#tabDash');if(t)t.click();}
+}
+function paintOmaNav(){
+  omBuild();
+  const on=canSeeOma();
+  $('#sideNav').classList.toggle('nav-off',!on);document.body.classList.toggle('has-side',on);
+  if(!on&&OMS.side==='oma')setSide('doc');
+}
+document.querySelectorAll('#sideNav .side-item').forEach(b=>b.addEventListener('click',()=>setSide(b.dataset.side)));
+(function(){
+  const _arv=applyRoleVisibility;applyRoleVisibility=function(){_arv.apply(this,arguments);try{paintOmaNav();}catch(e){console.error(e);}};
+  const setH=()=>{const h=document.querySelector('header.app');document.documentElement.style.setProperty('--hdrH',(h?h.offsetHeight:72)+'px');};
+  setH();addEventListener('resize',setH);try{new ResizeObserver(setH).observe(document.querySelector('header.app'));}catch(e){}
+  try{paintOmaNav();}catch(e){}
+})();
+
+
+/* ═══ Phase 38: แถบ "ยังขาดอะไรก่อนบันทึก" ใน Add Record — แตะรายการเพื่อเลื่อนไปช่องนั้น (ใช้กับฟอร์มปกติ / CCTV / แผ่นป้ายทะเบียน) ═══ */
+Object.assign(I18N_TH,{'Still missing':'ยังขาด','Ready to save':'พร้อมบันทึก','Project':'โครงการ','Location':'สถานที่','Equipment':'อุปกรณ์','Photo':'รูปถ่าย','Inspector name':'ชื่อผู้ตรวจ','Mark at least one item':'ทำเครื่องหมายอย่างน้อย 1 รายการ','Cause for abnormal items':'สาเหตุของรายการผิดปกติ','Work order no.':'เลขที่ใบงาน','Machine':'เครื่อง','Date performed':'วันที่ปฏิบัติงาน','Problem reported':'อาการที่แจ้ง','Repair done':'การแก้ไข','Work order form':'ใบงาน','Before photo':'ภาพก่อนซ่อม','After photo':'ภาพหลังซ่อม','Photo is still processing':'กำลังประมวลผลรูป'});
+function addMissing(){
+  const out=[],add=(k,t)=>out.push({k,t});
+  const q=s=>()=>document.querySelector(s);
+  const v=id=>{const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+  if(!sel.project)add('Project',q('.combo[data-level="project"] input'));
+  if(sel.project&&isPlate(sel.project)){
+    const cm=PLS.type==='CM';
+    if(!v('plWo'))add('Work order no.',q('#plWo'));
+    if(!sel.loc)add('Machine',q('#plLoc'));
+    if(sel.loc&&!sel.equip)add('Equipment',q('#plEq'));
+    if(!v(cm?'plDate2':'plDate'))add('Date performed',q(cm?'#plDate2':'#plDate'));
+    if(cm&&!v('plProb'))add('Problem reported',q('#plProb'));
+    if(cm&&!v('plFix'))add('Repair done',q('#plFix'));
+    if(!imgMain)add('Work order form',q('#dropMain'));
+    if(cm&&!imgSticker)add('Before photo',q('#dropSticker'));
+    if(cm&&!img3)add('After photo',q('#dropImg3'));
+  }else if(sel.project&&isCctv(sel.project)){
+    if(!sel.loc)add('Location',q('#ccLoc'));
+    else{const its=ccMaster(sel.project,sel.loc);
+      if(!its.some(m=>CC.st[ccKey(m)]))add('Mark at least one item',q('#cctvField .cc-row'));
+      else if(its.some(m=>CC.st[ccKey(m)]==='ng'&&!String(CC.why[ccKey(m)]||'').trim()))add('Cause for abnormal items',()=>{const r=[...document.querySelectorAll('#cctvField .cc-row')].find(x=>CC.st[x.dataset.k]==='ng'&&!String(CC.why[x.dataset.k]||'').trim());return r&&(r.querySelector('input[data-f="c"]')||r);});}
+    if(!imgMain&&!imgSticker)add('Photo',q('#dropMain'));
+  }else if(sel.project){
+    if(!sel.loc)add('Location',q('.combo[data-level="loc"] input'));
+    if(!sel.equip)add('Equipment',q('.combo[data-level="equip"] input'));
+    const rl=readingLabelOf(sel.project,sel.system);if(rl&&!v('inpReading'))add(rl,q('#inpReading'));
+    if(!imgMain&&!imgSticker)add('Photo',q('#dropMain'));
+  }
+  if(!cleanName(v('inpInspector')))add('Inspector name',q('#inpInspector'));
+  return out;
+}
+const ADDR={sig:'',list:[]};
+function addReadyPaint(){
+  const panel=document.getElementById('panel-add');if(!panel||!panel.classList.contains('active'))return;
+  const host=panel.querySelector('.form-actions');if(!host)return;
+  let bar=document.getElementById('addReady');
+  if(!bar){bar=document.createElement('div');bar.id='addReady';bar.setAttribute('role','status');host.insertBefore(bar,host.firstChild);}
+  const list=addMissing();const sig=list.map(x=>x.k).join('|')+'#'+LANG+(imgBusy>0?'b':'');
+  if(sig!==ADDR.sig){
+    ADDR.sig=sig;ADDR.list=list;
+    bar.className=list.length?'miss':'ok';
+    bar.innerHTML=list.length?`<span class="ar-h">${esc(_tx('Still missing'))} ${list.length}</span>`+list.map((x,i)=>`<button type="button" class="ar-chip" data-i="${i}">${esc(_tx(x.k))}</button>`).join(''):`<span class="ar-h">✓ ${esc(_tx('Ready to save'))}</span>`;
+    bar.querySelectorAll('.ar-chip').forEach(b=>b.onclick=()=>addGoto(ADDR.list[+b.dataset.i]));
+    document.documentElement.style.setProperty('--readyH',bar.offsetHeight+'px');
+  }
+}
+function addGoto(item){
+  const el=item&&item.t&&item.t();if(!el)return;
+  try{el.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}
+  setTimeout(()=>{try{if(/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName))el.focus({preventScroll:true});}catch(e){}el.classList.add('ar-flash');setTimeout(()=>el.classList.remove('ar-flash'),1400);},350);
+}
+setInterval(()=>{if(!document.hidden)try{addReadyPaint();}catch(e){}},500);
+document.addEventListener('click',e=>{if(e.target&&e.target.closest&&e.target.closest('.tab[data-tab="add"]'))setTimeout(()=>{try{addReadyPaint();}catch(x){}},120);});
+/* กดบันทึกตอนยังไม่ครบ: ระบบเตือนเหมือนเดิม และเลื่อนไปช่องแรกที่ขาดให้ด้วย */
+document.addEventListener('click',e=>{if(e.target&&e.target.id==='saveBtn')setTimeout(()=>{try{const l=addMissing();if(l.length)addGoto(l[0]);}catch(x){}},60);});
+
