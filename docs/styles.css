@@ -1209,3 +1209,8 @@ body{background:var(--bg)}
 .form-actions{flex-wrap:wrap}
 @media(max-width:760px){#panel-add.active{padding-bottom:calc(74px + var(--readyH,0px))}#addReady{max-height:96px;overflow-y:auto}}
 @media print{#addReady{display:none}}
+
+#buildTag{max-width:1400px;margin:-56px auto 0;padding:0 24px 16px;font-size:11px;color:var(--ink-faint,#8a8f98);text-align:right}
+body.has-side #buildTag{margin-left:var(--sideW)}
+@media(max-width:999px){#buildTag{margin:-64px 0 0;padding:0 14px 12px}}
+@media print{#buildTag{display:none}}

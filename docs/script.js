@@ -4970,3 +4970,8 @@ document.addEventListener('click',e=>{if(e.target&&e.target.closest&&e.target.cl
 /* กดบันทึกตอนยังไม่ครบ: ระบบเตือนเหมือนเดิม และเลื่อนไปช่องแรกที่ขาดให้ด้วย */
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='saveBtn')setTimeout(()=>{try{const l=addMissing();if(l.length)addGoto(l[0]);}catch(x){}},60);});
 
+
+/* เลขรุ่นเล็ก ๆ ท้ายหน้า — ใช้เช็กว่าอัปโหลดไฟล์ชุดล่าสุดขึ้นจริงหรือยัง (ทุกครั้งที่ส่งงานใหม่เลขนี้จะเปลี่ยน) */
+const APP_BUILD='Phase 38';
+(function(){const m=document.querySelector('main');if(!m||document.getElementById('buildTag'))return;const d=document.createElement('div');d.id='buildTag';d.textContent='Build: '+APP_BUILD;m.parentNode.insertBefore(d,m.nextSibling);try{console.info('OMA build',APP_BUILD);}catch(e){}})();
+
