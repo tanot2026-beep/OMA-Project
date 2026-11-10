@@ -225,7 +225,7 @@ const PDPA_VERSION = '1.0';
 const DRIVE_THUMB = 'https:\x2f\x2fdrive.google.com/thumbnail?id=';
 const ACT = {
   login:'login', verifyToken:'verifyToken', pdpaStatus:'getPdpaStatus', pdpaAccept:'acceptPdpa',
-  listRepairs:'listRepairs', saveRepair:'saveRepair', deleteRepair:'deleteRepair', importRepairs:'importRepairs',
+  listRepairs:'listRepairs', saveRepair:'saveRepair', deleteRepair:'deleteRepair', importRepairs:'importRepairs', listCmms:'listCmms', importCmms:'importCmms',
   createRecord:'createRecord', listRecords:'listRecords', deleteRecord:'deleteRecord', restoreRecord:'restoreRecord', listRecordHistory:'listRecordHistory', listTrash:'listTrash', purgeTrash:'purgeTrash', confirmRecordReviewed:'confirmRecordReviewed', returnRecord:'returnRecord', exportPhotosZip:'exportPhotosZip', listReportInfo:'listReportInfo', saveReportInfo:'saveReportInfo', setProjectInfo:'setProjectInfo',listRepairs:'listRepairs',saveRepair:'saveRepair',deleteRepair:'deleteRepair',importRepairs:'importRepairs',
   createUser:'createUser', bulkCreateUsers:'bulkCreateUsers', listUsers:'listUsers',
   saveMaster:'saveMaster', masterUpsert:'masterUpsert', masterDelete:'masterDelete', masterImport:'masterImport', listMaster:'listMaster', getProgress:'getProgress',
@@ -1720,7 +1720,17 @@ function buildMasterOrderMap(){
 }
 function masterOrderOf(orderMap,e){ const v=orderMap[masterOrderKey(e)]; return v===undefined?Infinity:v; }
 async function downloadMasterTemplate(){try{await loadLib('xlsx');const ws=XLSX.utils.aoa_to_sheet([MASTER_IMPORT_COLS.map(c=>c[1])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Master');XLSX.writeFile(wb,'master_template.xlsx');}catch(e){toast('Failed to load form',false);}}
-async function downloadMasterData(){try{if(!master.length){toast('No Master Data yet',false);return;}await loadLib('xlsx');const rows=master.map(m=>MASTER_IMPORT_COLS.map(c=>m[c[0]]||''));const ws=XLSX.utils.aoa_to_sheet([MASTER_IMPORT_COLS.map(c=>c[1]),...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Master');XLSX.writeFile(wb,'master_data.xlsx');toast('Master Data downloaded',true);}catch(e){toast('Failed to load data',false);}}
+async function downloadMasterData(){try{if(!master.length){toast('No Master Data yet',false);return;}await loadLib('xlsx');const rows=master.map(m=>MASTER_IMPORT_COLS.map(c=>m[c[0]]||''));const ws=XLSX.utils.aoa_to_sheet([MASTER_IMPORT_COLS.map(c=>c[1]),...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Master');
+    try{ /* Projects: one row per project — code, alias, full name, report layout, planet, counts */
+      const ps=[];(master||[]).forEach(m=>{if(m.project&&!ps.includes(m.project))ps.push(m.project);});
+      const lay={'':'ยังไม่ตั้ง',equip:'Equipment report',station:'Station photo report',cctv:'CCTV inspection report',plate:'License plate (PM/CM)'};
+      const cnt=(p,k)=>new Set(master.filter(m=>m.project===p).map(m=>m[k]).filter(Boolean)).size;
+      const pr=ps.map((p,i)=>{const t=(typeof tplOf==='function'?tplOf(p):'')||'';return [i+1,PCODE(p)||'',(PROJ_INFO[p]||{}).alias||'',p,lay[t]||t,PLANET_TH[planetOf(p)]||'',master.filter(m=>m.project===p).length,cnt(p,'system'),cnt(p,'locName'),cnt(p,'equipment')];});
+      const wp=XLSX.utils.aoa_to_sheet([['No.','Project Code','Alias','Project (full name)','Report layout','Planet (loading)','Master rows','Systems','Locations','Equipment types'],...pr]);
+      wp['!cols']=[{wch:5},{wch:13},{wch:26},{wch:70},{wch:24},{wch:16},{wch:12},{wch:9},{wch:10},{wch:15}];
+      XLSX.utils.book_append_sheet(wb,wp,'Projects');
+    }catch(e){}
+    XLSX.writeFile(wb,'master_data.xlsx');toast('Master Data downloaded',true);}catch(e){toast('Failed to load data',false);}}
 
 if($('#fileXlsx'))$('#fileXlsx').addEventListener('change',async(ev)=>{
   const file=ev.target.files[0]; if(!file)return;
@@ -1904,9 +1914,12 @@ function _warpFrame(ts){
   const ecx=L.cx-(1-approach)*L.ww*.06,ecy=L.cy+L.wh*(.0+.07*Math.pow(approach,2.2));
   if(_earth&&ap>0){
     ctx.save();ctx.globalAlpha=ap;
-    const gl=ctx.createRadialGradient(ecx,ecy,R*.96,ecx,ecy,R*1.25);gl.addColorStop(0,'rgba(90,160,255,.55)');gl.addColorStop(.3,'rgba(70,130,240,.2)');gl.addColorStop(1,'rgba(40,90,220,0)');
-    ctx.fillStyle=gl;ctx.beginPath();ctx.arc(ecx,ecy,R*1.25,0,6.283);ctx.fill();
-    if(!_warpBuf||(_warpFn++&1))_warpBuf=renderEarth(_warpRot);const buf=_warpBuf;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';if(buf)ctx.drawImage(buf,ecx-R,ecy-R,R*2,R*2);
+    const PL=_warpPlanet,Rp=PL==='saturn'?R*.58:R,gc=_PLG[PL]||_PLG.earth,gs=gc[0]+','+gc[1]+','+gc[2];
+    const gl=ctx.createRadialGradient(ecx,ecy,Rp*.96,ecx,ecy,Rp*1.25);gl.addColorStop(0,'rgba('+gs+',.55)');gl.addColorStop(.3,'rgba('+gs+',.2)');gl.addColorStop(1,'rgba('+gs+',0)');
+    ctx.fillStyle=gl;ctx.beginPath();ctx.arc(ecx,ecy,Rp*1.25,0,6.283);ctx.fill();
+    if(PL==='saturn')_satRings(ctx,ecx,ecy,Rp,false);
+    if(!_warpBuf||(_warpFn++&1))_warpBuf=renderBody(_warpRot);const buf=_warpBuf;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';if(buf)ctx.drawImage(buf,ecx-Rp,ecy-Rp,Rp*2,Rp*2);
+    if(PL==='saturn')_satRings(ctx,ecx,ecy,Rp,true);
     ctx.restore();
   }
   /* sun flare in the glass corner */
@@ -3585,7 +3598,7 @@ async function openStationReport(){
 }
 /* ช่องค่าที่วัดได้ (เช่น ค่าระดับน้ำ): แสดงเฉพาะโครงการที่ admin/manager ตั้งชื่อช่องไว้ (ReportInfo.readingLabel) */
 let RD_LABELS={},SIMPLE_FORM={};
-async function loadReportInfoCache(){try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok){RD_LABELS={};SIMPLE_FORM={};CHECK_COLS={};TPL={};(r.info||[]).forEach(x=>{if(x.project)TPL[x.project]=String(x.reportTemplate||'');if(x.reportData){try{RPT_DATA[x.project]=JSON.parse(x.reportData);}catch(e){}}if(x.project&&x.checkCols){try{CHECK_COLS[x.project]=JSON.parse(x.checkCols);}catch(e){}}if(x.project&&(x.simpleForm===true||String(x.simpleForm)==='1'||String(x.simpleForm)==='true'))SIMPLE_FORM[x.project]=1;if(x.project&&String(x.readingLabel||'').trim())RD_LABELS[x.project]=String(x.readingLabel).trim();});paintReadingField();}}catch(e){}}
+async function loadReportInfoCache(){try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok){RD_LABELS={};SIMPLE_FORM={};CHECK_COLS={};TPL={};PLN={};(r.info||[]).forEach(x=>{if(x.project)TPL[x.project]=String(x.reportTemplate||'');if(x.project&&x.planet)PLN[x.project]=String(x.planet);if(x.reportData){try{RPT_DATA[x.project]=JSON.parse(x.reportData);}catch(e){}}if(x.project&&x.checkCols){try{CHECK_COLS[x.project]=JSON.parse(x.checkCols);}catch(e){}}if(x.project&&(x.simpleForm===true||String(x.simpleForm)==='1'||String(x.simpleForm)==='true'))SIMPLE_FORM[x.project]=1;if(x.project&&String(x.readingLabel||'').trim())RD_LABELS[x.project]=String(x.readingLabel).trim();});paintReadingField();}}catch(e){}}
 /* ช่องค่าระดับน้ำ: ใช้ชื่อที่ admin ตั้ง; ถ้าไม่ได้ตั้ง โครงการแบบรูปรายสถานีจะบังคับกรอกเฉพาะระบบ Flood Detector / Water */
 function readingLabelOf(p,system){return RD_LABELS[p]||((system&&tplOf(p)==='station'&&/flood|water/i.test(system))?'ค่าระดับน้ำ (ม.รทก.)':'');}
 /* Add Record แบบย่อ: โครงการที่ตั้งไว้จะเห็นเฉพาะช่องที่ใช้ทำรายงาน (ซ่อน Location Type, Equipment Type, Brand/Model, Note; Sub-location/Serial ซ่อนเมื่อมีตัวเลือกเดียวซึ่งระบบเลือกให้เอง) */
@@ -4367,9 +4380,11 @@ async function openProjectSettings(){
     (projects.map(p=>{const c=cur(p),inf=inferTemplate(p);return `<div class="ps-row ps-row3" data-p="${escAttr(p)}"><div class="ps-n"><b>${esc(PN(p))}</b><div class="ps-full">${esc(p)}</div></div>
       <input class="tin ps-code" placeholder="${escAttr(_tx('Project code'))}" value="${escAttr(PCODE(p))}"${isAdm?'':' disabled'}>
       <input class="tin ps-alias" placeholder="${escAttr(_tx('Alias'))}" value="${escAttr((PROJ_INFO[p]||{}).alias||'')}"${isAdm?'':' disabled'}>
-      <select class="tin ps-sel">${OPT.map(o=>`<option value="${o[0]}"${c===o[0]?' selected':''}>${esc(o[0]===''&&inf?_tx('Not set yet')+' → '+(OPT.find(x=>x[0]===inf)||['',''])[1]:o[1])}</option>`).join('')}</select></div>`;}).join('')||'<div class="st-hint">—</div>');
+      <div><select class="tin ps-sel">${OPT.map(o=>`<option value="${o[0]}"${c===o[0]?' selected':''}>${esc(o[0]===''&&inf?_tx('Not set yet')+' → '+(OPT.find(x=>x[0]===inf)||['',''])[1]:o[1])}</option>`).join('')}</select>
+      <select class="tin ps-pl" title="${escAttr(_tx('Planet in the loading animation'))}"><option value=""${PLN[p]?'':' selected'}>${esc(_tx('Planet: automatic'))} → ${esc(PLANET_TH[planetOf(p)])}</option>${PLANETS.map(k=>`<option value="${k}"${PLN[p]===k?' selected':''}>${esc(PLANET_TH[k])}</option>`).join('')}</select></div></div>`;}).join('')||'<div class="st-hint">—</div>');
   body.querySelectorAll('.ps-row').forEach(row=>{
     const p=row.dataset.p;
+    row.querySelector('.ps-pl').onchange=async e=>{const r=await api(ACT.saveReportInfo,{row:{project:p,planet:e.target.value}});if(r&&r.ok){toast('Saved',true);try{await loadReportInfoCache();}catch(x){}}else toast((r&&r.message)||'Save failed',false);};
     row.querySelector('.ps-sel').onchange=async e=>{const r=await api(ACT.saveReportInfo,{row:{project:p,reportTemplate:e.target.value}});if(r&&r.ok){toast('Saved',true);try{await loadReportInfoCache();}catch(x){}}else toast((r&&r.message)||'Save failed',false);};
     const saveCA=async()=>{
       const code=row.querySelector('.ps-code').value.trim(),alias=row.querySelector('.ps-alias').value.trim();
@@ -4864,8 +4879,8 @@ function omBuild(){
   $('#omaTabs').innerHTML=Object.keys(OM_GROUP).filter(g=>OM_TASKS.some(t=>t.c[0]===g)).map(g=>`<button type="button" class="tab" data-og="${g}">${esc(OM_GROUP[g])}</button>`).join('');
   OM_TASKS.forEach(t=>{
     const s=document.createElement('section');s.className='panel';s.id='panel-'+omId(t.c);
-    const rows=[['ความถี่',t.f],['ช่วงเวลา / เงื่อนไข',t.t],['ระบบ / เครื่องมือ',t.s],['ผู้เกี่ยวข้อง',t.r],['ผู้รับมอบงาน',t.o]].filter(r=>r[1]);
-    s.innerHTML=`<div class="panel-title"><span class="om-badge">${esc(t.c)}</span> ${esc(t.n)}</div>
+    const rows=[['หัวข้อ',t.sec.replace(/^[A-Z]\d+\s*/,'')],['รหัสใน Handover Checklist',t.c],['ความถี่',t.f],['ช่วงเวลา / เงื่อนไข',t.t],['ระบบ / เครื่องมือ',t.s],['ผู้เกี่ยวข้อง',t.r],['ผู้รับมอบงาน',t.o]].filter(r=>r[1]);
+    s.innerHTML=`<div class="panel-title">${esc(t.n)}</div>
       <div class="om-card"><div class="om-empty">หน้านี้ยังว่างอยู่ รอรายละเอียดการทำงาน</div>
       <details class="om-ref"><summary>ข้อมูลจาก Handover Checklist</summary>${t.d?`<div class="om-d">${esc(t.d).replace(/\n/g,'<br>')}</div>`:''}<dl>${rows.map(r=>`<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl></details></div>`;
     main.appendChild(s);
@@ -4875,34 +4890,53 @@ function omBuild(){
 function omOpenGroup(g,code){
   OMS.group=g;
   $('#omaTabs').querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.og===g));
-  const list=OM_TASKS.filter(t=>t.c[0]===g);let html='',lastSec='';
-  list.forEach(t=>{if(t.sec!==lastSec){lastSec=t.sec;html+=`<span class="oma-sec" title="${escAttr(t.sec)}">${esc(t.sec.replace(/^[A-Z]\d+\s*/,''))}</span>`;}
-    html+=`<button type="button" class="oma-chip" data-oc="${t.c}" title="${escAttr(t.n)}"><b>${esc(t.c)}</b> ${esc(t.n)}</button>`;});
+  const list=OM_TASKS.filter(t=>t.c[0]===g);const secs=[],by={};
+  list.forEach(t=>{if(!by[t.sec]){by[t.sec]=[];secs.push(t.sec);}by[t.sec].push(t);});
+  const html=secs.map(sec=>`<div class="oma-grp"><div class="oma-sec" title="${escAttr(sec)}">${esc(sec.replace(/^[A-Z]\d+\s*/,''))}</div><div class="oma-chips">${by[sec].map(t=>`<button type="button" class="oma-chip" data-oc="${t.c}" title="${escAttr(t.n)}">${esc(t.n)}</button>`).join('')}</div></div>`).join('');
   $('#omaSub').innerHTML=html;
   $('#omaSub').querySelectorAll('[data-oc]').forEach(b=>b.addEventListener('click',()=>omOpenTask(b.dataset.oc)));
   omOpenTask(code||(list[0]&&list[0].c));
 }
+function omSave(){try{localStorage.setItem('oma_last_'+((AUTH.user&&AUTH.user.username)||''),JSON.stringify({side:OMS.side,group:OMS.group,task:OMS.task}));}catch(e){}}
+function omLoad(){try{return JSON.parse(localStorage.getItem('oma_last_'+((AUTH.user&&AUTH.user.username)||''))||'null');}catch(e){return null;}}
 function omOpenTask(c){
   OMS.task=c;omClearPanels();
   $('#omaSub').querySelectorAll('.oma-chip').forEach(b=>{const on=b.dataset.oc===c;b.classList.toggle('active',on);if(on)try{b.scrollIntoView({block:'nearest',inline:'nearest'});}catch(e){}});
   const p=$('#panel-'+omId(c));if(p)p.classList.add('active');
-  window.scrollTo(0,0);
+  window.scrollTo(0,0);omSave();
 }
 function setSide(side){
   if(side==='oma'&&!canSeeOma())side='doc';
   omBuild();OMS.side=side;
   document.querySelectorAll('#sideNav .side-item').forEach(b=>{const on=b.dataset.side===side;b.classList.toggle('active',on);b.setAttribute('aria-selected',on);});
   $('#mainNav').classList.toggle('nav-off',side==='oma');
-  $('#omaTabs').classList.toggle('nav-off',side!=='oma');$('#omaSub').classList.toggle('nav-off',side!=='oma');
+  $('#omaTabs').classList.toggle('nav-off',side!=='oma');$('#omaSub').classList.toggle('nav-off',side!=='oma');$('#omaSearch').classList.toggle('nav-off',side!=='oma');
   if(side==='oma'){const act=document.querySelector('#mainNav .tab.active');if(act)OMS.lastDoc=act.dataset.tab;omOpenGroup(OMS.group||Object.keys(OM_GROUP).find(g=>OM_TASKS.some(t=>t.c[0]===g)),OMS.task||undefined);}
-  else{omClearPanels();document.querySelectorAll('#omaTabs .tab').forEach(x=>x.classList.remove('active'));const t=document.querySelector(`#mainNav .tab[data-tab="${OMS.lastDoc}"]`)||$('#tabDash');if(t)t.click();}
+  else{omSave();omClearPanels();document.querySelectorAll('#omaTabs .tab').forEach(x=>x.classList.remove('active'));const t=document.querySelector(`#mainNav .tab[data-tab="${OMS.lastDoc}"]`)||$('#tabDash');if(t)t.click();}
 }
 function paintOmaNav(){
   omBuild();
   const on=canSeeOma();
   $('#sideNav').classList.toggle('nav-off',!on);document.body.classList.toggle('has-side',on);
-  if(!on&&OMS.side==='oma')setSide('doc');
+  if(on&&!OMS.restored){OMS.restored=true;const l=omLoad();if(l&&l.side==='oma'&&OM_TASKS.some(t=>t.c===l.task)){OMS.group=l.group;OMS.task=l.task;setTimeout(()=>{try{if(canSeeOma())setSide('oma');}catch(e){}},400);}}
+  if(!on)OMS.restored=false;
+  if(!on&&(OMS.side==='oma'||OMS.side==='cmms'))setSide('doc');
 }
+
+/* ค้นหางาน: พิมพ์ชื่อ ระบบ หรือคำในรายละเอียด แล้วเลือกผลเพื่อข้ามไปหน้านั้น */
+(function(){
+  const q=$('#omaQ'),res=$('#omaRes');if(!q)return;
+  const norm=x=>String(x||'').toLowerCase();
+  function find(t){const k=norm(t).trim();if(!k)return[];return OM_TASKS.filter(x=>norm([x.n,x.sec,x.s,x.d,x.r,x.c].join(' ')).includes(k)).slice(0,8);}
+  function show(){
+    const r=find(q.value);
+    res.innerHTML=q.value.trim()?(r.length?r.map(t=>`<button type="button" class="oma-hit" data-c="${t.c}"><span>${esc(t.n)}</span><em>${esc(t.sec.replace(/^[A-Z]\d+\s*/,''))}</em></button>`).join(''):'<div class="oma-none">ไม่พบงานที่ตรงกับคำค้น</div>'):'';
+    res.querySelectorAll('.oma-hit').forEach(b=>b.onclick=()=>go(b.dataset.c));
+  }
+  function go(c){q.value='';res.innerHTML='';omOpenGroup(c[0],c);}
+  q.addEventListener('input',show);
+  q.addEventListener('keydown',e=>{if(e.key==='Enter'){const r=find(q.value);if(r[0])go(r[0].c);}else if(e.key==='Escape'){q.value='';res.innerHTML='';}});
+})();
 document.querySelectorAll('#sideNav .side-item').forEach(b=>b.addEventListener('click',()=>setSide(b.dataset.side)));
 (function(){
   const _arv=applyRoleVisibility;applyRoleVisibility=function(){_arv.apply(this,arguments);try{paintOmaNav();}catch(e){console.error(e);}};
@@ -4971,7 +5005,218 @@ document.addEventListener('click',e=>{if(e.target&&e.target.closest&&e.target.cl
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='saveBtn')setTimeout(()=>{try{const l=addMissing();if(l.length)addGoto(l[0]);}catch(x){}},60);});
 
 
+/* ═══ Phase 42: แถบซ้าย "ข้อมูล CMMS" — 10 แถบหลักตามเมนู CMMS; แถบแรก (กำหนดค่าเครื่องจักรอุปกรณ์) มี "รายการอุปกรณ์" กับ "รายการอะไหล่" เก็บเป็นข้อมูล Excel ในชีต */
+const CM_TABS=['กำหนดค่าเครื่องจักรอุปกรณ์','ระบบควบคุมบัญชีของ','การวางแผนและจัดตารางงาน','ระบบใบแจ้งซ่อม','ระบบควบคุมใบสั่งงาน','ระบบขออนุมัติซื้อ','ตรวจสอบระบบการทำงาน','กำหนดคุณสมบัติของระบบ','รายงานผู้บริหาร','บริหารระบบ'];
+const CM_SUBS=[{k:'equip',n:'รายการอุปกรณ์'},{k:'parts',n:'รายการอะไหล่'}];
+const CM_COLS={
+  equip:[['code','เครื่องจักรอุปกรณ์',/^เครื่องจักรอุปกรณ์$/],['desc','ลักษณะ',/^ลักษณะ/],['type','ประเภท',/^ประเภท/],['model','แบบหรือรุ่น',/^แบบหรือรุ่น/],['serial','หมายเลขเครื่อง',/^หมายเลขเครื่อง/],['regNo','เลขทะเบียน',/^เลขทะเบียน/],['regDate','วันที่ลงทะเบียน',/^วันที่ลงทะเบียน/],['maker','ผู้ผลิต',/^ชื่อผู้ผลิต/],['dept','ฝ่าย',/^ฝ่าย/],['project','โครงการ',/^โครงการ/],['owner','Owner',/^owner/i],['active','ดำเนินงาน',/^ดำเนินงาน/],['endDate','สิ้นสุดอายุใช้งาน',/^วันสิ้นสุด/]],
+  parts:[['part','รายการอะไหล่',/^รายการอะไหล่/],['name','ชื่ออะไหล่',/^ชื่ออะไหล่/],['grp','กลุ่ม',/^กลุ่ม$/],['wh','คลังสินค้า',/^คลังสินค้า/],['loc','ที่จัดเก็บ',/^ที่จัดเก็บ/],['move','การเคลื่อนไหว',/^การเคลื่อนไหว/],['acct','รหัสบัญชี',/^รหัสบัญชี/],['cls','จำแนกกลุ่ม',/^จำแนกกลุ่ม/],['price','ราคา/หน่วย',/^ราคาต่อหน่วย/,1],['unit','หน่วย',/^หน่วย$/],['qty','คงเหลือ',/^จำนวนคงเหลือ/,1],['backorder','ค้างส่ง',/^จำนวนที่ค้างส่ง/,1],['max','MAX',/^max$/i,1],['rop','ROP',/^rop$/i,1],['min','MIN',/^min$/i,1],['roq','ROQ',/^roq$/i,1]]
+};
+const CMS={tab:0,sub:'equip',built:false,st:{equip:{q:'',f:'',p:0,opts:[]},parts:{q:'',f:'',p:0,opts:[]}}};
+const CM_PS=100;
+const cmFilterLabel=k=>k==='equip'?'ฝ่าย':'คลังสินค้า';
+function cmFmtDate(v){
+  if(v instanceof Date){if(isNaN(v))return '';const y=v.getFullYear(),m=v.getMonth()+1,d=v.getDate();return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+  return String(v==null?'':v).trim();
+}
+function cmBuild(){
+  if(CMS.built)return;CMS.built=true;
+  const main=document.querySelector('main');
+  $('#cmTabs').innerHTML=CM_TABS.map((n,i)=>`<button type="button" class="tab" data-ct="${i}">${esc(n)}</button>`).join('');
+  CM_TABS.forEach((n,i)=>{
+    const s=document.createElement('section');s.className='panel';s.id='panel-cm-'+i;
+    if(i===0){
+      s.innerHTML=CM_SUBS.map(x=>`<div class="cm-sec" id="cm-${x.k}" hidden><div class="panel-title">${esc(x.n)}</div><div class="cm-bar"><input type="search" class="tin cm-q" data-k="${x.k}" placeholder="ค้นหา" aria-label="ค้นหา${escAttr(x.n)}" autocomplete="off"><select class="cm-f" data-k="${x.k}" aria-label="กรอง${cmFilterLabel(x.k)}"><option value="">${cmFilterLabel(x.k)}: ทั้งหมด</option></select><button type="button" class="btn btn-soft cm-dl" data-k="${x.k}">ดาวน์โหลด Excel</button><button type="button" class="btn btn-primary cm-imp" data-k="${x.k}">นำเข้า Excel</button><input type="file" class="cm-file" data-k="${x.k}" accept=".xls,.xlsx,.csv" hidden></div><div class="cm-info" id="cm-info-${x.k}"></div><div class="cm-wrap"><table class="cm-tbl"><thead id="cm-h-${x.k}"></thead><tbody id="cm-b-${x.k}"></tbody></table></div><div class="cm-pg" id="cm-pg-${x.k}"></div></div>`).join('');
+    }else s.innerHTML=`<div class="panel-title">${esc(n)}</div><div class="om-card"><div class="om-empty">หน้านี้ยังว่างอยู่ รอรายละเอียดการทำงาน</div></div>`;
+    main.appendChild(s);
+  });
+  $('#cmTabs').querySelectorAll('[data-ct]').forEach(b=>b.addEventListener('click',()=>cmOpenTab(+b.dataset.ct)));
+  $('#cmSub').innerHTML=`<div class="oma-grp"><div class="oma-sec">${esc(CM_TABS[0])}</div><div class="oma-chips">${CM_SUBS.map(x=>`<button type="button" class="oma-chip" data-cs="${x.k}">${esc(x.n)}</button>`).join('')}</div></div>`;
+  $('#cmSub').querySelectorAll('[data-cs]').forEach(b=>b.addEventListener('click',()=>cmOpenSub(b.dataset.cs)));
+  let tm;
+  main.addEventListener('input',e=>{const t=e.target;if(t.classList&&t.classList.contains('cm-q')){clearTimeout(tm);tm=setTimeout(()=>{const s=CMS.st[t.dataset.k];s.q=t.value;s.p=0;cmLoad(t.dataset.k);},300);}});
+  main.addEventListener('change',e=>{const t=e.target;if(t.classList&&t.classList.contains('cm-f')){const s=CMS.st[t.dataset.k];s.f=t.value;s.p=0;cmLoad(t.dataset.k);}
+    else if(t.classList&&t.classList.contains('cm-file')){const f=t.files[0];t.value='';if(f)cmImport(t.dataset.k,f);}});
+  main.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.cm-imp,.cm-dl,.cm-prev,.cm-next');if(!b)return;const k=b.dataset.k;
+    if(b.classList.contains('cm-imp')){const i=document.querySelector(`.cm-file[data-k="${k}"]`);if(i)i.click();}
+    else if(b.classList.contains('cm-dl'))cmDownload(k);
+    else{const s=CMS.st[k];s.p=Math.max(0,s.p+(b.classList.contains('cm-next')?1:-1));cmLoad(k);}});
+}
+function cmHead(k){return '<tr>'+CM_COLS[k].map(c=>`<th>${esc(c[1])}</th>`).join('')+'</tr>';}
+async function cmLoad(k){
+  const s=CMS.st[k];const body=$('#cm-b-'+k),info=$('#cm-info-'+k),pg=$('#cm-pg-'+k);
+  $('#cm-h-'+k).innerHTML=cmHead(k);
+  const seq=(s.seq=(s.seq||0)+1);
+  let r;try{r=await api(ACT.listCmms,{type:k,q:s.q,filter:s.f,offset:s.p*CM_PS,limit:CM_PS});}catch(e){r=null;}
+  if(seq!==s.seq)return;
+  if(!r||!r.ok){body.innerHTML=`<tr><td colspan="${CM_COLS[k].length}" class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</td></tr>`;info.textContent='';pg.innerHTML='';return;}
+  const sel=document.querySelector(`.cm-f[data-k="${k}"]`);
+  if(sel&&(r.opts||[]).join('|')!==s.opts.join('|')){s.opts=r.opts||[];sel.innerHTML=`<option value="">${cmFilterLabel(k)}: ทั้งหมด</option>`+s.opts.map(o=>`<option value="${escAttr(o)}">${esc(o)}</option>`).join('');sel.value=s.f;}
+  if(!r.rows.length){body.innerHTML=`<tr><td colspan="${CM_COLS[k].length}" class="cm-msg">${r.all?'ไม่พบรายการที่ตรงกับการค้นหา':'ยังไม่มีข้อมูล — กด "นำเข้า Excel" เพื่อนำเข้าไฟล์จาก CMMS'}</td></tr>`;}
+  else body.innerHTML=r.rows.map(o=>'<tr>'+CM_COLS[k].map(c=>`<td${c[3]?' class="n"':''}>${c[3]&&o[c[0]]!==''?esc(Number(o[c[0]]).toLocaleString('en-US')):esc(o[c[0]])}</td>`).join('')+'</tr>').join('');
+  const pages=Math.max(1,Math.ceil(r.total/CM_PS));
+  info.textContent=`ทั้งหมด ${r.all.toLocaleString('en-US')} รายการ`+(r.total!==r.all?` · พบ ${r.total.toLocaleString('en-US')} รายการ`:'');
+  pg.innerHTML=r.total>CM_PS?`<button type="button" class="btn btn-soft cm-prev" data-k="${k}" ${s.p<=0?'disabled':''}>ก่อนหน้า</button><span>หน้า ${s.p+1} / ${pages}</span><button type="button" class="btn btn-soft cm-next" data-k="${k}" ${s.p+1>=pages?'disabled':''}>ถัดไป</button>`:'';
+}
+async function cmParse(k,file){
+  await loadLib('xlsx');
+  const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+  const spec=CM_COLS[k];const norm=x=>String(x==null?'':x).replace(/[\s.]+$/g,'').replace(/\s+/g,' ').trim();
+  const h=aoa.findIndex(r=>spec.filter(c=>r.some(v=>c[2].test(norm(v)))).length>=Math.ceil(spec.length*0.6));
+  if(h<0)return {ok:false,message:k==='equip'?'ไม่พบหัวตาราง — ใช้ไฟล์ "รายการเครื่องจักร" (EquipmentListReport) จาก CMMS':'ไม่พบหัวตาราง — ใช้ไฟล์ "รายงานรหัสบัญชีสินค้า" (CatalogueItemsReport) จาก CMMS'};
+  const hd=aoa[h].map(norm);const idx=spec.map(c=>hd.findIndex(x=>c[2].test(x)));
+  const dates={regDate:1,endDate:1};
+  const rows=aoa.slice(h+1).map(r=>{const o={};spec.forEach((c,i)=>{let v=idx[i]>=0?r[idx[i]]:'';o[c[0]]=dates[c[0]]?cmFmtDate(v):(c[3]?(v===''?'':Number(v)):String(v==null?'':v).trim());});return o;}).filter(o=>o[spec[0][0]]!==''&&o[spec[0][0]]!=null);
+  return {ok:true,rows};
+}
+async function cmImport(k,file){
+  try{
+    toast('กำลังอ่านไฟล์...',true);
+    const p=await cmParse(k,file);
+    if(!p.ok){toast(p.message,false);return;}
+    if(!p.rows.length){toast('ไม่พบรายการในไฟล์',false);return;}
+    if(!confirm(`นำเข้า ${p.rows.length.toLocaleString('en-US')} รายการ — ข้อมูลเดิมของหน้านี้จะถูกแทนที่ทั้งหมด ต้องการดำเนินการต่อ?`))return;
+    const N=500;
+    for(let i=0;i<p.rows.length;i+=N){
+      toast(`กำลังนำเข้า ${Math.min(i+N,p.rows.length).toLocaleString('en-US')} / ${p.rows.length.toLocaleString('en-US')}`,true);
+      const r=await api(ACT.importCmms,{type:k,rows:p.rows.slice(i,i+N),reset:i===0});
+      if(!r||!r.ok){toast((r&&r.message)||'นำเข้าไม่สำเร็จ',false);return;}
+    }
+    toast(`นำเข้าแล้ว ${p.rows.length.toLocaleString('en-US')} รายการ`,true);
+    CMS.st[k].p=0;CMS.st[k].f='';CMS.st[k].q='';const q=document.querySelector(`.cm-q[data-k="${k}"]`);if(q)q.value='';
+    cmLoad(k);
+  }catch(e){console.error(e);toast('นำเข้าไม่สำเร็จ: '+((e&&e.message)||''),false);}
+}
+async function cmDownload(k){
+  try{
+    toast('กำลังเตรียมไฟล์...',true);const s=CMS.st[k];const all=[];let off=0,total=1;
+    while(off<total){const r=await api(ACT.listCmms,{type:k,q:s.q,filter:s.f,offset:off,limit:3000});if(!r||!r.ok){toast((r&&r.message)||'ดาวน์โหลดไม่สำเร็จ',false);return;}total=r.total;all.push(...r.rows);off+=3000;if(!r.rows.length)break;}
+    if(!all.length){toast('ไม่มีข้อมูลให้ดาวน์โหลด',false);return;}
+    await loadLib('xlsx');
+    const spec=CM_COLS[k];const aoa=[spec.map(c=>c[1])].concat(all.map(o=>spec.map(c=>o[c[0]])));
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),k==='equip'?'รายการอุปกรณ์':'รายการอะไหล่');
+    XLSX.writeFile(wb,(k==='equip'?'CMMS_EquipmentList':'CMMS_PartsCatalogue')+'.xlsx');
+    toast('ดาวน์โหลดแล้ว',true);
+  }catch(e){console.error(e);toast('ดาวน์โหลดไม่สำเร็จ',false);}
+}
+function cmOpenSub(k){
+  CMS.sub=k;CMS.tab=0;
+  $('#cmSub').querySelectorAll('.oma-chip').forEach(b=>b.classList.toggle('active',b.dataset.cs===k));
+  CM_SUBS.forEach(x=>{const e=$('#cm-'+x.k);if(e)e.hidden=x.k!==k;});
+  cmLoad(k);
+}
+function cmOpenTab(i){
+  CMS.tab=i;omClearPanels();
+  $('#cmTabs').querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',+b.dataset.ct===i));
+  $('#cmSub').classList.toggle('nav-off',OMS.side!=='cmms'||i!==0);
+  const p=$('#panel-cm-'+i);if(p)p.classList.add('active');
+  if(i===0)cmOpenSub(CMS.sub);
+  window.scrollTo(0,0);
+}
+(function(){
+  const _ss=setSide;
+  setSide=function(side){
+    if(side==='cmms'){
+      if(!canSeeOma())side='doc';
+      else{
+        omBuild();cmBuild();if(OMS.side==='doc'){const act=document.querySelector('#mainNav .tab.active');if(act)OMS.lastDoc=act.dataset.tab;}OMS.side='cmms';
+        document.querySelectorAll('#sideNav .side-item').forEach(b=>{const on=b.dataset.side==='cmms';b.classList.toggle('active',on);b.setAttribute('aria-selected',on);});
+        $('#mainNav').classList.add('nav-off');
+        ['#omaTabs','#omaSub','#omaSearch'].forEach(x=>$(x).classList.add('nav-off'));
+        $('#cmTabs').classList.remove('nav-off');
+        cmOpenTab(CMS.tab||0);
+        return;
+      }
+    }
+    $('#cmTabs')&&$('#cmTabs').classList.add('nav-off');$('#cmSub')&&$('#cmSub').classList.add('nav-off');
+    const prev=OMS.side;
+    if(prev==='cmms'){document.querySelectorAll('#cmTabs .tab').forEach(x=>x.classList.remove('active'));omClearPanels();}
+    return _ss.call(this,side);
+  };
+})();
+
 /* เลขรุ่นเล็ก ๆ ท้ายหน้า — ใช้เช็กว่าอัปโหลดไฟล์ชุดล่าสุดขึ้นจริงหรือยัง (ทุกครั้งที่ส่งงานใหม่เลขนี้จะเปลี่ยน) */
-const APP_BUILD='Phase 38';
+const APP_BUILD='Phase 42';
 (function(){const m=document.querySelector('main');if(!m||document.getElementById('buildTag'))return;const d=document.createElement('div');d.id='buildTag';d.textContent='Build: '+APP_BUILD;m.parentNode.insertBefore(d,m.nextSibling);try{console.info('OMA build',APP_BUILD);}catch(e){}})();
+
+/* ── Phase 40: each project gets its own planet in the report-loading animation ── */
+const PLANETS=['earth','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+const PLANET_TH={earth:'โลก',venus:'ดาวศุกร์',mars:'ดาวอังคาร',jupiter:'ดาวพฤหัสบดี',saturn:'ดาวเสาร์',uranus:'ดาวยูเรนัส',neptune:'ดาวเนปจูน',pluto:'ดาวพลูโต'};
+const FIRST_PROJ_RE=/^สัญญาจ้างงานบำรุงรักษาสายสัญญาณและอุปกรณ์จัดการเครือข่าย/;
+let PLN={},_warpPlanet='earth';
+function _isFirstProject(p){const c=(typeof PCODE==='function'?PCODE(p):'')||'';return FIRST_PROJ_RE.test(String(p||'').trim())||c==='MA2025048';}
+function planetOf(p){
+  const set=PLN[p];if(set&&PLANETS.includes(set))return set;
+  if(!p||_isFirstProject(p))return 'earth';
+  const seen=[];(master||[]).forEach(m=>{if(m.project&&!seen.includes(m.project)&&!_isFirstProject(m.project))seen.push(m.project);});
+  const i=seen.indexOf(p);if(i<0)return 'earth';
+  const order=['venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+  return order[i]||'earth';
+}
+function planetForCurrent(){
+  try{const ps=uniq((getSavedFilteredList()||[]).map(e=>e.project).filter(Boolean));if(ps.length===1)return planetOf(ps[0]);}catch(e){}
+  return 'earth';
+}
+const _PLG={earth:[90,160,255],venus:[255,215,140],mars:[255,150,100],jupiter:[255,205,150],saturn:[250,225,160],uranus:[150,230,240],neptune:[90,130,255],pluto:[220,190,160]};
+const _PLR={venus:[255,220,150,.5],mars:[255,170,120,.35],jupiter:[255,225,190,.28],saturn:[255,235,180,.28],uranus:[170,240,250,.5],neptune:[110,150,255,.55],pluto:[230,200,170,.2]};
+function _pfbm(w,h,seed,oct,fx,fy){ /* tileable in x; fx/fy stretch the first octave */
+  const out=new Float32Array(w*h);let s=seed;const rnd=()=>{s=(s*16807)%2147483647;return s/2147483647;};
+  const gr=[];for(let o=0;o<oct;o++){const gw=Math.round(fx*Math.pow(2,o)),gh=Math.round(fy*Math.pow(2,o))+1,g=new Float32Array(gw*gh);for(let i=0;i<g.length;i++)g[i]=rnd();gr.push({gw,gh,g});}
+  const sm=t=>t*t*(3-2*t);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let v=0,a=.5,tot=0;
+    gr.forEach(({gw,gh,g})=>{const px=x/w*gw,py=y/h*(gh-1),x0=Math.floor(px),y0=Math.floor(py),tx=sm(px-x0),ty=sm(py-y0),xa=x0%gw,xb=(x0+1)%gw,y1=Math.min(gh-1,y0+1);
+      const t=g[y0*gw+xa]*(1-tx)+g[y0*gw+xb]*tx,b=g[y1*gw+xa]*(1-tx)+g[y1*gw+xb]*tx;v+=(t*(1-ty)+b*ty)*a;tot+=a;a*=.52;});
+    out[y*w+x]=v/tot;}
+  return out;
+}
+const _pmix=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+const _pst=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
+const _PLTEX={};
+function planetTex(name){
+  if(_PLTEX[name])return _PLTEX[name];
+  const W=512,H=256,data=new Uint8ClampedArray(W*H*4),n=_pfbm(W,H,11+name.length*7,5,6,3),n2=_pfbm(W,H,97+name.charCodeAt(0),5,16,2),n3=_pfbm(W,H,5+name.charCodeAt(1),4,3,6);
+  for(let y=0;y<H;y++){const lat=(.5-(y+.5)/H)*Math.PI;
+    for(let x=0;x<W;x++){const i=y*W+x,u=x/W,a=n[i],b=n2[i],c=n3[i];let col;
+      if(name==='venus'){const sw=a+.18*Math.sin(lat*5+c*5)+.1*Math.sin(lat*14+b*3);col=_pmix([196,140,78],[246,222,160],_pst(.25,.8,sw));col=_pmix(col,[255,244,205],_pst(.62,.85,b)*.35);}
+      else if(name==='mars'){col=_pmix([186,98,56],[128,62,40],_pst(.5,.68,a));col=_pmix(col,[214,150,98],_pst(.5,.28,b)*.7);col=_pmix(col,[96,50,36],_pst(.6,.75,c)*.45*(Math.abs(lat)<.9?1:0));const cap=_pst(1.18,1.4,Math.abs(lat)+(b-.5)*.18);col=_pmix(col,[244,244,248],cap);}
+      else if(name==='jupiter'){const w=lat*13+a*2.6+b*.9;const s=Math.sin(w),s2=Math.sin(w*2.3+1.4);let t=.5+.5*s;col=_pmix([232,214,184],[176,118,78],_pst(.25,.8,t));col=_pmix(col,[246,236,218],_pst(.55,1,s2)*.35);col=_pmix(col,[148,96,66],_pst(.7,.95,.5+.5*Math.sin(lat*13+4+a))*.35);
+        const dx=Math.min(Math.abs(u-.3),1-Math.abs(u-.3))/.075,dy=(lat+.36)/.085,d=dx*dx+dy*dy;if(d<1.6){const k=_pst(1.6,.25,d);col=_pmix(col,[188,72,48],k*.92);col=_pmix(col,[226,190,160],_pst(.9,1.6,d)*(1-_pst(1.6,2,d))*.5);}}
+      else if(name==='saturn'){const w=lat*10+a*.9;col=_pmix([200,168,112],[236,214,160],_pst(.2,.8,.5+.5*Math.sin(w)));col=_pmix(col,[246,232,190],_pst(.55,.8,b)*.18);col=_pmix(col,[170,160,140],_pst(.95,1.4,Math.abs(lat))*.4);}
+      else if(name==='uranus'){col=_pmix([138,200,214],[176,230,236],.5+.5*Math.sin(lat*6+a*.4));col=_pmix(col,[205,244,246],_pst(.9,1.5,Math.abs(lat))*.5);}
+      else if(name==='neptune'){const w=lat*9+a*1.4;col=_pmix([30,64,176],[56,104,222],.5+.5*Math.sin(w));col=_pmix(col,[210,228,255],_pst(.66,.88,b*.7+c*.4)*.6*(Math.abs(lat)<.9?1:.3));
+        const dx=Math.min(Math.abs(u-.62),1-Math.abs(u-.62))/.08,dy=(lat+.4)/.06,d=dx*dx+dy*dy;if(d<1)col=_pmix(col,[16,32,98],(1-d)*.9);}
+      else { /* pluto */ col=_pmix([190,158,128],[122,86,64],_pst(.35,.75,a));col=_pmix(col,[92,58,48],_pst(.62,.8,b)*.55);col=_pmix(col,[210,185,160],_pst(.6,.8,c)*.3);
+        const h1=((Math.min(Math.abs(u-.30),1-Math.abs(u-.30))/.075)**2+((lat-.12)/.2)**2),h2=((Math.min(Math.abs(u-.38),1-Math.abs(u-.38))/.07)**2+((lat-.12)/.15)**2),hh=Math.min(h1,h2);
+        if(hh<1)col=_pmix(col,[240,226,206],(1-hh)*.92);}
+      const o=i*4;data[o]=col[0];data[o+1]=col[1];data[o+2]=col[2];data[o+3]=255;}}
+  return(_PLTEX[name]={width:W,height:H,data});
+}
+function renderPlanet(rotRad,name){
+  const e=_earth;if(!e) return null;const T=planetTex(name),D=e.D,out=e.img.data,TAU=Math.PI*2,gas=name==='jupiter'||name==='saturn'||name==='uranus'||name==='neptune'||name==='venus',rc=_PLR[name]||[150,180,255,.3];
+  const spin=name==='jupiter'||name==='saturn'?2.2:name==='venus'?.5:name==='mars'?1:1.4;
+  for(let k=0;k<D*D;k++){
+    const m=e.mask[k],o=k*4;if(m<=0){out[o+3]=0;continue;}
+    let u=(e.lon0[k]+rotRad*spin)/TAU+.5;u-=Math.floor(u);const v=e.v[k],t=_tex(T,u,v),dif=e.diff[k],nz=e.nz[k];
+    const sh=(gas?.1:.06)+(gas?.95:1.05)*Math.max(0,gas?(dif+.18)/1.18:dif);
+    const limb=gas?(.55+.45*Math.pow(nz,.4)):1;
+    let r=t[0]*sh*limb,g=t[1]*sh*limb,b=t[2]*sh*limb;
+    const rim=e.rim[k],at=rim*(.12+Math.max(0,dif)*.9)*rc[3];r+=at*rc[0];g+=at*rc[1];b+=at*rc[2];
+    out[o]=r>255?255:r;out[o+1]=g>255?255:g;out[o+2]=b>255?255:b;out[o+3]=m*255;
+  }
+  e.ctx.putImageData(e.img,0,0);return e.buf;
+}
+function renderBody(rot){return _warpPlanet==='earth'?renderEarth(rot):renderPlanet(rot,_warpPlanet);}
+function _satRings(ctx,cx,cy,R,front){
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(-.32);ctx.beginPath();ctx.rect(-R*3,front?0:-R*3,R*6,R*3);ctx.clip();
+  const q=.3,bands=[[1.25,1.5,.35],[1.5,1.9,.75],[1.97,2.05,.15],[2.05,2.3,.5]];
+  bands.forEach(([a,b,al])=>{for(let s=a;s<b;s+=.012){const k=(s-a)/(b-a);ctx.strokeStyle='rgba('+(226-k*20|0)+','+(204-k*24|0)+','+(158-k*30|0)+','+(al*(.75+.25*Math.sin(s*90)))+')';ctx.lineWidth=R*.016;ctx.beginPath();ctx.ellipse(0,0,R*s,R*s*q,0,0,6.283);ctx.stroke();}});
+  ctx.restore();
+}
+(function(){
+  /* hook: planet chosen when the animation starts */
+  const _sw=startWarpAnimation;
+  startWarpAnimation=function(){try{_warpPlanet=planetForCurrent();}catch(e){_warpPlanet='earth';}_warpBuf=null;return _sw.apply(this,arguments);};
+})();
 

@@ -1174,10 +1174,12 @@ body{background:var(--bg)}
 .side-item{flex:1;padding:12px 10px;font-size:14px;font-weight:500;color:var(--ink-soft);border-bottom:3px solid transparent;text-align:center;background:none}
 .side-item:hover{background:var(--surface-2,#f6f6f6)}
 .side-item.active{color:var(--accent-deep,#b00020);border-bottom-color:var(--accent,#d32f2f);font-weight:600}
-.oma-sub{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;overflow-x:auto;padding:10px 18px;background:var(--surface-2,#f6f6f6);border-bottom:1px solid var(--line-soft,#e5e5e5)}
-.oma-sec{flex:0 0 auto;font-size:12px;color:var(--ink-soft);padding:0 2px 0 10px;border-left:1px solid var(--line,#ccc);margin-left:4px}
-.oma-sec:first-child{border-left:0;margin-left:0;padding-left:0}
-.oma-chip{flex:0 0 auto;padding:7px 12px;border:1px solid var(--line,#d6d6d6);border-radius:999px;background:var(--surface,#fff);color:var(--ink);font-size:13px;white-space:nowrap}
+.oma-sub{padding:10px 18px 4px;background:var(--surface-2,#f6f6f6);border-bottom:1px solid var(--line-soft,#e5e5e5)}
+.oma-grp{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:start;padding:0 0 6px;margin:0 0 6px;border-bottom:1px solid var(--line-soft,#e5e5e5)}
+.oma-grp:last-child{border-bottom:0;margin-bottom:0}
+.oma-sec{font-size:13px;font-weight:600;color:var(--ink-soft);padding-top:6px;line-height:1.35}
+.oma-chips{display:flex;flex-wrap:wrap;gap:6px}
+.oma-chip{padding:6px 12px;border:1px solid var(--line,#d6d6d6);border-radius:999px;background:var(--surface,#fff);color:var(--ink);font-size:13px;text-align:left;max-width:100%}
 .oma-chip b{color:var(--ink-soft);font-weight:600;margin-right:3px}
 .oma-chip:hover{border-color:var(--accent,#d32f2f)}
 .oma-chip.active{background:var(--accent-wash,#fdecea);border-color:var(--accent,#d32f2f);color:var(--accent-deep,#b00020)}
@@ -1188,14 +1190,14 @@ body{background:var(--bg)}
 .om-ref{margin-top:8px;font-size:13px}.om-ref summary{cursor:pointer;color:var(--ink-soft)}
 .om-ref dl{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;margin:10px 0 0}.om-ref dt{color:var(--ink-soft)}.om-ref dd{margin:0}
 .om-d{margin-top:10px}
-@media(max-width:560px){.om-ref dl{grid-template-columns:1fr}.oma-sub{padding:8px 12px}}
+@media(max-width:700px){.oma-grp{grid-template-columns:1fr;gap:4px}.oma-sec{padding-top:0}}
+@media(max-width:560px){.om-ref dl{grid-template-columns:1fr}.oma-sub{padding:10px 12px 4px}}
 @media(min-width:1000px){
   :root{--sideW:232px}
   body.has-side .side-nav{position:fixed;left:0;top:var(--hdrH,72px);bottom:0;width:var(--sideW);flex-direction:column;padding:14px 0;border-bottom:0;border-right:1px solid var(--line-soft,#e5e5e5);z-index:34}
   body.has-side .side-item{flex:0 0 auto;text-align:left;padding:12px 20px;border-bottom:0;border-left:3px solid transparent;line-height:1.35}
   body.has-side .side-item.active{border-left-color:var(--accent,#d32f2f);background:var(--accent-wash,#fdecea)}
-  .oma-sub{flex-wrap:wrap;overflow-x:visible}
-  body.has-side .tabs,body.has-side .oma-sub,body.has-side main,body.has-side #oqBar{margin-left:var(--sideW)}
+  body.has-side .tabs,body.has-side .oma-search,body.has-side .oma-sub,body.has-side main,body.has-side #oqBar{margin-left:var(--sideW)}
 }
 @media print{.side-nav,#omaTabs,#omaSub{display:none!important}body.has-side main,body.has-side #oqBar{margin-left:0!important}}
 
@@ -1214,3 +1216,38 @@ body{background:var(--bg)}
 body.has-side #buildTag{margin-left:var(--sideW)}
 @media(max-width:999px){#buildTag{margin:-64px 0 0;padding:0 14px 12px}}
 @media print{#buildTag{display:none}}
+
+/* Phase 38d: แถบเมนู — ปรับตามหลัก UX (ขนาดแตะ, focus ที่เห็นชัด, สถานะไม่พึ่งสีอย่างเดียว) */
+.side-item,.oma-chip,#omaTabs .tab{cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.oma-chip{min-height:38px;line-height:1.3}
+.oma-chip.active{font-weight:600}
+.side-item:focus-visible,.oma-chip:focus-visible,#omaTabs .tab:focus-visible,#addReady .ar-chip:focus-visible{outline:2px solid var(--accent,#d32f2f);outline-offset:2px}
+@media(pointer:coarse){.oma-chip{min-height:44px;padding:8px 14px}.side-item{min-height:48px}#addReady .ar-chip{min-height:36px;padding:6px 12px}.oma-chips{gap:8px}}
+@media(prefers-reduced-motion:reduce){.side-item,.oma-chip,#omaTabs .tab{transition:none}}
+
+/* Phase 39: ค้นหางาน OMA */
+.oma-search{padding:10px 18px 0;background:var(--surface-2,#f6f6f6)}
+.oma-search .tin{width:100%;max-width:420px;min-height:40px}
+.oma-res{display:flex;flex-direction:column;max-width:420px;margin-top:4px;border:1px solid var(--line,#d6d6d6);border-radius:10px;background:var(--surface,#fff);overflow:hidden}
+.oma-res:empty{display:none}
+.oma-hit{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;text-align:left;font-size:14px;color:var(--ink);background:none;border-bottom:1px solid var(--line-soft,#e5e5e5);min-height:44px;align-items:center}
+.oma-hit:last-child{border-bottom:0}.oma-hit:hover,.oma-hit:focus-visible{background:var(--accent-wash,#fdecea)}
+.oma-hit em{font-style:normal;font-size:12px;color:var(--ink-soft);flex:0 0 auto}
+.oma-none{padding:10px 12px;font-size:13px;color:var(--ink-soft)}
+@media(max-width:560px){.oma-search{padding:10px 12px 0}}
+@media print{.oma-search{display:none!important}}
+.ps-pl{margin-top:6px;width:100%}.ps-row3 .ps-sel{width:100%}
+
+/* Phase 42: ข้อมูล CMMS */
+#cmTabs .tab{cursor:pointer}
+.cm-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+.cm-bar .tin{flex:1 1 220px;min-width:0}
+.cm-bar select{max-width:100%}
+.cm-info{font-size:13px;color:var(--ink-soft);margin:0 0 8px}
+.cm-wrap{overflow:auto;border:1px solid var(--line-soft,#e5e5e5);border-radius:10px;max-height:68vh;background:var(--surface,#fff)}
+.cm-tbl{border-collapse:collapse;width:100%;font-size:13px}
+.cm-tbl th{position:sticky;top:0;background:var(--surface-2,#f6f6f6);text-align:left;padding:8px 10px;white-space:nowrap;border-bottom:1px solid var(--line,#d6d6d6);font-weight:600}
+.cm-tbl td{padding:6px 10px;border-bottom:1px solid var(--line-soft,#eee);vertical-align:top}
+.cm-tbl td.n{text-align:right;font-variant-numeric:tabular-nums}
+.cm-pg{display:flex;gap:10px;align-items:center;justify-content:center;margin:10px 0;font-size:13px}
+.cm-msg{padding:18px;text-align:center;color:var(--ink-soft)}
