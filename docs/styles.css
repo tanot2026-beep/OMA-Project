@@ -1251,3 +1251,30 @@ body.has-side #buildTag{margin-left:var(--sideW)}
 .cm-tbl td.n{text-align:right;font-variant-numeric:tabular-nums}
 .cm-pg{display:flex;gap:10px;align-items:center;justify-content:center;margin:10px 0;font-size:13px}
 .cm-msg{padding:18px;text-align:center;color:var(--ink-soft)}
+.cm-img{white-space:nowrap}.cm-img img{width:44px;height:44px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:6px;border:1px solid var(--line-soft,#e5e5e5)}.cm-ie{font-size:12px;padding:3px 8px;border:1px solid var(--line,#d6d6d6);border-radius:6px;background:var(--surface,#fff);color:var(--ink-soft);cursor:pointer}.cm-ie:hover{border-color:var(--accent,#d32f2f)}
+.wo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:6px}.wo-f{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--ink-soft)}.wo-f[hidden]{display:none}.wo-w{grid-column:1/-1}.wo-f textarea{font-family:inherit;resize:vertical}
+.cm-seg{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}.cm-seg .btn.on{background:var(--accent,#d32f2f);color:#fff;border-color:transparent}#cm-req .cm-tbl td:nth-child(10){white-space:pre-wrap;min-width:260px}
+#cm-wos .cm-tbl td:nth-child(7),#cm-wos .cm-tbl td:nth-child(9){white-space:pre-wrap;min-width:220px}
+
+/* Phase 45: dashboard อะไหล่ที่ใช้ */
+.is-filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:0 0 10px}
+.is-filters label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink-soft)}
+.is-filters select,.is-filters input{width:100%;min-width:0}
+.is-q{grid-column:span 2}
+.is-quick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}.is-sp{flex:1}
+.is-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.is-kpi{border:1px solid var(--line-soft,#e5e5e5);border-radius:12px;padding:12px 14px;background:var(--surface,#fff);display:flex;flex-direction:column;gap:2px}
+.is-kpi span{font-size:12px;color:var(--ink-soft)}.is-kpi b{font-size:26px;line-height:1.2;font-variant-numeric:tabular-nums}.is-kpi small{font-size:11px;color:var(--ink-soft)}
+.is-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:14px}
+.is-card{border:1px solid var(--line-soft,#e5e5e5);border-radius:12px;padding:12px 14px;background:var(--surface,#fff);min-width:0}
+.is-card h3{margin:0 0 10px;font-size:14px}.is-wide{grid-column:1/-1}
+.is-cols{display:flex;align-items:flex-end;gap:4px;height:190px;overflow-x:auto;padding-top:16px}
+.is-col{flex:1 0 22px;max-width:60px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;position:relative}
+.is-col i{display:block;width:70%;background:var(--accent,#c62828);border-radius:4px 4px 0 0;min-height:0}
+.is-cv{font-size:10px;color:var(--ink-soft);font-variant-numeric:tabular-nums}.is-cl{font-size:10px;color:var(--ink-soft);white-space:nowrap}
+.is-hb{display:grid;grid-template-columns:minmax(70px,34%) 1fr auto;gap:8px;align-items:center;width:100%;padding:4px 6px;border:0;background:none;border-radius:8px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.is-hb:hover,.is-hb.on{background:var(--surface-2,#f3f3f3)}.is-hb.on .is-hl{font-weight:700}
+.is-hl{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.is-hbar{height:10px;background:var(--line-soft,#eee);border-radius:5px;overflow:hidden}.is-hbar i{display:block;height:100%;background:var(--accent,#c62828);border-radius:5px}
+.is-hv{font-size:12px;font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
+.is-sort{border:0;background:none;font:inherit;font-weight:600;cursor:pointer;color:inherit;padding:0}
+@media (max-width:640px){.is-q{grid-column:auto}.is-cols{height:150px}}
