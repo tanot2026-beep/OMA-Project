@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Orbitron:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=1794535834850">
+<link rel="stylesheet" href="styles.css?v=1794556188891">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D93A2B">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -194,6 +194,7 @@
   <div class="card">
     <div class="card-h"><span class="step">1</span><h3>Select Equipment</h3></div>
     <div class="card-b">
+      <div class="form-pick" id="addFormRow" hidden><label for="addFormSel">Form for this project</label><select id="addFormSel" class="tin"></select></div>
       <div class="cascade">
         <div class="field"><label>Project <span class="req">*</span></label><div class="combo" data-level="project"></div></div>
         <div class="field"><label>System</label><div class="combo disabled" data-level="system"></div></div>
@@ -298,7 +299,7 @@
       <button id="importExcelModalClose" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-faint)">&times;</button>
     </div>
     <label class="import-drop" for="fileXlsx">
-      <div class="id-ic">📁</div>
+      <div class="id-ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></div>
       <b>Choose or drag an Excel file</b>
       <span>Supports .xlsx · .xls · .csv</span>
       <span class="id-btn">Choose File</span>
@@ -370,7 +371,7 @@
 <!-- ══════ PANEL: USERS (เปิดจากเมนูซ้าย "กำหนดผู้ใช้") ══════ -->
 <section class="panel" id="panel-users">
   <div class="admin-only" style="margin-bottom:22px">
-    <div class="panel-title" style="font-size:16px">Page Permissions</div>
+    <div class="panel-title">Page Permissions</div>
     <div id="pagePermContainer" style="background:var(--surface);border:1px solid var(--line-soft);border-radius:14px;padding:16px;box-shadow:var(--shadow)"></div>
   </div>
   <div class="panel-title">Manage Users</div>
@@ -401,16 +402,16 @@
       <button class="btn btn-primary" id="nuAdd" style="margin-top:16px">Add User</button>
     </div></div>
     <div class="card"><div class="card-b">
-      <div class="card-h"><span class="step">⬆</span><h3>Import from Excel</h3></div>
+      <div class="card-h"><span class="step"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></span><h3>Import from Excel</h3></div>
       <label class="import-drop" for="fileUsers" style="padding:26px 18px">
-        <div class="id-ic" style="width:52px;height:52px;font-size:22px">📁</div>
+        <div class="id-ic" style="width:52px;height:52px"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></div>
         <b>Choose or drag an Excel file</b><span>.xlsx · .xls · .csv</span>
         <span class="id-btn">Choose File</span>
       </label>
       <input type="file" id="fileUsers" accept=".xlsx,.xls,.csv" hidden>
       <div class="import-cols" style="margin-top:14px">
         <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px">Supported columns</div>
-        <div class="ic-grid"><span>username</span><span>password</span><span>name</span><span>role</span><span>project</span><span>email</span></div>
+        <div class="ic-grid"><span>username</span><span>password</span><span>name</span><span>role</span><span>project</span><span>email</span><span>UserSecurityReport</span></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
         <button class="ghost-btn" onclick="downloadUsersTemplate()" style="flex:1;min-width:140px">Download Blank Form</button>
@@ -583,7 +584,7 @@
   </div>
 </div>
 
-<script src="script.js?v=1794535834850"></script>
+<script src="script.js?v=1794556188891"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

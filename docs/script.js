@@ -338,7 +338,7 @@ async function doLogin(){
   await afterLogin();
   if(r.warnDefaultPassword)setTimeout(()=>toast('Security warning: the admin account still uses the default password. Change it in Users now.',false),600);
 }
-function doLogout(){clearSession();$('#userChip').style.display='none';$('#logoutBtn').style.display='none';$('#authUser').value='';$('#authPass').value='';hidePdpa();showGate();}
+function doLogout(){clearSession();try{KV.clear();IS.loaded=false;IS.v='';}catch(e){}$('#userChip').style.display='none';$('#logoutBtn').style.display='none';$('#authUser').value='';$('#authPass').value='';hidePdpa();showGate();}
 async function afterLogin(){
   pageLoadStart();PL.steps=[];
   try{await afterLoginInner();LAST_FULL_LOAD=Date.now();}finally{pageLoadDone();}
@@ -3108,10 +3108,10 @@ const I18N_ATTRS=['placeholder','title','aria-label'];
 Object.assign(I18N_TH,{'History':'ประวัติ','Created':'สร้างรายการ','Edited':'แก้ไข','Deleted':'ลบ','Restored':'กู้คืน','Confirmed reviewed':'ยืนยันตรวจสอบแล้ว','No history yet':'ยังไม่มีประวัติ','Could not load the history':'โหลดประวัติไม่ได้','Waiting to upload':'รอส่งขึ้นเซิร์ฟเวอร์','Nothing is waiting to upload':'ไม่มีรายการที่รอส่ง','Waiting for connection':'รอสัญญาณอินเทอร์เน็ต','Serial already recorded - discard this one or edit the existing record':'Serial นี้มีบันทึกแล้ว - ลบรายการนี้ทิ้งหรือไปแก้รายการเดิม','Send now':'ส่งตอนนี้','View':'ดู','Discard':'ทิ้ง','Discard this saved record? It has not been uploaded and cannot be recovered.':'ทิ้งรายการที่บันทึกไว้นี้? ยังไม่ได้ส่งขึ้นเซิร์ฟเวอร์ และกู้คืนไม่ได้','No connection - saved on this device. It will upload automatically when you are back online.':'ไม่มีสัญญาณ - บันทึกไว้ในเครื่องแล้ว จะส่งให้อัตโนมัติเมื่อกลับมาออนไลน์','Offline - new records are saved on this device and uploaded automatically':'ออฟไลน์ - รายการใหม่จะบันทึกไว้ในเครื่องและส่งให้อัตโนมัติ','This serial number is already recorded':'Serial นี้มีบันทึกแล้ว','This serial number is already waiting to upload from this device':'Serial นี้รอส่งอยู่ในเครื่องนี้แล้ว','This serial number is already recorded - edit the existing record instead':'Serial นี้มีบันทึกแล้ว - ให้แก้ไขรายการเดิมแทน','Show record':'ดูรายการ','Already in Master data':'มีอยู่ใน Master แล้ว','Duplicate of row':'ซ้ำกับแถว','Missing Project or Equipment':'ไม่มี Project หรือ Equipment','Excel row':'แถวใน Excel','Reason':'เหตุผล','Same as row':'ซ้ำกับแถว','duplicate rows skipped':'แถวซ้ำที่ข้าม','rows missing Project/Equipment':'แถวที่ไม่มี Project/Equipment','more in the file':'แถวเพิ่มเติมในไฟล์','Download skipped rows (Excel)':'ดาวน์โหลดรายการที่ข้าม (Excel)','Could not create the file':'สร้างไฟล์ไม่ได้'});
 Object.assign(I18N_TH,{'Returned:':'ตีกลับ:','Return':'ตีกลับ','Returned':'ตีกลับแล้ว','Return for fixing':'ตีกลับให้แก้ไข','Returned for fixing':'ตีกลับให้แก้ไขแล้ว','Return cancelled':'ยกเลิกการตีกลับแล้ว','Cancel return':'ยกเลิกการตีกลับ','Return to inspector':'ส่งกลับให้ช่าง','Reason (the inspector will see this)':'เหตุผล (ช่างจะเห็นข้อความนี้)','Please enter a reason':'กรุณาใส่เหตุผล','Photo is blurry or dark':'รูปเบลอหรือมืด','Serial number does not match the label':'Serial ไม่ตรงกับป้าย','Missing sticker photo':'ไม่มีรูปสติกเกอร์','Wrong location or equipment':'สถานที่หรืออุปกรณ์ไม่ถูกต้อง','Fixed and resubmitted':'แก้ไขและส่งใหม่แล้ว','This record was returned for fixing':'รายการนี้ถูกตีกลับให้แก้ไข','Fix the problem and tap Save Changes - the return flag clears automatically.':'แก้ไขแล้วกด Save Changes - ป้ายตีกลับจะหายเอง','Returned for fixing':'ตีกลับให้แก้ไข','Filtered by status: Returned for fixing':'กรองตามสถานะ: ตีกลับให้แก้ไข','Show':'แสดง','Photo is too dark':'รูปมืดเกินไป','Photo is too bright':'รูปสว่างเกินไป','Photo may be blurry':'รูปอาจเบลอ','tap the photo to retake it':'แตะที่รูปเพื่อถ่ายใหม่','Read serial from photo':'อ่าน Serial จากรูป','Reading...':'กำลังอ่าน...','Serial from photo':'Serial จากรูป','Serial filled in - please verify it':'ใส่ Serial แล้ว - โปรดตรวจสอบอีกครั้ง','Attach the sticker photo first (a new photo, not an existing saved one)':'แนบรูปสติกเกอร์ก่อน (รูปใหม่ ไม่ใช่รูปที่บันทึกไว้แล้ว)','Could not read the photo (needs an internet connection the first time). Type the serial instead':'อ่านรูปไม่ได้ (ครั้งแรกต้องใช้อินเทอร์เน็ต) กรุณาพิมพ์ Serial เอง','No serial number found in the photo. Retake a closer, sharper photo of the label or type it manually.':'ไม่พบ Serial ในรูป ถ่ายป้ายให้ใกล้และคมชัดขึ้น หรือพิมพ์เอง','Read from the photo':'อ่านได้จากรูป','Nothing in the photo matches a serial in Master data. Retake a closer, sharper photo of the label or select the serial manually.':'ไม่พบข้อความในรูปที่ตรงกับ Serial ใน Master ถ่ายป้ายให้ใกล้และคมชัดขึ้น หรือเลือก Serial เอง','Tap the value that matches the label. Please double-check before using it.':'แตะค่าที่ตรงกับป้าย และตรวจสอบอีกครั้งก่อนใช้','Returned for fixing':'ตีกลับให้แก้ไข'});
 Object.assign(I18N_TH,{'Photos ZIP':'รูปทั้งหมด (ZIP)','Export photos (ZIP)':'Export รูปเป็น ZIP','Create ZIP':'สร้างไฟล์ ZIP','Creating ZIP':'กำลังสร้าง ZIP','Download part':'ดาวน์โหลดส่วนที่','photos':'รูป','photo(s) could not be read and were skipped':'รูปที่อ่านไม่ได้และถูกข้าม','Files are grouped by Project / Location / Sub-location. Links expire after 1 day.':'ไฟล์จัดโฟลเดอร์ตาม Project / Location / Sub-location ลิงก์หมดอายุใน 1 วัน','Done - tap each part to download':'เสร็จแล้ว - แตะแต่ละส่วนเพื่อดาวน์โหลด','No photos found':'ไม่พบรูป','No photos to export in the current list':'ไม่มีรูปให้ export ในรายการปัจจุบัน','No records yet':'ยังไม่มีรายการ','Equipment by Location':'อุปกรณ์ตามสถานที่'});
-Object.assign(I18N_TH,{'Station photo report (Word)':'รายงานรูปรายสถานี (Word)','DOC (Station photos)':'DOC รูปรายสถานี','Period':'ช่วงเวลา','All records in the current list':'ทุกรายการในรายการปัจจุบัน','Report title':'หัวเรื่องรายงาน','Sub-title':'หัวเรื่องรอง','Station title from':'ชื่อสถานีจาก','Location':'สถานที่','Location + Sub-location':'สถานที่ + สถานที่ย่อย','Sub-location':'สถานที่ย่อย','Standard text under each station':'ข้อความมาตรฐานใต้ชื่อสถานี','Date in the station title':'วันที่ในชื่อสถานี','Date and time':'วันที่และเวลา','Date only':'วันที่อย่างเดียว','No date':'ไม่แสดงวันที่','Remember the title and standard text for this project':'จำหัวเรื่องและข้อความมาตรฐานของโปรเจกต์นี้','A record with a Note uses its Note instead of the standard text. You can also edit each station below (this report only).':'รายการที่มี Note จะใช้ Note แทนข้อความมาตรฐาน และแก้รายสถานีด้านล่างได้ (เฉพาะรายงานนี้)','Edit text per station':'แก้ข้อความรายสถานี','stations':'สถานี','with photos':'มีรูป','Create Word report':'สร้างรายงาน Word'});
+Object.assign(I18N_TH,{'Station photo report (Word)':'รายงานรูปรายสถานี (Word)','DOC (Station photos)':'DOC รูปรายสถานี','Period':'ช่วงเวลา','All records in the current list':'ทุกรายการในรายการปัจจุบัน','Report title':'หัวเรื่องรายงาน','Sub-title':'หัวเรื่องรอง','Station title from':'ชื่อสถานีจาก','Location':'สถานที่','Location + Sub-location':'สถานที่ + สถานที่ย่อย','Sub-location':'สถานที่ย่อย','Standard text under each station':'ข้อความมาตรฐานใต้ชื่อสถานี','Date in the station title':'วันที่ในชื่อสถานี','Date and time':'วันที่และเวลา','Date only':'วันที่อย่างเดียว','No date':'ไม่แสดงวันที่','Remember the title and standard text for this project':'จำหัวเรื่องและข้อความมาตรฐานของโปรเจกต์นี้','A record with a Note uses the Note instead. Edits below apply to this report only.':'รายการที่มี Note จะใช้ Note แทนข้อความมาตรฐาน และแก้รายสถานีด้านล่างได้ (เฉพาะรายงานนี้)','Edit text per station':'แก้ข้อความรายสถานี','stations':'สถานี','with photos':'มีรูป','Create Word report':'สร้างรายงาน Word'});
 Object.assign(I18N_TH,{'DOC (choose layout…)':'DOC (เลือกรูปแบบ…)','Use this layout for these projects from now on':'ใช้รูปแบบนี้กับโครงการเหล่านี้ต่อไป','Which report?':'สร้างรายงานแบบไหน?','Station photo report':'รายงานรูปรายสถานี','Equipment report':'รายงานอุปกรณ์','Monthly report like the Excel template: title, one block per station with date and 4 photos (2x2).':'รายงานรายเดือนแบบเทมเพลต Excel: หัวเรื่อง แต่ละสถานีมีวันที่และรูป 4 รูป (2x2)','With table of contents, grouped by location type and location, one equipment per block.':'มีสารบัญ จัดกลุ่มตามประเภทสถานที่และสถานที่ แต่ละอุปกรณ์หนึ่งบล็อก'});
 Object.assign(I18N_TH,{'Inspection values':'ค่าที่ตรวจ','Inspection table columns':'คอลัมน์ตารางผลการตรวจ','One column per line. Use "group|name" to put several columns under one heading, e.g. AC Power|Before. Staff fill these values in Add Record and they are printed in the inspection table.':'หนึ่งบรรทัดต่อหนึ่งคอลัมน์ ใช้ "กลุ่ม|ชื่อ" เพื่อรวมหลายคอลัมน์ไว้ใต้หัวเดียวกัน เช่น AC Power|Before คนหน้างานกรอกค่าในหน้า Add Record และพิมพ์ในตารางผลการตรวจ','Include Corrective Maintenance (CM) section and annex':'รวมส่วนงานซ่อม CM และภาคผนวก ข.','Include per-system pages: divider and inspection table':'รวมหน้าคั่นและตารางผลการตรวจรายระบบ','Include station photos (full report)':'รวมรูปรายสถานี (รายงานตัวเต็ม)','Repairs (CM)':'งานซ่อม (CM)','Add repair':'เพิ่มงานซ่อม','Edit repair':'แก้ไขงานซ่อม','Import Excel':'นำเข้า Excel','repairs':'งานซ่อม','No repairs yet':'ยังไม่มีงานซ่อม','All months':'ทุกเดือน','Date':'วันที่','Job order no.':'เลขใบสั่งงาน','Problem type':'ประเภทปัญหา','Problem reported':'รายละเอียดการแจ้งซ่อม','Cause':'สาเหตุ','Cause and fix':'สาเหตุและการแก้ไข','Report date':'วันที่แจ้ง','Equipment code':'รหัสเครื่องจักรอุปกรณ์','Completed on':'วันที่เสร็จสิ้น','Staff':'พนักงาน'});
-Object.assign(I18N_TH,{'Summary report (Word)':'รายงานสรุป (Word)','Heading of the summary letter':'หัวเรื่องจดหมายสรุป','Contract paragraph':'ข้อความสัญญาจ้าง','Closed':'ปิดระบบ','First photo page':'หน้าแรกของรูป','records':'รายการ','Stations per page in the photo report':'จำนวนสถานีต่อหน้าในรายงานรูป','Plan = stations in Master, Actual = stations with a record in the period. Fill "Closed" and the first photo page of each system. The Page column of the station tables is counted from that page.':'Plan = สถานีใน Master, Actual = สถานีที่มี Record ในช่วงเวลา กรอก "ปิดระบบ" และหน้าแรกของรูปแต่ละระบบ คอลัมน์ "หน้า" ในตารางจะนับต่อจากหน้านั้น','Simplified Add Record for this project (only what the report needs)':'Add Record แบบย่อสำหรับโครงการนี้ (แสดงเฉพาะที่ใช้ทำรายงาน)','Last value':'ค่าล่าสุด','Reading field name for this project (shows a required field in Add Record; leave empty if not needed)':'ชื่อช่องค่าที่วัดได้ของโครงการนี้ (จะแสดงเป็นช่องบังคับกรอกในหน้า Add Record; เว้นว่างถ้าไม่ใช้)','Reading':'ค่าที่วัดได้','Reading (optional, printed in the station report, e.g. water level)':'ค่าที่วัดได้ (ไม่บังคับ พิมพ์ในรายงานรายสถานี เช่น ระดับน้ำ)','Report layout for this project':'รูปแบบรายงานของโครงการนี้','DOC (set layout…)':'DOC (ตั้งรูปแบบรายงาน…)','Report layout saved':'บันทึกรูปแบบรายงานแล้ว','Only admin or manager can set the report layout':'เฉพาะ admin หรือ manager ที่ตั้งรูปแบบรายงานได้','Report layout is not set for this project. Ask an admin or manager to set it':'โครงการนี้ยังไม่ได้ตั้งรูปแบบรายงาน กรุณาให้ admin หรือ manager ตั้งค่า','These projects use different report layouts. Filter to one project first':'โครงการเหล่านี้ใช้รูปแบบรายงานต่างกัน กรุณากรองเหลือโครงการเดียวก่อน','The layout is locked to the project. Everyone uses it from now on; only admin or manager can change it.':'รูปแบบถูกล็อกตามโครงการ ทุกคนใช้รูปแบบนี้ต่อไป เฉพาะ admin หรือ manager เปลี่ยนได้','Use {reading} in the standard text where the measured value goes, e.g. "… ค่าระดับน้ำ {reading} ม.รทก." Without {reading}, the reading is added at the end.':'ใส่ {reading} ในข้อความมาตรฐานตรงตำแหน่งที่จะแสดงค่าที่วัดได้ เช่น "… ค่าระดับน้ำ {reading} ม.รทก." ถ้าไม่ใส่ จะต่อท้ายข้อความ'});
+Object.assign(I18N_TH,{'Summary report (Word)':'รายงานสรุป (Word)','Heading of the summary letter':'หัวเรื่องจดหมายสรุป','Contract paragraph':'ข้อความสัญญาจ้าง','Closed':'ปิดระบบ','First photo page':'หน้าแรกของรูป','records':'รายการ','Stations per page in the photo report':'จำนวนสถานีต่อหน้าในรายงานรูป','Plan = stations in Master, Actual = stations with a record in the period. Fill "Closed" and the first photo page of each system. The Page column of the station tables is counted from that page.':'Plan = สถานีใน Master, Actual = สถานีที่มี Record ในช่วงเวลา กรอก "ปิดระบบ" และหน้าแรกของรูปแต่ละระบบ คอลัมน์ "หน้า" ในตารางจะนับต่อจากหน้านั้น','Simplified Add Record for this project (only what the report needs)':'Add Record แบบย่อสำหรับโครงการนี้ (แสดงเฉพาะที่ใช้ทำรายงาน)','Last value':'ค่าล่าสุด','Reading field name (required in Add Record; leave empty for none)':'ชื่อช่องค่าที่วัดได้ของโครงการนี้ (จะแสดงเป็นช่องบังคับกรอกในหน้า Add Record; เว้นว่างถ้าไม่ใช้)','Reading':'ค่าที่วัดได้','Reading (optional, printed in the station report, e.g. water level)':'ค่าที่วัดได้ (ไม่บังคับ พิมพ์ในรายงานรายสถานี เช่น ระดับน้ำ)','Report layout for this project':'รูปแบบรายงานของโครงการนี้','DOC (set layout…)':'DOC (ตั้งรูปแบบรายงาน…)','Report layout saved':'บันทึกรูปแบบรายงานแล้ว','Only admin or manager can set the report layout':'เฉพาะ admin หรือ manager ที่ตั้งรูปแบบรายงานได้','Report layout is not set for this project. Ask an admin or manager to set it':'โครงการนี้ยังไม่ได้ตั้งรูปแบบรายงาน กรุณาให้ admin หรือ manager ตั้งค่า','These projects use different report layouts. Filter to one project first':'โครงการเหล่านี้ใช้รูปแบบรายงานต่างกัน กรุณากรองเหลือโครงการเดียวก่อน','Layout is set per project. Only admin or manager can change it.':'รูปแบบถูกล็อกตามโครงการ ทุกคนใช้รูปแบบนี้ต่อไป เฉพาะ admin หรือ manager เปลี่ยนได้','Put {reading} where the value goes, e.g. "… ค่าระดับน้ำ {reading} ม.รทก." Without it, the value is added at the end.':'ใส่ {reading} ในข้อความมาตรฐานตรงตำแหน่งที่จะแสดงค่าที่วัดได้ เช่น "… ค่าระดับน้ำ {reading} ม.รทก." ถ้าไม่ใส่ จะต่อท้ายข้อความ'});
 Object.assign(I18N_TH,{'Needs attention':'ต้องจัดการ','Pending review':'รอตรวจสอบ','Overdue projects':'โปรเจกต์เลยกำหนด','Due within 14 days':'ใกล้กำหนดใน 14 วัน','Open assignments':'งานมอบหมายที่ค้าง','My open assignments':'งานของฉันที่ค้าง','✓ Nothing needs attention':'✓ ไม่มีรายการที่ต้องจัดการ','Last 7 days':'7 วันที่ผ่านมา','Last 14 days':'14 วันที่ผ่านมา','Last 30 days':'30 วันที่ผ่านมา','Last 60 days':'60 วันที่ผ่านมา','Completion':'ความสำเร็จ','Period:':'ช่วงเวลา:','Show:':'แสดง:','Set due dates':'ตั้งวันครบกำหนด','No due dates set yet. Set a target due date for each project to see the timeline and overdue alerts.':'ยังไม่ได้ตั้งวันครบกำหนด ตั้งวันครบกำหนดให้แต่ละโปรเจกต์เพื่อดู Timeline และแจ้งเตือนเลยกำหนด'});
 Object.assign(I18N_TH,{'ADMIN':'ผู้ดูแลระบบ','MANAGER':'ผู้จัดการ','OBSERVER':'ผู้สังเกตการณ์','LEADER':'หัวหน้า','INSPECTOR':'ผู้ตรวจ','AMR ASIA CO., LTD.':'AMR ASIA CO., LTD.'});
 function i18nLookup(t){let r=I18N_TH[t];if(r!==undefined)return r;for(const[re,fn]of I18N_RE){const m=t.match(re);if(m)return fn(m);}return undefined;}
@@ -3571,11 +3571,11 @@ async function openStationReport(){
     <label class="st-l">${esc(_tx('Station title from'))}<select id="stMode" class="tin"><option value="loc">${esc(_tx('Location'))}</option><option value="both">${esc(_tx('Location + Sub-location'))}</option><option value="sub">${esc(_tx('Sub-location'))}</option></select></label>
     <label class="st-l">${esc(_tx('Date in the station title'))}<select id="stDate" class="tin"><option value="dt"${defDate==='dt'?' selected':''}>${esc(_tx('Date and time'))}</option><option value="d"${defDate==='d'?' selected':''}>${esc(_tx('Date only'))}</option><option value="none">${esc(_tx('No date'))}</option></select></label>
     <label class="st-l">${esc(_tx('Standard text under each station'))}${systems.length===1?' ('+esc(systems[0])+')':''}<textarea id="stText" class="tin" rows="2">${esc(texts[sysKey]||(sysKey!=='*'?stationDefaultText(sysKey):texts['*'])||'')}</textarea></label>
-    ${canSetTemplate()?`<label class="st-l">${esc(_tx('Reading field name for this project (shows a required field in Add Record; leave empty if not needed)'))}<input id="stRdLabel" class="tin" placeholder="ค่าระดับน้ำ (ม.รทก.)" value="${escAttr(pInfo.readingLabel||'')}"></label>`:''}
+    ${canSetTemplate()?`<label class="st-l">${esc(_tx('Reading field name (required in Add Record; leave empty for none)'))}<input id="stRdLabel" class="tin" placeholder="ค่าระดับน้ำ (ม.รทก.)" value="${escAttr(pInfo.readingLabel||'')}"></label>`:''}
     ${canSetTemplate()?`<label class="st-chk"><input type="checkbox" id="stSimple"${SIMPLE_FORM[projects[0]]?' checked':''}> ${esc(_tx('Simplified Add Record for this project (only what the report needs)'))}</label>`:''}
-    <div class="st-hint">${esc(_tx('Use {reading} in the standard text where the measured value goes, e.g. "… ค่าระดับน้ำ {reading} ม.รทก." Without {reading}, the reading is added at the end.'))}</div>
+    <div class="st-hint">${esc(_tx('Put {reading} where the value goes, e.g. "… ค่าระดับน้ำ {reading} ม.รทก." Without it, the value is added at the end.'))}</div>
     <label class="st-chk"><input type="checkbox" id="stSave" checked> ${esc(_tx('Remember the title and standard text for this project'))}</label>
-    <div class="st-hint">${esc(_tx('A record with a Note uses its Note instead of the standard text. You can also edit each station below (this report only).'))}</div>
+    <div class="st-hint">${esc(_tx('A record with a Note uses the Note instead. Edits below apply to this report only.'))}</div>
     <details class="st-det"><summary>${esc(_tx('Edit text per station'))}</summary><div id="stRows" class="st-rows"></div></details>
     <div id="stCount" class="st-count"></div></div>`;
   const q=s=>body.querySelector(s);
@@ -3617,7 +3617,25 @@ function applySimpleForm(){
   let n1=2,n2=2;try{n1=optionsFor('sub').length;n2=optionsFor('serial').length;}catch(e){}
   hide(fld('sub'),on&&n1<=1);hide(fld('serial'),on&&n2<=1);
 }
+/* เลือกฟอร์ม Add Record ของโครงการจากหน้า Add Record เอง (admin / manager) — ใช้ค่าเดียวกับตั้งค่าโครงการ */
+const ADD_FORMS=[['equip','Standard form'],['station','Simplified (station photos)'],['cctv','CCTV checklist'],['plate','License plate PM/CM']];
+function paintAddFormSel(){
+  const row=$('#addFormRow'),sl=$('#addFormSel');if(!row||!sl)return;
+  const p=sel.project;row.hidden=!(canSetTemplate()&&p);if(row.hidden)return;
+  const cur=tplOf(p)||'equip';
+  sl.innerHTML=ADD_FORMS.map(o=>`<option value="${o[0]}"${cur===o[0]?' selected':''}>${esc(_tx(o[1]))}</option>`).join('');
+  sl.dataset.p=p;
+}
+document.addEventListener('DOMContentLoaded',()=>{const sl=$('#addFormSel');if(!sl)return;
+  sl.addEventListener('change',async()=>{
+    const p=sl.dataset.p,v=sl.value;if(!p)return;sl.disabled=true;
+    const r=await api(ACT.saveReportInfo,{row:{project:p,reportTemplate:v}});sl.disabled=false;
+    if(!(r&&r.ok)){toast((r&&r.message)||'Save failed',false);paintAddFormSel();return;}
+    try{await loadReportInfoCache();}catch(e){}
+    toast('Saved',true);choose('project','');choose('project',p);});});
+Object.assign(I18N_TH,{'Form for this project':'ฟอร์มของโครงการนี้','Standard form':'ฟอร์มมาตรฐาน','Simplified (station photos)':'แบบย่อ (รูปรายสถานี)','CCTV checklist':'เช็กลิสต์ CCTV ตามจุด','License plate PM/CM':'ป้ายทะเบียน PM/CM'});
 function paintReadingField(){
+  try{paintAddFormSel();}catch(e){}
   try{applySimpleForm();}catch(e){}
   try{paintChecks();}catch(e){}
   const w=$('#readingField');if(!w)return;
@@ -3737,7 +3755,7 @@ async function openDocPicker(force){
     <button type="button" class="dp-opt${cur==='station'?' is-last':''}" data-k="station"><b>${esc(_tx('Station photo report'))}</b><span>${esc(_tx('Monthly report like the Excel template: title, one block per station with date and 4 photos (2x2).'))}</span></button>
     <button type="button" class="dp-opt${cur==='cctv'?' is-last':''}" data-k="cctv"><b>${esc(_tx('CCTV inspection report'))}</b><span>${esc(_tx('Inspection tables per location with Normal/Abnormal results, then photos. Built from the visits recorded in Add Record.'))}</span></button>
     <button type="button" class="dp-opt${cur==='equip'?' is-last':''}" data-k="equip"><b>${esc(_tx('Equipment report'))}</b><span>${esc(_tx('With table of contents, grouped by location type and location, one equipment per block.'))}</span></button></div>
-    <div class="st-hint" style="padding-bottom:12px">${esc(_tx('The layout is locked to the project. Everyone uses it from now on; only admin or manager can change it.'))}</div>`;
+    <div class="st-hint" style="padding-bottom:12px">${esc(_tx('Layout is set per project. Only admin or manager can change it.'))}</div>`;
   body.querySelectorAll('.dp-opt').forEach(b=>b.onclick=async()=>{
     const k=b.dataset.k;
     await Promise.all(projects.map(p=>api(ACT.saveReportInfo,{row:{project:p,reportTemplate:k}})));
@@ -4383,7 +4401,7 @@ async function openProjectSettings(){
   foot.style.display='none';
   const cur=p=>String((info.find(x=>x.project===p)||{}).reportTemplate||'');
   const OPT=[['',_tx('Not set yet')],['equip',_tx('Equipment report')],['station',_tx('Station photo report')],['cctv',_tx('CCTV inspection report')],['plate',_tx('License plate machine report (PM/CM)')]];
-  body.innerHTML=`<div class="st-hint">${esc(_tx('Each project has its own report layout. Add Record follows the layout: Equipment report = standard form, Station photo report = simplified form, CCTV report = checklist per location visit, License plate = PM / CM work orders.'))}</div>`+
+  body.innerHTML=`<div class="st-hint">${esc(_tx('Add Record follows the layout: Equipment = standard form, Station photos = simplified, CCTV = checklist per visit, License plate = PM / CM.'))}</div>`+
     (projects.map(p=>{const c=cur(p),inf=inferTemplate(p);return `<div class="ps-row ps-row3" data-p="${escAttr(p)}"><div class="ps-n"><b>${esc(PN(p))}</b><div class="ps-full">${esc(p)}</div></div>
       <input class="tin ps-code" placeholder="${escAttr(_tx('Project code'))}" value="${escAttr(PCODE(p))}"${isAdm?'':' disabled'}>
       <input class="tin ps-alias" placeholder="${escAttr(_tx('Alias'))}" value="${escAttr((PROJ_INFO[p]||{}).alias||'')}"${isAdm?'':' disabled'}>
@@ -5469,7 +5487,7 @@ async function woOpen(wo){
 
 /* ═══ Phase 45: อะไหล่ที่ใช้ (เบิก) — ตาราง + Dashboard (แถบ "ระบบควบคุมบัญชีของ") ═══
    ข้อมูลมาจาก IssuedVoucherReport (ใบเบิก) + Transaction Consumable (เติมผู้เบิก/โครงการ); ราคา/ประเภทอะไหล่จากรายการอะไหล่ (CMMS_Parts) */
-const IS={rows:[],parts:{},loaded:false,f:{gran:'month',from:'',to:'',type:'',part:'',req:'',proj:'',q:''},page:0,asc:false,host:null};
+const IS={rows:[],parts:{},loaded:false,v:'',f:{gran:'month',from:'',to:'',type:'',part:'',req:'',proj:'',q:''},page:0,asc:false,host:null};
 const isPad=n=>String(n).padStart(2,'0');
 const isYmd=(y,m,d)=>{const t=new Date(y,m-1,d);return t.getFullYear()===y&&t.getMonth()===m-1&&t.getDate()===d?y+'-'+isPad(m)+'-'+isPad(d):'';};
 const isNf=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
@@ -5583,20 +5601,34 @@ function isImportOpen(){
       }
       return {ok:true,text:`เพิ่มใหม่ ${a.toLocaleString('en-US')} · อัปเดต ${u.toLocaleString('en-US')} · รวมกับรายการเดิม ${m.toLocaleString('en-US')}`};
     },
-    done:()=>{IS.loaded=false;isLoad();}});
+    done:()=>{IS.loaded=false;IS.v='';isLoad();}});
 }
-async function isLoad(){
-  if(!IS.host)return;
-  if(IS.loaded){isRender();return;}
-  IS.host.querySelector('#isBody').innerHTML='<div class="cm-msg">กำลังโหลดข้อมูล...</div>';
-  let r;try{r=await api(ACT.getIssueData,{});}catch(e){r=null;}
-  if(!r||!r.ok){IS.host.querySelector('#isBody').innerHTML=`<div class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</div>`;return;}
-  IS.parts=r.parts||{};const sf=r.staff||{};
+/* แคชข้อมูลใหญ่ในเครื่อง (IndexedDB) — เปิดแล้วเห็นทันที แล้วเช็กเวอร์ชันกับเซิร์ฟเวอร์เบื้องหลัง */
+const KV={_p:null,open(){return this._p=this._p||new Promise(res=>{try{const q=indexedDB.open('amr_cache',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>res(q.result);q.onerror=q.onblocked=()=>res(null);}catch(e){res(null);}});},
+  async get(k){const d=await this.open();if(!d)return null;return new Promise(r=>{try{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null);}catch(e){r(null);}});},
+  async set(k,v){const d=await this.open();if(!d)return;try{d.transaction('kv','readwrite').objectStore('kv').put(v,k);}catch(e){}},
+  async clear(){const d=await this.open();if(!d)return;try{d.transaction('kv','readwrite').objectStore('kv').clear();}catch(e){}}};
+function isApply(r){
+  IS.parts=r.parts||{};const sf=r.staff||{};IS.v=r.v||'';
   const tc=x=>{const m=String(x||'').match(/\bT0*(\d+)\b/i);return m?'T'+m[1]:'';};
   IS.rows=(r.rows||[]).map(o=>{const p=IS.parts[o.part]||{};const price=Number(p.price);const d=String(o.date||'').slice(0,10);
     const ord=String(o.order||'').trim(),nm=sf[tc(ord)]||sf[tc(o.requester)]||o.requester||'',pj=o.project||(/^20\d{5}$/.test(ord)?'MA'+ord:'');
     return {...o,d,type:p.move||'ไม่ระบุ',pname:p.name||o.name||o.part,req:nm||'ไม่ระบุ',prj:pj||'ไม่ระบุ',qty:Number(o.qty)||0,value:isNaN(price)||p.price===''?null:(Number(o.qty)||0)*price};});
-  IS.loaded=true;isRender();
+  IS.loaded=true;
+}
+async function isLoad(){
+  if(!IS.host)return;
+  const body=()=>IS.host&&IS.host.querySelector('#isBody');
+  let shown=IS.loaded;
+  if(shown)isRender();
+  else{
+    body().innerHTML='<div class="cm-msg">กำลังโหลดข้อมูล...</div>';
+    const c=await KV.get('issue');if(c&&c.ok&&c.rows){isApply(c);shown=true;isRender();}
+  }
+  let r;try{r=await api(ACT.getIssueData,{v:IS.v||''});}catch(e){r=null;}
+  if(r&&r.ok&&r.same)return;
+  if(!r||!r.ok){if(!shown&&body())body().innerHTML=`<div class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</div>`;return;}
+  isApply(r);if(r.v)KV.set('issue',r);isRender();
 }
 function isFiltered(skip){
   const f=IS.f,q=f.q.toLowerCase();
@@ -5681,14 +5713,14 @@ function isRender(){
   const PS=50,pages=Math.max(1,Math.ceil(sorted.length/PS));if(IS.page>=pages)IS.page=pages-1;
   host.querySelector('#isBody').innerHTML=`
 <div class="is-filters">
- <label>มุมมอง<select data-isf="gran">${[['day','รายวัน'],['month','รายเดือน'],['year','รายปี']].map(x=>`<option value="${x[0]}"${f.gran===x[0]?' selected':''}>${x[1]}</option>`).join('')}</select></label>
- <label>ตั้งแต่<input type="date" data-isf="from" value="${f.from}"></label>
- <label>ถึง<input type="date" data-isf="to" value="${f.to}"></label>
- <label>ประเภทอะไหล่<select data-isf="type">${isOpts(types,f.type,'ทั้งหมด')}</select></label>
- <label>ชื่ออะไหล่<select data-isf="part"><option value="">ทั้งหมด</option>${partList.map(([c,n])=>`<option value="${escAttr(c)}"${f.part===c?' selected':''}>${esc(n)}</option>`).join('')}</select></label>
- <label>ผู้เบิก<select data-isf="req">${isOpts(reqs,f.req,'ทั้งหมด')}</select></label>
- <label>โครงการ<select data-isf="proj">${isOpts(prjs,f.proj,'ทั้งหมด')}</select></label>
- <label class="is-q">ค้นหา<input type="search" data-isf="q" value="${escAttr(f.q)}" placeholder="ชื่อ / รหัส / ใบเบิก / ใบสั่งงาน"></label>
+ <label>มุมมอง<select class="tin" data-isf="gran">${[['day','รายวัน'],['month','รายเดือน'],['year','รายปี']].map(x=>`<option value="${x[0]}"${f.gran===x[0]?' selected':''}>${x[1]}</option>`).join('')}</select></label>
+ <label>ตั้งแต่<input type="date" class="tin" data-isf="from" value="${f.from}"></label>
+ <label>ถึง<input type="date" class="tin" data-isf="to" value="${f.to}"></label>
+ <label>ประเภทอะไหล่<select class="tin" data-isf="type">${isOpts(types,f.type,'ทั้งหมด')}</select></label>
+ <label>ชื่ออะไหล่<select class="tin" data-isf="part"><option value="">ทั้งหมด</option>${partList.map(([c,n])=>`<option value="${escAttr(c)}"${f.part===c?' selected':''}>${esc(n)}</option>`).join('')}</select></label>
+ <label>ผู้เบิก<select class="tin" data-isf="req">${isOpts(reqs,f.req,'ทั้งหมด')}</select></label>
+ <label>โครงการ<select class="tin" data-isf="proj">${isOpts(prjs,f.proj,'ทั้งหมด')}</select></label>
+ <label class="is-q">ค้นหา<input type="search" class="tin" data-isf="q" value="${escAttr(f.q)}" placeholder="ชื่อ / รหัส / ใบเบิก / ใบสั่งงาน"></label>
 </div>
 <div class="is-quick"><button type="button" class="btn btn-soft" data-isq="all">ทั้งหมด</button><button type="button" class="btn btn-soft" data-isq="y">ปีนี้</button><button type="button" class="btn btn-soft" data-isq="12m">12 เดือนล่าสุด</button><button type="button" class="btn btn-soft" data-isq="m">เดือนนี้</button><button type="button" class="btn btn-soft" data-isq="clear">ล้างตัวกรอง</button><span class="is-sp"></span><button type="button" class="btn btn-soft" id="isDl">ดาวน์โหลด</button><button type="button" class="btn btn-primary" id="isSend">ส่งสรุปให้หัวหน้า</button></div>
 ${isDashHtml(rows,st,bk)}

@@ -1363,3 +1363,19 @@ body.has-side #buildTag{margin-left:var(--sideW)}
 .is-heat,.is-who{min-width:0}.is-who td{word-break:break-word}.is-card{overflow-x:auto}
 .tm-trend{margin-bottom:24px}
 :root[data-theme="dark"] .tm-pc.ok{color:#34D399}:root[data-theme="dark"] .tm-pc.mid{color:#FBBF24}:root[data-theme="dark"] .tm-pc.bad{color:#F87171}
+.form-pick{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:10px 12px;background:var(--surface-2,#f6f6f6);border-radius:12px}
+.form-pick[hidden]{display:none}.form-pick label{font-size:13px;color:var(--ink-soft)}.form-pick select{flex:1;min-width:200px}
+
+/* Phase 47b: เก็บงานหน้าตา */
+.id-ic{display:inline-flex;align-items:center;justify-content:center;color:var(--accent,#d32f2f)}
+.card-b>.card-h{padding:0 0 12px;margin:0 0 14px}
+@media(max-width:999px){.side-nav{overflow-x:auto;scrollbar-width:none}.side-nav::-webkit-scrollbar{display:none}.side-item{flex:1 0 auto;white-space:nowrap;padding:12px 16px}}
+.panel-title{margin-top:0}
+/* Phase 47c: ธีมสองโหมดให้เป็นกลาง + กราฟ CMMS สไตล์เดียวกับ Dashboard อะไหล่ */
+:root[data-theme="dark"]{--surface-2:#26282C}
+.empty{background:var(--surface)}
+.is-col i{width:64%;background:linear-gradient(180deg,#F0584A,rgba(207,51,38,.28));border-radius:8px 8px 3px 3px;transition:height .25s var(--ease,ease)}
+.is-hbar{height:8px;border-radius:999px}.is-hbar i{background:linear-gradient(90deg,#CF3326,#F0584A);border-radius:999px}
+.is-grid .is-card{border-radius:16px}
+.is-hb{padding:6px 8px;min-height:36px}
+@media(prefers-reduced-motion:reduce){.is-col i{transition:none}}
