@@ -225,7 +225,7 @@ const PDPA_VERSION = '1.0';
 const DRIVE_THUMB = 'https:\x2f\x2fdrive.google.com/thumbnail?id=';
 const ACT = {
   login:'login', verifyToken:'verifyToken', pdpaStatus:'getPdpaStatus', pdpaAccept:'acceptPdpa',
-  listRepairs:'listRepairs', saveRepair:'saveRepair', deleteRepair:'deleteRepair', importRepairs:'importRepairs', listCmms:'listCmms', importCmms:'importCmms', setCmmsImage:'setCmmsImage', importIssue:'importIssue', getIssueData:'getIssueData', sendIssueSummary:'sendIssueSummary',
+  listRepairs:'listRepairs', saveRepair:'saveRepair', deleteRepair:'deleteRepair', importRepairs:'importRepairs', listCmms:'listCmms', importCmms:'importCmms', setCmmsImage:'setCmmsImage', getWorkOrderDoc:'getWorkOrderDoc', saveWorkOrderSign:'saveWorkOrderSign', importIssue:'importIssue', importStaff:'importStaff', getTeamReport:'getTeamReport', getIssueData:'getIssueData', sendIssueSummary:'sendIssueSummary',
   createRecord:'createRecord', listRecords:'listRecords', deleteRecord:'deleteRecord', restoreRecord:'restoreRecord', listRecordHistory:'listRecordHistory', listTrash:'listTrash', purgeTrash:'purgeTrash', confirmRecordReviewed:'confirmRecordReviewed', returnRecord:'returnRecord', exportPhotosZip:'exportPhotosZip', listReportInfo:'listReportInfo', saveReportInfo:'saveReportInfo', setProjectInfo:'setProjectInfo',listRepairs:'listRepairs',saveRepair:'saveRepair',deleteRepair:'deleteRepair',importRepairs:'importRepairs',
   createUser:'createUser', bulkCreateUsers:'bulkCreateUsers', listUsers:'listUsers',
   saveMaster:'saveMaster', masterUpsert:'masterUpsert', masterDelete:'masterDelete', masterImport:'masterImport', listMaster:'listMaster', getProgress:'getProgress',
@@ -401,7 +401,6 @@ function applyRoleVisibility(){
   if(edit&&hasPagePerm('add'))allowedTabs.push('add');
   if(hasPagePerm('records'))allowedTabs.push('saved');
   if(master)allowedTabs.push('master');
-  if(users)allowedTabs.push('users');
   const activeTabEl=document.querySelector('.tab.active');
   const activeName=activeTabEl?activeTabEl.dataset.tab:null;
   if(allowedTabs.length&&(!activeName||!allowedTabs.includes(activeName))){
@@ -2534,6 +2533,14 @@ if($('#fileUsers'))$('#fileUsers').addEventListener('change',async(ev)=>{
     const wb=XLSX.read(buf,{type:'array'});
     const ws=wb.Sheets[wb.SheetNames[0]];
     const rowsAoa=XLSX.utils.sheet_to_json(ws,{header:1});
+    const hi=rowsAoa.findIndex(r=>r&&r.some(v=>/^user\s*name$/i.test(String(v).trim()))&&r.some(v=>/^profile\s*id$/i.test(String(v).trim())));
+    if(hi>=0){
+      const h=rowsAoa[hi].map(v=>String(v).trim().toLowerCase()),ix=k=>h.indexOf(k);
+      const iu=ix('user name'),inm=ix('full name'),ic=ix('profile id'),ie=ix('email');
+      const st=rowsAoa.slice(hi+1).map(r=>({username:String(r[iu]||'').trim(),code:String(r[ic]||'').trim(),name:String(r[inm]||'').trim(),email:String(r[ie]||'').trim()})).filter(o=>o.username&&o.name);
+      let n=0;for(let i=0;i<st.length;i+=500){const r=await api(ACT.importStaff,{rows:st.slice(i,i+500)});if(!r||!r.ok){toast((r&&r.message)||'Import failed',false);ev.target.value='';return;}n+=(r.added||0)+(r.updated||0);}
+      if(msg)msg.innerHTML=`<div class="empty" style="color:var(--ok)">อัปเดตรายชื่อพนักงาน ${n} คน</div>`;toast(`อัปเดตรายชื่อพนักงาน ${n} คน`,true);ev.target.value='';return;
+    }
     const header=rowsAoa[0]||[];
     const cols=['username','password','name','role','project','email'];
     const colIdx={};cols.forEach(key=>{const idx=header.findIndex(h=>String(h).replace(/^﻿/,'').trim()===key);if(idx>=0)colIdx[key]=idx;});
@@ -4916,11 +4923,13 @@ function setSide(side){
 }
 function paintOmaNav(){
   omBuild();
-  const on=canSeeOma();
-  $('#sideNav').classList.toggle('nav-off',!on);document.body.classList.toggle('has-side',on);
+  const on=canSeeOma(),us=canSeeUsers();
+  document.querySelectorAll('#sideNav .side-item').forEach(b=>{const d=b.dataset.side;b.hidden=d==='users'?!us:(d==='doc'?false:!on);});
+  $('#sideNav').classList.toggle('nav-off',!(on||us));document.body.classList.toggle('has-side',on||us);
   if(on&&!OMS.restored){OMS.restored=true;const l=omLoad();if(l&&l.side==='oma'&&OM_TASKS.some(t=>t.c===l.task)){OMS.group=l.group;OMS.task=l.task;setTimeout(()=>{try{if(canSeeOma())setSide('oma');}catch(e){}},400);}}
   if(!on)OMS.restored=false;
   if(!on&&(OMS.side==='oma'||OMS.side==='cmms'))setSide('doc');
+  if(!us&&OMS.side==='users')setSide('doc');
 }
 
 /* ค้นหางาน: พิมพ์ชื่อ ระบบ หรือคำในรายละเอียด แล้วเลือกผลเพื่อข้ามไปหน้านั้น */
@@ -5007,7 +5016,7 @@ document.addEventListener('click',e=>{if(e.target&&e.target.id==='saveBtn')setTi
 
 /* ═══ Phase 42: แถบซ้าย "ข้อมูล CMMS" — 10 แถบหลักตามเมนู CMMS; แถบแรก (กำหนดค่าเครื่องจักรอุปกรณ์) มี "รายการอุปกรณ์" กับ "รายการอะไหล่" เก็บเป็นข้อมูล Excel ในชีต */
 const CM_TABS=['กำหนดค่าเครื่องจักรอุปกรณ์','ระบบควบคุมบัญชีของ','การวางแผนและจัดตารางงาน','ระบบใบแจ้งซ่อม','ระบบควบคุมใบสั่งงาน','ระบบขออนุมัติซื้อ','ตรวจสอบระบบการทำงาน','กำหนดคุณสมบัติของระบบ','รายงานผู้บริหาร','บริหารระบบ'];
-const CM_SUBS=[{k:'equip',n:'รายการอุปกรณ์',t:0},{k:'parts',n:'รายการอะไหล่',t:1},{k:'plan',n:'ตารางงาน PM (ReportOperationSchedule)',t:2},{k:'req',n:'ใบแจ้งซ่อม (ReportRequestOrderStatus)',t:4},{k:'wos',n:'ใบสั่งงาน (ReportWorkOrderStatus)',t:4}];
+const CM_SUBS=[{k:'equip',n:'รายการอุปกรณ์',t:0},{k:'parts',n:'รายการอะไหล่',t:1},{k:'plan',n:'ตารางงาน PM',t:2},{k:'req',n:'ใบแจ้งซ่อม',t:4},{k:'wos',n:'ใบสั่งงาน',t:4}];
 const CM_COLS={
   wos:[['wo','เลขที่ใบสั่งงาน',/^ใบสั่งงาน$/],['reqDate','วันที่แจ้ง',/^วันที่แจ้ง$/],['reqNo','เลขที่คำร้อง',/^เลขที่คำร้อง/],['wtype','ประเภทงาน',/^ประเภท/],['equip','เครื่องจักรอุปกรณ์',/^เครื่องจักรอุปกรณ์/],['desc','ลักษณะ',/^ลักษณะ/],['detail','รายละเอียดการแจ้งซ่อม',/^รายละเอียดการแจ้งซ่อม/],['cause','สาเหตุ',/^สาเหตุ/],['fix','การแก้ไขปัญหา',/^การแก้ไขปัญหา/],['status','สถานะ',/^สถานะ$/],['hold','รายละเอียดการพัก/อื่นๆ',/^รายละเอียดการพัก/],['finishDate','วันที่เสร็จสิ้น',/^วันที่ปฏิบัติงานเสร็จสิ้น/],['staff','พนักงาน',/^พนักงาน/]],
   req:[['reqNo','เลขที่คำร้อง',/^เลขที่คำร้อง/],['reqDate','วันที่แจ้ง',/^วันที่แจ้ง$/],['status','สถานะ',/^สถานะใบแจ้งซ่อม/],['priority','ความสำคัญ',/^ความสำคัญ/],['by','ผู้แจ้งซ่อม',/^ผู้แจ้งซ่อม/],['area','พื้นที่',/^พื้นที่/],['install','การติดตั้ง',/^การติดตั้ง/],['recvDate','วันที่รับแจ้ง',/^วันที่รับแจ้งซ่อม/],['recvBy','รับแจ้งโดย',/^รับแจ้งซ่อมโดย/],['detail','รายละเอียดการแจ้งซ่อม',/^รายละเอียดการแจ้งซ่อม/],['wo','เลขที่ใบสั่งงาน',/^เลขที่ใบสั่งงาน/],['startDate','วันเริ่ม',/^วันเริ่ม/],['cause','สาเหตุ',/^สาเหตุ/]],
@@ -5015,12 +5024,71 @@ const CM_COLS={
   equip:[['code','เครื่องจักรอุปกรณ์',/^เครื่องจักรอุปกรณ์$/],['desc','ลักษณะ',/^ลักษณะ/],['type','ประเภท',/^ประเภท/],['model','แบบหรือรุ่น',/^แบบหรือรุ่น/],['serial','หมายเลขเครื่อง',/^หมายเลขเครื่อง/],['regNo','เลขทะเบียน',/^เลขทะเบียน/],['regDate','วันที่ลงทะเบียน',/^วันที่ลงทะเบียน/],['maker','ผู้ผลิต',/^ชื่อผู้ผลิต/],['dept','ฝ่าย',/^ฝ่าย/],['project','โครงการ',/^โครงการ/],['owner','Owner',/^owner/i],['active','ดำเนินงาน',/^ดำเนินงาน/],['endDate','สิ้นสุดอายุใช้งาน',/^วันสิ้นสุด/]],
   parts:[['part','รายการอะไหล่',/^รายการอะไหล่/],['name','ชื่ออะไหล่',/^ชื่ออะไหล่/],['grp','กลุ่ม',/^กลุ่ม$/],['wh','คลังสินค้า',/^คลังสินค้า/],['loc','ที่จัดเก็บ',/^ที่จัดเก็บ/],['move','การเคลื่อนไหว',/^การเคลื่อนไหว/],['acct','รหัสบัญชี',/^รหัสบัญชี/],['cls','จำแนกกลุ่ม',/^จำแนกกลุ่ม/],['price','ราคา/หน่วย',/^ราคาต่อหน่วย/,1],['unit','หน่วย',/^หน่วย$/],['qty','คงเหลือ',/^จำนวนคงเหลือ/,1],['backorder','ค้างส่ง',/^จำนวนที่ค้างส่ง/,1],['max','MAX',/^max$/i,1],['rop','ROP',/^rop$/i,1],['min','MIN',/^min$/i,1],['roq','ROQ',/^roq$/i,1]]
 };
-const CMS={tab:0,sub:'equip',built:false,st:{equip:{q:'',f:'',p:0,opts:[]},parts:{q:'',f:'',p:0,opts:[]},plan:{q:'',f:'',p:0,opts:[]},req:{q:'',f:'',p:0,opts:[]},wos:{q:'',f:'',p:0,opts:[]}}};
+const CMS={tab:0,sub:'equip',built:false,st:{}};
+['equip','parts','plan','req','wos'].forEach(k=>{CMS.st[k]={q:'',fl:{},p:0};});
 const CM_PS=100;
-const cmFilterLabel=k=>k==='equip'?'ฝ่าย':(k==='parts'?'คลังสินค้า':(k==='plan'?'ประเภทงาน':'สถานะ'));
+const CM_ICO={up:'<path d="M12 16V4m0 0-4 4m4-4 4 4M4 20h16"/>',down:'<path d="M12 4v12m0 0-4-4m4 4 4-4M4 20h16"/>',doc:'<path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6"/>',pen:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',x:'<path d="M6 6l12 12M18 6 6 18"/>',img:'<path d="M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4"/>'};
+const cmI=n=>`<svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CM_ICO[n]||''}</svg>`;
+const CM_DIM={dept:'ฝ่าย',type:'ประเภท',maker:'ผู้ผลิต',project:'โครงการ',active:'ดำเนินงาน',regYear:'ปีที่ลงทะเบียน',wh:'คลังสินค้า',move:'การเคลื่อนไหว',cls:'จำแนกกลุ่ม',grp:'กลุ่ม',unit:'หน่วย',status:'สถานะ',month:'เดือนที่แจ้ง/เริ่มงาน',priority:'ความสำคัญ',area:'พื้นที่',recvBy:'รับแจ้งโดย',wtype:'ประเภทงาน',staff:'ผู้ปฏิบัติงาน'};
+const CM_KPI={equip:[['total','อุปกรณ์ทั้งหมด'],['active','ดำเนินงานอยู่']],parts:[['total','รายการอะไหล่'],['value','มูลค่าคงเหลือ (บาท)'],['zero','คงเหลือ 0']],plan:[['total','งาน PM'],['open','ค้างดำเนินการ'],['done','เสร็จแล้ว']],req:[['total','ใบแจ้งซ่อม'],['open','ค้างดำเนินการ'],['done','ปิดแล้ว']],wos:[['total','ใบสั่งงาน'],['open','ค้างดำเนินการ'],['done','เสร็จแล้ว']]};
+const CM_TIME={month:1,regYear:1};
+const CM_WOTYPE=/^(PM|RF|RO)/i;
 function cmFmtDate(v){
   if(v instanceof Date){if(isNaN(v))return '';const y=v.getFullYear(),m=v.getMonth()+1,d=v.getDate();return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
   return String(v==null?'':v).trim();
+}
+/* ── ป๊อปอัป (ใช้ซ้ำทั้งหน้า CMMS): ปิดด้วย × / Esc / คลิกนอกกล่อง ── */
+function cmModal(o){
+  const ov=document.createElement('div');ov.className='cmm-ov';
+  ov.style.cssText='position:fixed;inset:0;z-index:9100;background:rgba(20,26,34,.5);display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML=`<div class="cmm-box${o.wide?' wide':''}"><div class="cmm-h"><b>${esc(o.title||'')}</b><button type="button" class="modal-close" aria-label="ปิด">${cmI('x')}</button></div><div class="cmm-b"></div><div class="cmm-f"></div></div>`;
+  document.body.appendChild(ov);
+  const m={el:ov,body:ov.querySelector('.cmm-b'),foot:ov.querySelector('.cmm-f'),closed:false,close(){if(m.closed)return;m.closed=true;ov.remove();if(o.onClose)o.onClose();}};
+  ov.querySelector('.modal-close').addEventListener('click',m.close);
+  ov.addEventListener('mousedown',e=>{if(e.target===ov)m.close();});
+  if(o.body!=null)m.body.innerHTML=o.body;if(o.foot!=null)m.foot.innerHTML=o.foot;
+  return m;
+}
+/* ── ป๊อปอัปนำเข้าไฟล์: เลือกไฟล์ → สรุปที่อ่านได้ → (อัปเดต/แทนที่) → นำเข้า ── */
+function cmImportModal(o){
+  let kind=o.kinds&&o.kinds.length===1?o.kinds[0][0]:'',rows=null,info='',mode='update',busy=false;
+  const m=cmModal({title:o.title,body:'',foot:''});
+  const file=document.createElement('input');file.type='file';file.accept=o.accept||'.xls,.xlsx,.csv';file.hidden=true;m.el.appendChild(file);
+  const st=(t,bad)=>{const e=m.body.querySelector('.cmi-st');if(e){e.textContent=t||'';e.classList.toggle('bad',!!bad);}};
+  const paint=()=>{
+    if(!rows){
+      m.body.innerHTML=(o.kinds&&o.kinds.length>1?`<div class="cmi-kinds" role="radiogroup">${o.kinds.map(k=>`<button type="button" class="cmi-k${kind===k[0]?' on':''}" role="radio" aria-checked="${kind===k[0]}" data-kind="${k[0]}">${esc(k[1])}</button>`).join('')}</div>`:'')+`<button type="button" class="cmi-pick" ${kind?'':'disabled'}>${cmI('up')}<span>เลือกไฟล์ Excel</span></button><div class="cmi-st" role="status"></div>`;
+      m.foot.innerHTML='';
+    }else{
+      m.body.innerHTML=`<div class="cmi-sum"><b>${rows.length.toLocaleString('en-US')}</b> รายการ${info?`<small>${esc(info)}</small>`:''}</div>`+(o.modes?`<div class="cmi-modes" role="radiogroup"><button type="button" role="radio" aria-checked="${mode==='update'}" data-mode="update" class="${mode==='update'?'on':''}">อัปเดต / เพิ่มใหม่</button><button type="button" role="radio" aria-checked="${mode==='replace'}" data-mode="replace" class="${mode==='replace'?'on':''}">แทนที่ทั้งหมด</button></div>${mode==='replace'?'<div class="cmi-warn">ข้อมูลเดิมในหน้านี้จะถูกลบทั้งหมด</div>':''}`:'')+`<div class="cmi-prog" hidden><i></i></div><div class="cmi-st" role="status"></div>`;
+      m.foot.innerHTML=`<button type="button" class="btn btn-soft cmi-re">เลือกไฟล์อื่น</button><button type="button" class="btn btn-primary cmi-go">นำเข้า</button>`;
+    }
+  };
+  const pick=async f=>{
+    if(!f)return;st('กำลังอ่านไฟล์...');const pk=m.body.querySelector('.cmi-pick');if(pk)pk.disabled=true;
+    let p;try{p=await o.parse(f,kind);}catch(e){console.error(e);p={ok:false,message:'อ่านไฟล์ไม่สำเร็จ: '+((e&&e.message)||'')};}
+    if(m.closed)return;
+    if(!p||!p.ok||!p.rows||!p.rows.length){paint();st((p&&p.message)||'ไม่พบรายการในไฟล์',true);return;}
+    rows=p.rows;info=p.info||'';paint();
+  };
+  file.addEventListener('change',()=>{const f=file.files[0];file.value='';pick(f);});
+  m.el.addEventListener('dragover',e=>{if(!rows)e.preventDefault();});
+  m.el.addEventListener('drop',e=>{if(rows||!kind)return;e.preventDefault();pick(e.dataTransfer&&e.dataTransfer.files[0]);});
+  m.el.addEventListener('click',async e=>{
+    const t=e.target.closest&&e.target.closest('button');if(!t||busy)return;
+    if(t.dataset.kind){kind=t.dataset.kind;paint();}
+    else if(t.classList.contains('cmi-pick'))file.click();
+    else if(t.dataset.mode){mode=t.dataset.mode;paint();}
+    else if(t.classList.contains('cmi-re')){rows=null;paint();}
+    else if(t.classList.contains('cmi-go')){
+      busy=true;m.foot.querySelectorAll('button').forEach(b=>{b.disabled=true;});const bar=m.body.querySelector('.cmi-prog');bar.hidden=false;
+      const r=await o.run(rows,mode,kind,(i,n)=>{bar.firstChild.style.width=Math.round(i/n*100)+'%';st(`กำลังนำเข้า ${i.toLocaleString('en-US')} / ${n.toLocaleString('en-US')}`);});
+      busy=false;if(m.closed)return;
+      if(r&&r.ok){m.close();toast(r.text||'นำเข้าแล้ว',true);if(o.done)o.done();}
+      else{m.foot.querySelectorAll('button').forEach(b=>{b.disabled=false;});bar.hidden=true;st((r&&r.message)||'นำเข้าไม่สำเร็จ',true);}
+    }
+  });
+  paint();return m;
 }
 function cmBuild(){
   if(CMS.built)return;CMS.built=true;
@@ -5030,14 +5098,15 @@ function cmBuild(){
     const s=document.createElement('section');s.className='panel';s.id='panel-cm-'+i;
     const sub=CM_SUBS.filter(x=>x.t===i);
     if(sub.length){
-      s.innerHTML=sub.map(x=>`<div class="cm-sec" id="cm-${x.k}"><div class="panel-title">${esc(n)} — ${esc(x.n)}</div><div class="cm-bar"><input type="search" class="tin cm-q" data-k="${x.k}" placeholder="ค้นหา" aria-label="ค้นหา${escAttr(x.n)}" autocomplete="off"><select class="cm-f" data-k="${x.k}" aria-label="กรอง${cmFilterLabel(x.k)}"><option value="">${cmFilterLabel(x.k)}: ทั้งหมด</option></select><button type="button" class="btn btn-soft cm-dl" data-k="${x.k}">ดาวน์โหลด Excel</button><button type="button" class="btn btn-primary cm-imp" data-k="${x.k}" data-mode="update" title="อัปเดตรายการเดิม + เพิ่มรายการใหม่ (รายการที่ไม่อยู่ในไฟล์จะคงไว้)">นำเข้า / อัปเดตข้อมูล</button><button type="button" class="btn btn-soft cm-imp" data-k="${x.k}" data-mode="replace" title="ล้างข้อมูลเดิมของหน้านี้แล้วนำเข้าใหม่ทั้งหมด">แทนที่ทั้งหมด</button><input type="file" class="cm-file" data-k="${x.k}" accept=".xls,.xlsx,.csv" hidden></div><div class="cm-info" id="cm-info-${x.k}"></div><div class="cm-wrap"><table class="cm-tbl"><thead id="cm-h-${x.k}"></thead><tbody id="cm-b-${x.k}"></tbody></table></div><div class="cm-pg" id="cm-pg-${x.k}"></div></div>`).join('');
-      const SEG={1:[['parts','รายการอะไหล่'],['issue','อะไหล่ที่ใช้ (ตาราง & Dashboard)']],2:[['plan','ตารางงาน PM'],['wo','สร้างใบงาน PM / RF / RO (PDF)']],4:[['req','ใบแจ้งซ่อม'],['wos','ใบสั่งงาน (สถานะ)']]}[i];
+      const SEG={1:[['parts','รายการอะไหล่'],['issue','อะไหล่ที่ใช้']],4:[['req','ใบแจ้งซ่อม'],['wos','ใบสั่งงาน']]}[i];
+      s.innerHTML=sub.map(x=>{const tools=`<span class="cm-tools"><button type="button" class="btn btn-soft cm-dl" data-k="${x.k}" aria-label="ดาวน์โหลด Excel">${cmI('down')}<span>ดาวน์โหลด</span></button><button type="button" class="btn btn-primary cm-imp" data-k="${x.k}" aria-label="นำเข้า Excel">${cmI('up')}<span>นำเข้า</span></button></span>`;
+        return `<div class="cm-sec" id="cm-${x.k}"><div class="cm-top">${SEG?'':`<h2 class="panel-title">${esc(x.n)}</h2>`}${tools}</div><div class="cm-dash" id="cm-d-${x.k}"></div><div class="cm-bar"><input type="search" class="tin cm-q" data-k="${x.k}" placeholder="ค้นหา" aria-label="ค้นหา${escAttr(x.n)}" autocomplete="off"><span class="cm-chips" id="cm-ch-${x.k}"></span><span class="cm-count" id="cm-info-${x.k}" role="status"></span></div><div class="cm-wrap"><table class="cm-tbl"><thead id="cm-h-${x.k}"></thead><tbody id="cm-b-${x.k}"></tbody></table></div><div class="cm-pg" id="cm-pg-${x.k}"></div></div>`;}).join('');
       if(SEG){
-        s.insertAdjacentHTML('afterbegin','<div class="cm-seg" role="tablist">'+SEG.map((g,j)=>`<button type="button" class="btn btn-soft${j?'':' on'}" data-seg="${g[0]}">${esc(g[1])}</button>`).join('')+'</div>');
-        let host=null;const HK={1:'issue',2:'wo'}[i];if(HK){host=document.createElement('div');host.id=HK==='wo'?'woHost':'isHost';host.hidden=true;s.appendChild(host);if(HK==='wo')woBuildPanel(host);else isBuildPanel(host);}
+        s.insertAdjacentHTML('afterbegin','<div class="cm-seg" role="tablist">'+SEG.map((g,j)=>`<button type="button" class="btn btn-soft${j?'':' on'}" role="tab" aria-selected="${j?'false':'true'}" data-seg="${g[0]}">${esc(g[1])}</button>`).join('')+'</div>');
+        let host=null;const HK=i===1?'issue':'';if(HK){host=document.createElement('div');host.id='isHost';host.hidden=true;s.appendChild(host);isBuildPanel(host);}
         else s.querySelectorAll('.cm-sec').forEach((e,j)=>{e.hidden=j>0;});
         s.querySelectorAll('[data-seg]').forEach(bt=>bt.addEventListener('click',()=>{
-          const k=bt.dataset.seg;s.querySelectorAll('[data-seg]').forEach(x=>x.classList.toggle('on',x===bt));
+          const k=bt.dataset.seg;s.querySelectorAll('[data-seg]').forEach(x=>{x.classList.toggle('on',x===bt);x.setAttribute('aria-selected',x===bt);});
           s.querySelectorAll('.cm-sec').forEach(e=>{e.hidden=e.id!=='cm-'+k;});if(host)host.hidden=k!==HK;
           if(CM_COLS[k])cmLoad(k);if(k==='issue')isLoad();}));
       }
@@ -5048,28 +5117,44 @@ function cmBuild(){
   $('#cmTabs').querySelectorAll('[data-ct]').forEach(b=>b.addEventListener('click',()=>cmOpenTab(+b.dataset.ct)));
   let tm;
   main.addEventListener('input',e=>{const t=e.target;if(t.classList&&t.classList.contains('cm-q')){clearTimeout(tm);tm=setTimeout(()=>{const s=CMS.st[t.dataset.k];s.q=t.value;s.p=0;cmLoad(t.dataset.k);},300);}});
-  main.addEventListener('change',e=>{const t=e.target;if(t.classList&&t.classList.contains('cm-f')){const s=CMS.st[t.dataset.k];s.f=t.value;s.p=0;cmLoad(t.dataset.k);}
-    else if(t.classList&&t.classList.contains('cm-file')){const f=t.files[0];t.value='';if(f)cmImport(t.dataset.k,f,t.dataset.mode||'update');}});
-  main.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.cm-imp,.cm-dl,.cm-prev,.cm-next,.cm-ie');if(!b)return;const k=b.dataset.k;
-    if(b.classList.contains('cm-ie')){cmEditImg(k,b.parentNode.dataset.key,b.dataset.img);return;}
-    if(b.classList.contains('cm-imp')){const i=document.querySelector(`.cm-file[data-k="${k}"]`);if(i){i.dataset.mode=b.dataset.mode||'update';i.click();}}
+  main.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.cm-imp,.cm-dl,.cm-prev,.cm-next,.cm-ie,.cm-fx,.cm-clr,.cm-wo');if(!b||b.disabled)return;const k=b.dataset.k;
+    if(b.classList.contains('cm-fx')){const s=CMS.st[k],d=b.dataset.d,v=b.dataset.v;if(!v||s.fl[d]===v)delete s.fl[d];else s.fl[d]=v;s.p=0;cmLoad(k);}
+    else if(b.classList.contains('cm-clr')){CMS.st[k].fl={};CMS.st[k].p=0;cmLoad(k);}
+    else if(b.classList.contains('cm-wo'))woOpen(b.dataset.wo);
+    else if(b.classList.contains('cm-ie'))cmEditImg(k,b.parentNode.dataset.key,b.dataset.img);
+    else if(b.classList.contains('cm-imp'))cmImportOpen(k);
     else if(b.classList.contains('cm-dl'))cmDownload(k);
-    else{const s=CMS.st[k];s.p=Math.max(0,s.p+(b.classList.contains('cm-next')?1:-1));cmLoad(k);}});
+    else{const s=CMS.st[k];s.p=Math.max(0,s.p+(b.classList.contains('cm-next')?1:-1));cmLoad(k,true);}});
 }
-function cmHead(k){return '<tr>'+(['plan','req','wos'].includes(k)?'':'<th>รูป</th>')+CM_COLS[k].map(c=>`<th>${esc(c[1])}</th>`).join('')+'</tr>';}
-async function cmLoad(k){
+function cmHead(k){return '<tr>'+(['plan','wos'].includes(k)?'<th class="cm-act"></th>':(k==='req'?'':'<th>รูป</th>'))+CM_COLS[k].map(c=>`<th>${esc(c[1])}</th>`).join('')+'</tr>';}
+function cmDashHtml(k,d){
+  const f=CMS.st[k].fl;
+  const kp=CM_KPI[k].map(x=>`<div class="is-kpi"><span>${esc(x[1])}</span><b>${isNf(d.kpi[x[0]]||0)}</b></div>`).join('');
+  const cards=Object.keys(d.facets).map(dim=>{
+    const a=d.facets[dim],mx=Math.max(...a.map(x=>x.v),1),at=`data-k="${k}" data-d="${dim}"`;
+    if(CM_TIME[dim])return `<section class="is-card is-wide"><h3>${esc(CM_DIM[dim]||dim)}</h3><div class="is-cols">${a.length?a.map(x=>`<button type="button" class="is-col cm-fx${f[dim]===x.k?' on':''}" ${at} data-v="${escAttr(x.k)}" title="${escAttr(x.k)}: ${isNf(x.v)}"><span class="is-cv">${a.length<=18?isNf(x.v):''}</span><i style="height:${Math.max(3,x.v/mx*100)}%"></i><span class="is-cl">${esc(dim==='month'?x.k.slice(2):x.k)}</span></button>`).join(''):'<div class="cm-msg">ไม่มีข้อมูล</div>'}</div></section>`;
+    return `<section class="is-card"><h3>${esc(CM_DIM[dim]||dim)}</h3>${a.length?a.slice(0,10).map(x=>`<button type="button" class="is-hb cm-fx${f[dim]===x.k?' on':''}" ${at} data-v="${escAttr(x.k)}" title="${escAttr(x.k)}"><span class="is-hl">${esc(x.k)}</span><span class="is-hbar"><i style="width:${Math.max(2,x.v/mx*100)}%"></i></span><span class="is-hv">${isNf(x.v)}</span></button>`).join(''):'<div class="cm-msg">ไม่มีข้อมูล</div>'}</section>`;
+  }).join('');
+  return `<div class="is-kpis">${kp}</div><div class="is-grid">${cards}</div>`;
+}
+function cmChipsHtml(k){
+  const e=Object.entries(CMS.st[k].fl);
+  return e.map(([d,v])=>`<button type="button" class="cm-chip cm-fx" data-k="${k}" data-d="${d}" data-v="" aria-label="ล้างตัวกรอง ${escAttr(CM_DIM[d]||d)}">${esc(CM_DIM[d]||d)}: ${esc(v)}${cmI('x')}</button>`).join('')+(e.length>1?`<button type="button" class="cm-chip clr cm-clr" data-k="${k}">ล้างทั้งหมด</button>`:'');
+}
+async function cmLoad(k,keepDash){
   const s=CMS.st[k];const body=$('#cm-b-'+k),info=$('#cm-info-'+k),pg=$('#cm-pg-'+k);
-  $('#cm-h-'+k).innerHTML=cmHead(k);
-  const seq=(s.seq=(s.seq||0)+1);
-  let r;try{r=await api(ACT.listCmms,{type:k,q:s.q,filter:s.f,offset:s.p*CM_PS,limit:CM_PS});}catch(e){r=null;}
+  $('#cm-h-'+k).innerHTML=cmHead(k);$('#cm-ch-'+k).innerHTML=cmChipsHtml(k);
+  const seq=(s.seq=(s.seq||0)+1);const nc=CM_COLS[k].length+1;
+  let r;try{r=await api(ACT.listCmms,{type:k,q:s.q,filters:s.fl,offset:s.p*CM_PS,limit:CM_PS,dash:!keepDash});}catch(e){r=null;}
   if(seq!==s.seq)return;
-  if(!r||!r.ok){body.innerHTML=`<tr><td colspan="${CM_COLS[k].length+1}" class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</td></tr>`;info.textContent='';pg.innerHTML='';return;}
-  const sel=document.querySelector(`.cm-f[data-k="${k}"]`);
-  if(sel&&(r.opts||[]).join('|')!==s.opts.join('|')){s.opts=r.opts||[];sel.innerHTML=`<option value="">${cmFilterLabel(k)}: ทั้งหมด</option>`+s.opts.map(o=>`<option value="${escAttr(o)}">${esc(o)}</option>`).join('');sel.value=s.f;}
-  if(!r.rows.length){body.innerHTML=`<tr><td colspan="${CM_COLS[k].length+1}" class="cm-msg">${r.all?'ไม่พบรายการที่ตรงกับการค้นหา':'ยังไม่มีข้อมูล — กด "นำเข้า Excel" เพื่อนำเข้าไฟล์จาก CMMS'}</td></tr>`;}
-  else body.innerHTML=r.rows.map(o=>`<tr>${['plan','req','wos'].includes(k)?'':`<td class="cm-img" data-key="${escAttr(o[CM_COLS[k][0][0]])}">${o.img?`<a href="${escAttr(o.img)}" target="_blank" rel="noopener noreferrer"><img src="${escAttr(o.img)}" alt="" loading="lazy" referrerpolicy="no-referrer"></a>`:''}<button type="button" class="cm-ie" data-k="${k}" data-img="${escAttr(o.img||'')}" title="${o.img?'แก้ไข/ลบลิงก์รูป':'เพิ่มลิงก์รูป'}">${o.img?'✎':'+ รูป'}</button></td>`}`+CM_COLS[k].map(c=>`<td${c[3]?' class="n"':''}>${c[3]&&o[c[0]]!==''?esc(Number(o[c[0]]).toLocaleString('en-US')):esc(o[c[0]])}</td>`).join('')+'</tr>').join('');
+  if(!r||!r.ok){body.innerHTML=`<tr><td colspan="${nc}" class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</td></tr>`;info.textContent='';pg.innerHTML='';return;}
+  if(r.dash){s.dash=r.dash;$('#cm-d-'+k).innerHTML=r.all?cmDashHtml(k,r.dash):'';}
+  if(!r.rows.length){body.innerHTML=`<tr><td colspan="${nc}" class="cm-msg">${r.all?'ไม่พบรายการ':'ยังไม่มีข้อมูล — กด "นำเข้า" เพื่อเริ่มต้น'}</td></tr>`;}
+  else body.innerHTML=r.rows.map(o=>{
+    const lead=['plan','wos'].includes(k)?`<td class="cm-act"><button type="button" class="btn btn-soft cm-wo" data-wo="${escAttr(o.wo)}"${CM_WOTYPE.test(String(o.wo))?'':' disabled title="ยังไม่มีแบบใบงานสำหรับประเภทนี้"'}>${cmI('doc')}<span>ใบงาน</span></button></td>`:(k==='req'?'':`<td class="cm-img" data-key="${escAttr(o[CM_COLS[k][0][0]])}">${o.img?`<a href="${escAttr(o.img)}" target="_blank" rel="noopener noreferrer"><img src="${escAttr(o.img)}" alt="" loading="lazy" referrerpolicy="no-referrer"></a>`:''}<button type="button" class="cm-ie" data-k="${k}" data-img="${escAttr(o.img||'')}" aria-label="${o.img?'แก้ไขลิงก์รูป':'เพิ่มลิงก์รูป'}">${o.img?cmI('pen'):'+ รูป'}</button></td>`);
+    return `<tr>${lead}`+CM_COLS[k].map(c=>`<td${c[3]?' class="n"':''}>${c[3]&&o[c[0]]!==''?esc(Number(o[c[0]]).toLocaleString('en-US')):esc(o[c[0]])}</td>`).join('')+'</tr>';}).join('');
   const pages=Math.max(1,Math.ceil(r.total/CM_PS));
-  info.textContent=`ทั้งหมด ${r.all.toLocaleString('en-US')} รายการ`+(r.total!==r.all?` · พบ ${r.total.toLocaleString('en-US')} รายการ`:'');
+  info.textContent=r.total!==r.all?`${r.total.toLocaleString('en-US')} จาก ${r.all.toLocaleString('en-US')} รายการ`:`ทั้งหมด ${r.all.toLocaleString('en-US')} รายการ`;
   pg.innerHTML=r.total>CM_PS?`<button type="button" class="btn btn-soft cm-prev" data-k="${k}" ${s.p<=0?'disabled':''}>ก่อนหน้า</button><span>หน้า ${s.p+1} / ${pages}</span><button type="button" class="btn btn-soft cm-next" data-k="${k}" ${s.p+1>=pages?'disabled':''}>ถัดไป</button>`:'';
 }
 async function cmParse(k,file){
@@ -5088,31 +5173,26 @@ async function cmParse(k,file){
   const rows=aoa.slice(h+1).map(r=>{const o={};spec.forEach((c,i)=>{let v=idx[i]>=0?r[idx[i]]:'';o[c[0]]=dates[c[0]]?cmFmtDate(v):(c[3]?(v===''?'':Number(v)):String(v==null?'':v).trim());});return o;}).filter(o=>o[spec[0][0]]!==''&&o[spec[0][0]]!=null);
   return {ok:true,rows};
 }
-async function cmImport(k,file,mode){
-  mode=mode==='replace'?'replace':'update';
-  try{
-    toast('กำลังอ่านไฟล์...',true);
-    const p=await cmParse(k,file);
-    if(!p.ok){toast(p.message,false);return;}
-    if(!p.rows.length){toast('ไม่พบรายการในไฟล์',false);return;}
-    if(!confirm(mode==='replace'?`นำเข้า ${p.rows.length.toLocaleString('en-US')} รายการ — ข้อมูลเดิมของหน้านี้จะถูกลบและแทนที่ทั้งหมด ต้องการดำเนินการต่อ?`:`อัปเดตข้อมูลจากไฟล์ ${p.rows.length.toLocaleString('en-US')} รายการ — รายการที่มีอยู่แล้วจะถูกอัปเดต รายการใหม่จะถูกเพิ่ม รายการที่ไม่อยู่ในไฟล์จะคงไว้ ต้องการดำเนินการต่อ?`))return;
-    let nAdd=0,nUpd=0;
-    const N=500;
-    for(let i=0;i<p.rows.length;i+=N){
-      toast(`กำลังนำเข้า ${Math.min(i+N,p.rows.length).toLocaleString('en-US')} / ${p.rows.length.toLocaleString('en-US')}`,true);
-      const r=await api(ACT.importCmms,{type:k,rows:p.rows.slice(i,i+N),mode,reset:mode==='replace'&&i===0});
-      if(!r||!r.ok){toast((r&&r.message)||'นำเข้าไม่สำเร็จ',false);return;}
-      nAdd+=r.added||0;nUpd+=r.updated||0;
-    }
-    toast(mode==='replace'?`นำเข้าแล้ว ${p.rows.length.toLocaleString('en-US')} รายการ`:`อัปเดตแล้ว — เพิ่มใหม่ ${nAdd.toLocaleString('en-US')} · อัปเดต ${nUpd.toLocaleString('en-US')} รายการ`,true);
-    CMS.st[k].p=0;CMS.st[k].f='';CMS.st[k].q='';const q=document.querySelector(`.cm-q[data-k="${k}"]`);if(q)q.value='';
-    cmLoad(k);
-  }catch(e){console.error(e);toast('นำเข้าไม่สำเร็จ: '+((e&&e.message)||''),false);}
+function cmImportOpen(k){
+  const nm=(CM_SUBS.find(x=>x.k===k)||{}).n||'';
+  cmImportModal({title:'นำเข้า'+nm,modes:true,
+    parse:async f=>{const p=await cmParse(k,f);if(p.ok)p.info=p.skipped?`ข้าม ${p.skipped.toLocaleString('en-US')} รายการที่ไม่ใช่ PM`:'';return p;},
+    run:async(rows,mode,_k,prog)=>{
+      let nAdd=0,nUpd=0,nSkip=0;const N=500;
+      for(let i=0;i<rows.length;i+=N){
+        prog(Math.min(i+N,rows.length),rows.length);
+        let r;try{r=await api(ACT.importCmms,{type:k,rows:rows.slice(i,i+N),mode,reset:mode==='replace'&&i===0});}catch(e){r=null;}
+        if(!r||!r.ok)return {ok:false,message:(r&&r.message)||'นำเข้าไม่สำเร็จ'};
+        nAdd+=r.added||0;nUpd+=r.updated||0;nSkip+=r.skipped||0;
+      }
+      return {ok:true,text:mode==='replace'?`นำเข้าแล้ว ${rows.length.toLocaleString('en-US')} รายการ`:`เพิ่มใหม่ ${nAdd.toLocaleString('en-US')} · อัปเดต ${nUpd.toLocaleString('en-US')} รายการ`};
+    },
+    done:()=>{const s=CMS.st[k];s.p=0;s.fl={};s.q='';const q=document.querySelector(`.cm-q[data-k="${k}"]`);if(q)q.value='';cmLoad(k);}});
 }
 async function cmDownload(k){
   try{
     toast('กำลังเตรียมไฟล์...',true);const s=CMS.st[k];const all=[];let off=0,total=1;
-    while(off<total){const r=await api(ACT.listCmms,{type:k,q:s.q,filter:s.f,offset:off,limit:3000});if(!r||!r.ok){toast((r&&r.message)||'ดาวน์โหลดไม่สำเร็จ',false);return;}total=r.total;all.push(...r.rows);off+=3000;if(!r.rows.length)break;}
+    while(off<total){const r=await api(ACT.listCmms,{type:k,q:s.q,filters:s.fl,offset:off,limit:3000});if(!r||!r.ok){toast((r&&r.message)||'ดาวน์โหลดไม่สำเร็จ',false);return;}total=r.total;all.push(...r.rows);off+=3000;if(!r.rows.length)break;}
     if(!all.length){toast('ไม่มีข้อมูลให้ดาวน์โหลด',false);return;}
     await loadLib('xlsx');
     const spec=CM_COLS[k];const aoa=['plan','req','wos'].includes(k)?[spec.map(c=>c[1])].concat(all.map(o=>spec.map(c=>o[c[0]]))):[spec.map(c=>c[1]).concat(['ลิงก์รูป'])].concat(all.map(o=>spec.map(c=>o[c[0]]).concat([o.img||''])));
@@ -5121,12 +5201,19 @@ async function cmDownload(k){
     toast('ดาวน์โหลดแล้ว',true);
   }catch(e){console.error(e);toast('ดาวน์โหลดไม่สำเร็จ',false);}
 }
-async function cmEditImg(k,key,cur){
-  const v=prompt('วางลิงก์รูป (http/https) — เว้นว่างแล้วกดตกลงเพื่อลบรูป',cur||'');
-  if(v===null)return;
-  const r=await api(ACT.setCmmsImage,{type:k,key,url:v.trim()});
-  if(!r||!r.ok){toast((r&&r.message)||'บันทึกไม่สำเร็จ',false);return;}
-  toast(v.trim()?'บันทึกลิงก์รูปแล้ว':'ลบรูปแล้ว',true);cmLoad(k);
+function cmEditImg(k,key,cur){
+  const m=cmModal({title:'ลิงก์รูป',body:`<label class="cmm-fld"><span>ลิงก์รูป (https://...)</span><input type="url" class="tin" id="cmImgUrl" value="${escAttr(cur||'')}" autocomplete="off" inputmode="url"></label><div class="cmi-prev" id="cmImgPrev">${cur?`<img src="${escAttr(cur)}" alt="" referrerpolicy="no-referrer">`:''}</div><div class="cmi-st bad" id="cmImgErr" role="alert"></div>`,foot:`${cur?'<button type="button" class="btn btn-soft" id="cmImgDel">ลบรูป</button>':''}<button type="button" class="btn btn-primary" id="cmImgSave">บันทึก</button>`});
+  const inp=m.body.querySelector('#cmImgUrl'),err=m.body.querySelector('#cmImgErr');
+  inp.addEventListener('input',()=>{const v=inp.value.trim();m.body.querySelector('#cmImgPrev').innerHTML=/^https?:\/\//i.test(v)?`<img src="${escAttr(v)}" alt="" referrerpolicy="no-referrer">`:'';err.textContent='';});
+  const save=async v=>{
+    if(v&&!/^https?:\/\/\S+$/i.test(v)){err.textContent='ลิงก์ต้องขึ้นต้นด้วย http:// หรือ https://';inp.focus();return;}
+    const r=await api(ACT.setCmmsImage,{type:k,key,url:v});
+    if(!r||!r.ok){err.textContent=(r&&r.message)||'บันทึกไม่สำเร็จ';return;}
+    m.close();toast(v?'บันทึกลิงก์รูปแล้ว':'ลบรูปแล้ว',true);cmLoad(k,true);
+  };
+  m.foot.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='cmImgSave')save(inp.value.trim());else if(b.id==='cmImgDel')save('');});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')save(inp.value.trim());});
+  setTimeout(()=>inp.focus(),30);
 }
 function cmFmtDT(v){
   if(v instanceof Date){if(isNaN(v))return '';const p=n=>String(n).padStart(2,'0');return v.getFullYear()+'-'+p(v.getMonth()+1)+'-'+p(v.getDate())+' '+p(v.getHours())+':'+p(v.getMinutes());}
@@ -5137,18 +5224,19 @@ function cmParsePlan(aoa,norm){
   const h=aoa.findIndex(r=>r.some(v=>/^เลขที่ใบสั่งงาน/.test(norm(v)))&&r.some(v=>/^วันที่ควรเริ่มงาน/.test(norm(v))));
   if(h<0)return {ok:false,message:'ไม่พบหัวตาราง — ใช้ไฟล์ "รายงานตารางการปฏิบัติงาน" (ReportOperationSchedule) จาก CMMS'};
   const hd=aoa[h].map(norm);const idx={};spec.forEach(c=>{if(c[2])idx[c[0]]=hd.findIndex(x=>c[2].test(x));});
-  let grp='';const seen={},rows=[];
+  let grp='',skipped=0;const seen={},rows=[];
   aoa.slice(h+1).forEach(r=>{
     const ne=r.filter(v=>v!==''&&v!=null);
     if(!ne.length)return;
     const wo=idx.wo>=0?String(r[idx.wo]==null?'':r[idx.wo]).trim():'';
     if(!wo){if(ne.length<=2&&typeof ne[0]==='string')grp=ne[0].trim();return;}
     const equip=String(r[idx.equip]==null?'':r[idx.equip]).trim();const key=wo+'|'+equip;
+    if(!/^PM/i.test(wo)){skipped++;return;}
     if(seen[key])return;seen[key]=1;
     let hours=r[idx.hours];if(typeof hours==='number'){const m=Math.round(hours*1440);hours=Math.floor(m/60)+':'+String(m%60).padStart(2,'0');}
     rows.push({wo,grp,start:cmFmtDT(r[idx.start]),end:cmFmtDT(r[idx.end]),hours:String(hours==null?'':hours).trim(),priority:String(r[idx.priority]==null?'':r[idx.priority]).trim(),wtype:String(r[idx.wtype]==null?'':r[idx.wtype]).trim(),equip,desc:String(r[idx.desc]==null?'':r[idx.desc]).trim(),status:String(r[idx.status]==null?'':r[idx.status]).trim()});
   });
-  return {ok:true,rows};
+  return {ok:true,rows,skipped};
 }
 function cmParseReq(aoa,norm){
   const spec=CM_COLS.req;
@@ -5207,11 +5295,32 @@ function cmOpenTab(i){
   };
 })();
 
+/* ═══ Phase 47: เมนูซ้าย "กำหนดผู้ใช้" (สิทธิ์หน้า + จัดการผู้ใช้ + นำเข้ารายชื่อ) ═══ */
+(function(){
+  const _ss=setSide;
+  setSide=function(side){
+    if(side==='users'){
+      if(!canSeeUsers())side='doc';
+      else{
+        omBuild();if(OMS.side==='doc'){const act=document.querySelector('#mainNav .tab.active');if(act)OMS.lastDoc=act.dataset.tab;}OMS.side='users';
+        document.querySelectorAll('#sideNav .side-item').forEach(b=>{const on=b.dataset.side==='users';b.classList.toggle('active',on);b.setAttribute('aria-selected',on);});
+        ['#mainNav','#omaTabs','#omaSub','#omaSearch','#cmTabs'].forEach(x=>{const e=$(x);if(e)e.classList.add('nav-off');});
+        const c=$('#cmSub');if(c)c.classList.add('nav-off');
+        document.querySelectorAll('#mainNav .tab').forEach(x=>x.classList.remove('active'));
+        omClearPanels();$('#panel-users').classList.add('active');loadUsers();window.scrollTo(0,0);
+        return;
+      }
+    }
+    if(OMS.side==='users')$('#panel-users').classList.remove('active');
+    return _ss.call(this,side);
+  };
+})();
+
 /* ═══ Phase 43: ใบงาน (PM / RF / RO) พิมพ์เป็น PDF จากหน้าเว็บ + ตารางงาน PM จาก CMMS
    แท็บ "การวางแผนและจัดตารางงาน" = นำเข้า ReportOperationSchedule; แท็บ "ระบบควบคุมใบสั่งงาน" = ฟอร์มสร้างใบงาน → เปิดหน้าพิมพ์ (บันทึกเป็น PDF)
    หน้า: พอดี 1 หน้าถ้าย่อได้ไม่เกิน 20% ไม่งั้นขึ้นหน้า 2 (แถวไม่ถูกตัด หัวตารางซ้ำ) ช่องประเมินลูกค้า+ลายเซ็นอยู่ท้ายทุกหน้า */
 const WO_LOGO='data:image/jpeg;base64,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';
-const WO_CSS='@page{size:A4;margin:8mm 8mm 10mm;@bottom-right{content:counter(page) "/" counter(pages);font-size:8px}}*{box-sizing:border-box}html{font-family:Loma,Tahoma,sans-serif;color:#000}body{margin:0;font-size:calc(9.5px*var(--s));line-height:1.28}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:calc(2.5px*var(--s)) calc(4px*var(--s));vertical-align:top;overflow-wrap:anywhere}tr{break-inside:avoid}.pg>tbody>tr{break-inside:auto}thead{display:table-header-group}.nb td,.nb th{border:0}.hd{display:grid;grid-template-columns:34mm 1fr 52mm;align-items:center;gap:6px;margin-bottom:calc(5px*var(--s))}.hd img{width:30mm;height:auto}.hd h1{margin:0;font-size:calc(14px*var(--s));line-height:1.25}.hd .r{text-align:right}.hd .bc{width:100%;height:calc(30px*var(--s))}.hd .no{font-weight:700;font-size:calc(11px*var(--s))}.sec{background:#fff;font-weight:700;font-size:calc(10.5px*var(--s));border:1px solid #000;border-bottom:0;padding:calc(3px*var(--s)) calc(4px*var(--s));margin-top:calc(4px*var(--s));break-after:avoid}.k{width:19%}.k2{width:16%}th{background:#fff;text-align:center;font-weight:700}.c{text-align:center}.act td{height:calc(15px*var(--s))}.sat{display:flex;align-items:center;gap:calc(14px*var(--s));border:1px solid #000;border-top:0;padding:calc(3px*var(--s)) calc(5px*var(--s));flex-wrap:wrap}.cb{display:inline-block;width:calc(9px*var(--s));height:calc(9px*var(--s));border:1px solid #000;margin-right:4px;vertical-align:-1px;text-align:center;line-height:calc(7px*var(--s));font-size:calc(9px*var(--s))}.keep{break-inside:avoid}.pt td{height:calc(17px*var(--s))}.foot{text-align:center;font-size:calc(8.5px*var(--s));margin-top:calc(3px*var(--s))}.sig td{height:calc(30px*var(--s))}.pg>tbody>tr>td,.pg>tfoot>tr>td{padding:0;border:0}.sp{height:calc(98px*var(--s))}.fx{position:fixed;left:0;right:0;bottom:0;height:calc(98px*var(--s));background:#fff}.fx .sat{border-top:1px solid #000}.sig2 td{border-top:0}';
+const WO_CSS='@page{size:A4;margin:8mm 8mm 10mm;@bottom-right{content:counter(page) "/" counter(pages);font-size:8px}}*{box-sizing:border-box}html{font-family:Loma,Tahoma,sans-serif;color:#000}body{margin:0;font-size:calc(9.5px*var(--s));line-height:1.28}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:calc(2.5px*var(--s)) calc(4px*var(--s));vertical-align:top;overflow-wrap:anywhere}tr{break-inside:avoid}.pg>tbody>tr{break-inside:auto}thead{display:table-header-group}.nb td,.nb th{border:0}.hd{display:grid;grid-template-columns:34mm 1fr 52mm;align-items:center;gap:6px;margin-bottom:calc(5px*var(--s))}.hd img{width:30mm;height:auto}.hd h1{margin:0;font-size:calc(14px*var(--s));line-height:1.25}.hd .r{text-align:right}.hd .bc{width:100%;height:calc(30px*var(--s))}.hd .no{font-weight:700;font-size:calc(11px*var(--s))}.sec{background:#fff;font-weight:700;font-size:calc(10.5px*var(--s));border:1px solid #000;border-bottom:0;padding:calc(3px*var(--s)) calc(4px*var(--s));margin-top:calc(4px*var(--s));break-after:avoid}.k{width:19%}.k2{width:16%}th{background:#fff;text-align:center;font-weight:700}.c{text-align:center}.act td{height:calc(15px*var(--s))}.sat{display:flex;align-items:center;gap:calc(14px*var(--s));border:1px solid #000;border-top:0;padding:calc(3px*var(--s)) calc(5px*var(--s));flex-wrap:wrap}.cb{display:inline-block;width:calc(9px*var(--s));height:calc(9px*var(--s));border:1px solid #000;margin-right:4px;vertical-align:-1px;text-align:center;line-height:calc(7px*var(--s));font-size:calc(9px*var(--s))}.keep{break-inside:avoid}.pt td{height:calc(17px*var(--s))}.foot{text-align:center;font-size:calc(8.5px*var(--s));margin-top:calc(3px*var(--s))}.sig td{height:calc(34px*var(--s))}.sg{height:calc(22px*var(--s));max-width:90%;object-fit:contain;vertical-align:middle}.pg>tbody>tr>td,.pg>tfoot>tr>td{padding:0;border:0}.sp{height:calc(108px*var(--s))}.fx{position:fixed;left:0;right:0;bottom:0;height:calc(108px*var(--s));background:#fff}.fx .sat{border-top:1px solid #000}.sig2 td{border-top:0}';
 const WO_TITLES={PM:'ใบงานบำรุงรักษาเชิงป้องกัน<br>(Preventive Maintenance Work Order)',RF:'ใบงานซ่อมชิ้นส่วนอะไหล่ภายใน<br>(Repair In Workshop Work Order)',RO:'ใบงานซ่อมอะไหล่ชิ้นส่วนภายนอก<br>(Repair To Outside Work Order)'};
 const C128=["212222","222122","222221","121223","121322","131222","122213","122312","132212","221213","221312","231212","112232","122132","122231","113222","123122","123221","223211","221132","221231","213212","223112","312131","311222","321122","321221","312212","322112","322211","212123","212321","232121","111323","131123","131321","112313","132113","132311","211313","231113","231311","112133","112331","132131","113123","113321","133121","313121","211331","231131","213113","213311","213131","311123","311321","331121","312113","312311","332111","314111","221411","431111","111224","111422","121124","121421","141122","141221","112214","112412","122114","122411","142112","142211","241211","221114","413111","241112","134111","111242","121142","121241","114212","124112","124211","411212","421112","421211","212141","214121","412121","111143","111341","131141","114113","114311","411113","411311","113141","114131","311141","411131","211412","211214","211232","2331112"];
 function woBarcode(t){
@@ -5274,6 +5383,8 @@ function woBuild(d,s){
 <table><thead><tr><th colspan="3">รายละเอียดการรับของเสียของเสียที่ถอดออกมาจากงานซ่อม</th></tr></thead><tbody class="pt"><tr><td style="width:40%"><b>เลขที่เอกสารการรับเข้า</b> ${esc(rc[0]||'')}</td><td style="width:30%"><b>ผู้รับ</b> ${esc(rc[1]||'')}</td><td><b>ผู้ตรวจ</b> ${esc(rc[2]||'')}</td></tr></tbody></table>
 <table><tr><td><b>Remark:</b> ${g('finalRemark')}</td></tr></table></div>`;
   }
+  const sg=(k,lab,w)=>{const x=(d.sig&&d.sig[k])||{};return `<td${w?' style="width:33%"':''}>${lab}<br>${x.img?`<img class="sg" src="${esc(x.img)}" alt="">`:'&nbsp;'}</td>`;};
+  const sd=k=>{const x=(d.sig&&d.sig[k])||{};return `<td>Date ${esc(x.date||'')}${x.name?' &nbsp; ('+esc(x.name)+')':''}</td>`;};
   const wo=String(d.woNo||'');
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(wo||'Work Order')}</title><style>:root{--s:${s}}${WO_CSS}body{width:194mm}@media print{body{width:auto}}</style></head><body>
 <table class="pg"><tbody><tr><td>
@@ -5281,7 +5392,7 @@ function woBuild(d,s){
 ${inner}
 </td></tr></tbody><tfoot><tr><td><div class="sp"></div></td></tr></tfoot></table>
 <div class="fx"><div class="sat"><b>Satisfaction:</b>${WO_SAT.map(x=>`<span><span class="cb">${x[0]===sat?'✓':''}</span>${x[1]}</span>`).join('')}</div>
-<table class="sig"><tr><td style="width:33%">Operator<br>&nbsp;</td><td style="width:33%">Supervisor<br>&nbsp;</td><td>Customer/Request By<br>&nbsp;</td></tr><tr class="sig2"><td>Date</td><td>Date</td><td>Date</td></tr></table><div class="foot">Internal Use Only</div></div>
+<table class="sig"><tr>${sg('op','Operator',1)}${sg('sp','Supervisor',1)}${sg('cu','Customer/Request By')}</tr><tr class="sig2">${sd('op')}${sd('sp')}${sd('cu')}</tr></table><div class="foot">Internal Use Only</div></div>
 </body></html>`;
 }
 /* สคริปต์ในหน้าพิมพ์: หาขนาดใหญ่สุดที่พอดี 1 หน้า (≥80%) ไม่ได้ก็ใช้ 100% แล้วขึ้นหน้า 2 */
@@ -5290,45 +5401,71 @@ function woPrint(d){
   const w=window.open('','_blank');if(!w){toast('เบราว์เซอร์บล็อกหน้าต่างใหม่ — อนุญาต pop-up แล้วลองอีกครั้ง',false);return false;}
   w.document.open();w.document.write(woBuild(d,1).replace('</body>',WO_FIT+'</body>'));w.document.close();return true;
 }
-const WO_FIELDS=[
- ['woNo','เลขที่ใบงาน','PM RF RO'],['status','สถานะ','PM RF RO'],['equipmentNo','Equipment No','PM RF RO'],['equipmentName','ชื่ออุปกรณ์/สถานที่ติดตั้ง','PM RF RO'],['site','Site Description','PM RF RO'],['customer','Customer','PM RF RO'],
- ['planStart','Plan Start','PM'],['repairTime','Repair Time','PM'],['policy','Policy No','PM'],['code','Code','PM'],
- ['requestDate','Request Date','RF RO'],['planFinish','Plan Finish','RF RO'],['requestNo','Request No.','RF RO'],['requestBy','Request By','RF RO'],['approveBy','Approve By','RF RO'],['contact','Contact name / Phone','RF RO'],['refer','Refer','RF RO'],
- ['serialNo','Serial No','PM RF RO'],['department','Department','PM RF RO'],['operatorId','Operator ID','PM RF RO'],['employee','Employee','PM RF RO'],['priority','Priority','PM RF RO'],
- ['problem','Problem Details','PM RF RO','t'],
- ['actualStart','Actual Work Start','PM RF RO'],['actualFinish','Actual Work Finish','PM RF RO'],['cause','Cause of Error','PM RF RO'],['downTime','Down Time','PM RF RO'],['ot1','OT1','PM RF RO'],['ot2','OT2','PM RF RO'],['ot3','OT3','PM RF RO'],['expenses','Other Expenses','PM RF RO'],['reason','Reason','PM RF RO'],['solution','Solution Details','PM RF RO'],
- ['tasks','รายการตรวจ (1 บรรทัด = 1 งาน: งาน | Comment | Task Instruction | Remark)','PM','t'],
- ['used','อะไหล่ (1 บรรทัด = 1 รายการ: รหัส | ชื่อ | UOM | Serial | Qty | หมายเหตุ)','PM RF RO','t'],
- ['waste','ของเสียที่ถอดออก (รหัส | ชื่อ | UOM | Serial | Qty | อาการ)','RF RO','t'],
- ['receipt','การรับของเสียเข้า (เลขที่เอกสาร | ผู้รับ | ผู้ตรวจ)','RF RO'],
- ['activity','Activity Description','PM RF RO','t'],['finalRemark','Remark','PM RF RO']];
-const WO_DATE_FMT=v=>{const m=String(v||'').match(/^(\d{4})-(\d\d)-(\d\d)(?:[ T](\d\d:\d\d))?/);return m?`${m[3]}/${m[2]}/${m[1]}${m[4]?' '+m[4]:''}`:String(v||'');};
-function woBuildPanel(panel){
-  panel.innerHTML=`<div class="panel-title">สร้างใบงาน PM / RF / RO (PDF)</div>
-<div class="cm-info">เลือกประเภทใบงาน กรอกข้อมูล แล้วกด "สร้างใบงาน" จะเปิดหน้าพิมพ์ เลือก "บันทึกเป็น PDF" ได้เลย · ใบงาน PM ดึงข้อมูลจากตารางงาน PM ที่นำเข้าไว้ได้ด้วยเลขที่ใบงาน</div>
-<div class="cm-bar"><select id="woType" aria-label="ประเภทใบงาน"><option value="PM">PM — บำรุงรักษาเชิงป้องกัน</option><option value="RF">RF — ซ่อมอะไหล่ภายใน</option><option value="RO">RO — ซ่อมอะไหล่ภายนอก</option></select>
-<button type="button" class="btn btn-soft" id="woLookup">ดึงจากตารางงาน (ตามเลขที่ใบงาน)</button>
-<select id="woSat" aria-label="ความพึงพอใจ"><option value="">Satisfaction: ยังไม่ประเมิน</option>${WO_SAT.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select>
-<button type="button" class="btn btn-primary" id="woGo">สร้างใบงาน (PDF)</button><button type="button" class="btn btn-soft" id="woClear">ล้างฟอร์ม</button></div>
-<div class="wo-grid" id="woGrid">${WO_FIELDS.map(f=>`<label class="wo-f${f[3]?' wo-w':''}" data-for="${f[2]}"><span>${esc(f[1])}</span>${f[3]?`<textarea data-f="${f[0]}" rows="3" class="tin"></textarea>`:`<input data-f="${f[0]}" class="tin" autocomplete="off">`}</label>`).join('')}</div>`;
-  const typ=panel.querySelector('#woType');
-  const paint=()=>panel.querySelectorAll('.wo-f').forEach(l=>{l.hidden=!l.dataset.for.split(' ').includes(typ.value);});
-  typ.addEventListener('change',paint);paint();
-  panel.querySelector('#woGo').addEventListener('click',()=>{const d=woRead();if(!d.woNo){toast('กรอกเลขที่ใบงานก่อน',false);return;}woPrint(d);});
-  panel.querySelector('#woClear').addEventListener('click',()=>{panel.querySelectorAll('[data-f]').forEach(e=>{e.value='';});panel.querySelector('#woSat').value='';});
-  panel.querySelector('#woLookup').addEventListener('click',async()=>{
-    const wo=(panel.querySelector('[data-f="woNo"]').value||'').trim();if(!wo){toast('กรอกเลขที่ใบงานก่อน',false);return;}
-    const r=await api(ACT.listCmms,{type:'plan',q:wo,limit:20});
-    const row=r&&r.ok&&(r.rows||[]).find(x=>String(x.wo).toLowerCase()===wo.toLowerCase());
-    if(!row){toast(r&&r.ok?'ไม่พบเลขที่ใบงานนี้ในตารางงาน — นำเข้าไฟล์ในแท็บ "การวางแผนและจัดตารางงาน" ก่อน':((r&&r.message)||'ค้นหาไม่สำเร็จ'),false);return;}
-    const set=(k,v)=>{const e=panel.querySelector(`[data-f="${k}"]`);if(e&&v)e.value=v;};
-    if(/^PM/i.test(wo))typ.value='PM';else if(/^RF/i.test(wo))typ.value='RF';else if(/^RO/i.test(wo))typ.value='RO';paint();
-    set('equipmentNo',row.equip);set('equipmentName',row.desc);set('department',String(row.grp||'').replace(/-[^-]*$/,''));set('repairTime',row.hours);
-    set('planStart',WO_DATE_FMT(row.start));set('planFinish',WO_DATE_FMT(row.end));set('requestDate',WO_DATE_FMT(row.start));set('priority',row.priority?(typ.value==='PM'?row.priority+', ป้องกัน':row.priority):'');
-    toast('ดึงข้อมูลจากตารางงานแล้ว',true);
-  });
+/* ═══ Phase 46: ป๊อปอัปใบงาน — เลือกเลขที่ใบงาน → ข้อมูลเติมอัตโนมัติจากเซิร์ฟเวอร์ เหลือแค่ Satisfaction + ลายเซ็น (เซ็นบนจอ หรือแนบรูป) ═══ */
+const WO_SIGS=[['op','ผู้ปฏิบัติงาน','Operator'],['sp','หัวหน้างาน','Supervisor'],['cu','ลูกค้า / ผู้แจ้ง','Customer']];
+const woToday=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();};
+const woMine=()=>{try{return JSON.parse(localStorage.getItem('woMySig')||'{}')||{};}catch(e){return {};}};
+function woPad(c){
+  const x=c.getContext('2d'),W=c.width,H=c.height;let drawing=false,has=false,dirty=false,last=null,src='';
+  x.lineWidth=2.4;x.lineCap='round';x.lineJoin='round';x.strokeStyle='#111';
+  const pos=e=>{const r=c.getBoundingClientRect();return [(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height];};
+  c.addEventListener('pointerdown',e=>{drawing=true;last=pos(e);try{c.setPointerCapture(e.pointerId);}catch(_){}x.beginPath();x.moveTo(last[0],last[1]);x.lineTo(last[0]+.01,last[1]);x.stroke();has=true;dirty=true;src='draw';e.preventDefault();});
+  c.addEventListener('pointermove',e=>{if(!drawing)return;const p=pos(e);x.beginPath();x.moveTo(last[0],last[1]);x.lineTo(p[0],p[1]);x.stroke();last=p;e.preventDefault();});
+  const end=()=>{drawing=false;};c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);
+  const put=url=>new Promise(res=>{const im=new Image();im.onload=()=>{x.clearRect(0,0,W,H);const k=Math.min(W/im.width,H/im.height),w=im.width*k,h=im.height*k;x.drawImage(im,(W-w)/2,(H-h)/2,w,h);has=true;src='img';res(true);};im.onerror=()=>res(false);im.src=url;});
+  return {has:()=>has,dirty:()=>dirty,
+    clear(){x.clearRect(0,0,W,H);has=false;dirty=true;src='';},
+    async load(url){if(url)await put(url);},
+    async fromFile(f){if(!f||!/^image\//.test(f.type)||f.size>8e6)return false;const u=URL.createObjectURL(f);const ok=await put(u);URL.revokeObjectURL(u);if(ok)dirty=true;return ok;},
+    toData(){if(!has)return '';let d=src==='draw'?c.toDataURL('image/png'):'';
+      if(!d||d.length>44000){const t=document.createElement('canvas');t.width=W;t.height=H;const tx=t.getContext('2d');tx.fillStyle='#fff';tx.fillRect(0,0,W,H);tx.drawImage(c,0,0);d=t.toDataURL('image/jpeg',.8);if(d.length>44000)d=t.toDataURL('image/jpeg',.5);}
+      return d;}};
 }
-function woRead(){const d={type:$('#woType').value,satisfaction:$('#woSat').value};document.querySelectorAll('#woGrid [data-f]').forEach(e=>{if(!e.closest('.wo-f').hidden)d[e.dataset.f]=e.value.trim();});return d;}
+async function woOpen(wo){
+  const m=cmModal({title:'ใบงาน '+wo,wide:true,body:'<div class="cm-msg">กำลังโหลด...</div>'});
+  let r;try{r=await api(ACT.getWorkOrderDoc,{wo});}catch(e){r=null;}
+  if(m.closed)return;
+  if(!r||!r.ok){m.body.innerHTML=`<div class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</div>`;return;}
+  const d=r.doc,type=r.type,sv=r.sign||{sat:'',sig:{}};
+  if(!type){m.body.innerHTML='<div class="cm-msg">ยังไม่มีแบบใบงานสำหรับประเภทนี้ (มีเฉพาะ PM / RF / RO)</div>';return;}
+  let sat=String(sv.sat||'');const mine=woMine(),pads={};
+  const ta=(k,l,ph)=>`<label class="cmm-fld"><span>${l}</span><textarea class="tin" rows="2" data-x="${k}"${ph?` placeholder="${escAttr(ph)}"`:''}></textarea></label>`;
+  m.body.innerHTML=`<div class="wo-sum"><span class="wo-badge">${type}</span><div><b>${esc(d.equipmentNo)}</b> ${esc(d.equipmentName)}<small>${[d.site,d.planStart||d.requestDate,d.status].filter(Boolean).map(esc).join(' · ')}</small></div></div>
+<div class="wo-lab">Satisfaction</div><div class="wo-sat" role="radiogroup" aria-label="Satisfaction">${WO_SAT.map(x=>`<button type="button" role="radio" aria-checked="${sat==x[0]}" data-s="${x[0]}" class="${sat==x[0]?'on':''}"><b>${x[0]}</b><small>${esc(x[1].slice(4))}</small></button>`).join('')}</div>
+<div class="wo-sigs">${WO_SIGS.map(g=>`<div class="wo-sig" data-g="${g[0]}"><div class="wo-lab">${g[1]} <small>${g[2]}</small></div><canvas width="480" height="160" aria-label="ช่องลายเซ็น ${g[1]}"></canvas><div class="wo-sa"><button type="button" class="btn btn-soft" data-a="clear">ล้าง</button><button type="button" class="btn btn-soft" data-a="up">${cmI('img')}<span>แนบรูป</span></button>${g[0]!=='cu'&&mine[g[0]]?'<button type="button" class="btn btn-soft" data-a="mine">ใช้ที่จำไว้</button>':''}<input type="file" accept="image/*" hidden></div><input class="tin" data-n placeholder="ชื่อ" aria-label="ชื่อ ${g[1]}">${g[0]!=='cu'?'<label class="wo-rem"><input type="checkbox" data-rem><span>จำลายเซ็นในเครื่องนี้</span></label>':''}</div>`).join('')}</div>
+<details class="wo-more"><summary>รายละเอียดเพิ่มเติม</summary>${type==='PM'?ta('tasks','รายการตรวจ','งาน | Comment | Task Instruction | Remark'):''}${ta('used','อะไหล่ที่ใช้','รหัส | ชื่อ | UOM | Serial | Qty')}${type!=='PM'?ta('waste','ของเสียที่ถอดออก','รหัส | ชื่อ | UOM | Serial | Qty | อาการ')+ta('receipt','การรับของเสีย','เลขที่เอกสาร | ผู้รับ | ผู้ตรวจ'):''}${ta('activity','Activity Description')}${ta('finalRemark','Remark')}</details>`;
+  m.foot.innerHTML=`<button type="button" class="btn btn-soft" id="woSave">บันทึก</button><button type="button" class="btn btn-primary" id="woPrint">${cmI('doc')}<span>พิมพ์ / PDF</span></button>`;
+  const names={op:d.employee,sp:'',cu:d.requestBy};
+  for(const g of WO_SIGS){
+    const e=m.body.querySelector(`.wo-sig[data-g="${g[0]}"]`),pad=woPad(e.querySelector('canvas'));pads[g[0]]=pad;
+    const s0=(sv.sig&&sv.sig[g[0]])||{};e.querySelector('[data-n]').value=s0.name||names[g[0]]||'';
+    await pad.load(s0.img);if(m.closed)return;
+  }
+  m.body.addEventListener('click',async e=>{
+    const t=e.target.closest&&e.target.closest('button');if(!t)return;
+    if(t.dataset.s){sat=sat===t.dataset.s?'':t.dataset.s;m.body.querySelectorAll('[data-s]').forEach(b=>{const on=b.dataset.s===sat;b.classList.toggle('on',on);b.setAttribute('aria-checked',on);});return;}
+    const g=t.closest('.wo-sig');if(!g||!t.dataset.a)return;const pad=pads[g.dataset.g];
+    if(t.dataset.a==='clear')pad.clear();
+    else if(t.dataset.a==='up')g.querySelector('input[type=file]').click();
+    else if(t.dataset.a==='mine'){pad.clear();await pad.load(woMine()[g.dataset.g]);}
+  });
+  m.body.addEventListener('change',async e=>{
+    const f=e.target;if(f.type!=='file')return;const g=f.closest('.wo-sig'),file=f.files[0];f.value='';
+    if(file&&!(await pads[g.dataset.g].fromFile(file)))toast('แนบรูปไม่ได้ — ใช้ไฟล์รูปไม่เกิน 8 MB',false);
+  });
+  const collect=()=>{
+    const sig={},keep=woMine();
+    m.body.querySelectorAll('.wo-sig').forEach(e=>{const g=e.dataset.g,pad=pads[g],img=pad.toData(),name=e.querySelector('[data-n]').value.trim(),old=(sv.sig&&sv.sig[g])||{};
+      sig[g]={img,name,date:(img||name)?((!pad.dirty()&&old.date)||woToday()):''};
+      const rem=e.querySelector('[data-rem]');if(rem&&rem.checked&&img)keep[g]=img;});
+    try{localStorage.setItem('woMySig',JSON.stringify(keep));}catch(_){}
+    const dd=Object.assign({},d,{type,satisfaction:sat,sig});m.body.querySelectorAll('[data-x]').forEach(x=>{dd[x.dataset.x]=x.value.trim();});return dd;
+  };
+  const save=async()=>{const dd=collect();const r=await api(ACT.saveWorkOrderSign,{wo:d.woNo,sat:sat,sig:dd.sig});toast(r&&r.ok?'บันทึกแล้ว':((r&&r.message)||'บันทึกไม่สำเร็จ'),!!(r&&r.ok));return !!(r&&r.ok);};
+  m.foot.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.id==='woPrint'){woPrint(collect());}
+    else if(b.id==='woSave'){b.disabled=true;save().finally(()=>{b.disabled=false;});}});
+}
 
 /* ═══ Phase 45: อะไหล่ที่ใช้ (เบิก) — ตาราง + Dashboard (แถบ "ระบบควบคุมบัญชีของ") ═══
    ข้อมูลมาจาก IssuedVoucherReport (ใบเบิก) + Transaction Consumable (เติมผู้เบิก/โครงการ); ราคา/ประเภทอะไหล่จากรายการอะไหล่ (CMMS_Parts) */
@@ -5399,7 +5536,7 @@ function ivBuildRows(vs){
     const code=(String(v.req).match(/^[A-Za-z]\d+$/)||[''])[0].toUpperCase();
     const requester=v.rn||names[code]||'';
     const project=v.inst?String(v.inst).split('-')[0]:'';
-    v.items.forEach((it,i)=>rows.push({iv:v.iv,line:String(i+1),date:v.d,wo:v.wo,part:it.part,name:it.name,unit:it.unit,qty:it.qty,wh:it.wh,requester,project,install:v.inst,point:v.point,issuer:v.issuer,serial:it.serial}));
+    v.items.forEach((it,i)=>rows.push({iv:v.iv,line:String(i+1),date:v.d,wo:v.wo,part:it.part,name:it.name,unit:it.unit,qty:it.qty,wh:it.wh,requester,order:String(v.req||''),project,install:v.inst,point:v.point,issuer:v.issuer,serial:it.serial}));
   });
   return rows;
 }
@@ -5421,32 +5558,32 @@ function txParse(aoa){
   });
   return {ok:true,rows};
 }
-async function isImport(file,src){
-  try{
-    toast('กำลังอ่านไฟล์ (ไฟล์ใบเบิกใหญ่ อาจใช้เวลาสักครู่)...',true);await loadLib('xlsx');
-    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
-    let rows;
-    if(src==='iv'){
-      const vs=[];wb.SheetNames.forEach(n=>{const v=ivParseSheet(XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''}));if(v.iv)vs.push(v);});
-      if(!vs.length){toast('ไม่พบใบเบิก — ใช้ไฟล์ IssuedVoucherReport จาก CMMS',false);return;}
-      rows=ivBuildRows(vs);
-    }else{
-      const ws=wb.Sheets.Issue||wb.Sheets[wb.SheetNames[0]];
-      const p=txParse(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''}));
-      if(!p.ok){toast(p.message,false);return;}rows=p.rows;
-    }
-    if(!rows.length){toast('ไม่พบรายการในไฟล์',false);return;}
-    if(!confirm((src==='iv'?`นำเข้าใบเบิก ${rows.length.toLocaleString('en-US')} รายการ`:`นำเข้ารายการ Consumable ${rows.length.toLocaleString('en-US')} รายการ (เติมผู้เบิก/โครงการให้ใบเบิกที่ตรงกัน)`)+' — รายการเดิมจะถูกอัปเดต ไม่ซ้ำซ้อน ต้องการดำเนินการต่อ?'))return;
-    const N=500;let a=0,u=0,m=0;
-    for(let i=0;i<rows.length;i+=N){
-      toast(`กำลังนำเข้า ${Math.min(i+N,rows.length).toLocaleString('en-US')} / ${rows.length.toLocaleString('en-US')}`,true);
-      const r=await api(ACT.importIssue,{src,rows:rows.slice(i,i+N)});
-      if(!r||!r.ok){toast((r&&r.message)||'นำเข้าไม่สำเร็จ',false);return;}
-      a+=r.added||0;u+=r.updated||0;m+=r.merged||0;
-    }
-    toast(`นำเข้าแล้ว — เพิ่มใหม่ ${a.toLocaleString('en-US')} · อัปเดต ${u.toLocaleString('en-US')} · รวมกับรายการเดิม ${m.toLocaleString('en-US')}`,true);
-    IS.loaded=false;isLoad();
-  }catch(e){console.error(e);toast('นำเข้าไม่สำเร็จ: '+((e&&e.message)||''),false);}
+async function isParseFile(file,src){
+  await loadLib('xlsx');
+  const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+  if(src==='iv'){
+    const vs=[];wb.SheetNames.forEach(n=>{const v=ivParseSheet(XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''}));if(v.iv)vs.push(v);});
+    if(!vs.length)return {ok:false,message:'ไม่พบใบเบิก — ใช้ไฟล์ IssuedVoucherReport จาก CMMS'};
+    return {ok:true,rows:ivBuildRows(vs),info:vs.length.toLocaleString('en-US')+' ใบเบิก'};
+  }
+  const ws=wb.Sheets.Issue||wb.Sheets[wb.SheetNames[0]];
+  const p=txParse(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''}));
+  return p.ok?{ok:true,rows:p.rows}:p;
+}
+function isImportOpen(){
+  cmImportModal({title:'นำเข้าอะไหล่ที่ใช้',kinds:[['iv','ใบเบิก (IssuedVoucherReport)'],['tx','Consumable (Transaction Excel)']],
+    parse:isParseFile,
+    run:async(rows,mode,src,prog)=>{
+      const N=500;let a=0,u=0,m=0;
+      for(let i=0;i<rows.length;i+=N){
+        prog(Math.min(i+N,rows.length),rows.length);
+        let r;try{r=await api(ACT.importIssue,{src,rows:rows.slice(i,i+N)});}catch(e){r=null;}
+        if(!r||!r.ok)return {ok:false,message:(r&&r.message)||'นำเข้าไม่สำเร็จ'};
+        a+=r.added||0;u+=r.updated||0;m+=r.merged||0;
+      }
+      return {ok:true,text:`เพิ่มใหม่ ${a.toLocaleString('en-US')} · อัปเดต ${u.toLocaleString('en-US')} · รวมกับรายการเดิม ${m.toLocaleString('en-US')}`};
+    },
+    done:()=>{IS.loaded=false;isLoad();}});
 }
 async function isLoad(){
   if(!IS.host)return;
@@ -5454,9 +5591,11 @@ async function isLoad(){
   IS.host.querySelector('#isBody').innerHTML='<div class="cm-msg">กำลังโหลดข้อมูล...</div>';
   let r;try{r=await api(ACT.getIssueData,{});}catch(e){r=null;}
   if(!r||!r.ok){IS.host.querySelector('#isBody').innerHTML=`<div class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</div>`;return;}
-  IS.parts=r.parts||{};
+  IS.parts=r.parts||{};const sf=r.staff||{};
+  const tc=x=>{const m=String(x||'').match(/\bT0*(\d+)\b/i);return m?'T'+m[1]:'';};
   IS.rows=(r.rows||[]).map(o=>{const p=IS.parts[o.part]||{};const price=Number(p.price);const d=String(o.date||'').slice(0,10);
-    return {...o,d,type:p.move||'ไม่ระบุ',pname:p.name||o.name||o.part,req:o.requester||'ไม่ระบุ',prj:o.project||'ไม่ระบุ',qty:Number(o.qty)||0,value:isNaN(price)||p.price===''?null:(Number(o.qty)||0)*price};});
+    const ord=String(o.order||'').trim(),nm=sf[tc(ord)]||sf[tc(o.requester)]||o.requester||'',pj=o.project||(/^20\d{5}$/.test(ord)?'MA'+ord:'');
+    return {...o,d,type:p.move||'ไม่ระบุ',pname:p.name||o.name||o.part,req:nm||'ไม่ระบุ',prj:pj||'ไม่ระบุ',qty:Number(o.qty)||0,value:isNaN(price)||p.price===''?null:(Number(o.qty)||0)*price};});
   IS.loaded=true;isRender();
 }
 function isFiltered(skip){
@@ -5466,13 +5605,13 @@ function isFiltered(skip){
 const isGroup=(rows,kf,top)=>{const m={};rows.forEach(r=>{const k=kf(r);m[k]=(m[k]||0)+r.qty;});const a=Object.entries(m).map(([k,v])=>({k,v})).sort((x,y)=>y.v-x.v);return top?a.slice(0,top):a;};
 function isBuckets(rows){
   const g=IS.f.gran,key=r=>g==='year'?r.d.slice(0,4):(g==='month'?r.d.slice(0,7):r.d);
-  const m={};rows.forEach(r=>{if(r.d){const k=key(r);m[k]=(m[k]||0)+r.qty;}});
+  const m={},mv={};rows.forEach(r=>{if(r.d){const k=key(r);m[k]=(m[k]||0)+r.qty;mv[k]=(mv[k]||0)+(r.value||0);}});
   const ks=Object.keys(m).sort();if(!ks.length)return [];
   const fill=[];
   if(g==='year'){for(let y=+ks[0];y<=+ks[ks.length-1];y++)fill.push(String(y));}
   else if(g==='month'){let [y,mo]=ks[0].split('-').map(Number);const [ey,em]=ks[ks.length-1].split('-').map(Number);while(y<ey||(y===ey&&mo<=em)){fill.push(y+'-'+isPad(mo));if(++mo>12){mo=1;y++;}}}
   else{const a=new Date(ks[0]),b=new Date(ks[ks.length-1]);if((b-a)/864e5<=120){for(let t=new Date(a);t<=b;t.setDate(t.getDate()+1))fill.push(isYmd(t.getFullYear(),t.getMonth()+1,t.getDate()));}else fill.push(...ks);}
-  return fill.map(k=>({k,v:m[k]||0}));
+  return fill.map(k=>({k,v:m[k]||0,val:mv[k]||0}));
 }
 function isStats(rows){
   const ivs=new Set(),ps=new Set();let qty=0,val=0,nov=0;
@@ -5490,6 +5629,47 @@ function isDesc(){
   return a;
 }
 function isOpts(vals,cur,all){return `<option value="">${all}</option>`+vals.map(v=>`<option value="${escAttr(v)}"${v===cur?' selected':''}>${esc(v)}</option>`).join('');}
+/* ═══ Phase 47: Dashboard/อีเมลอะไหล่สไตล์ใหม่ + ผู้เบิกจากรหัสพนักงาน ═══ */
+const IS_C=['#F0584A','#3B82F6','#10B981','#F59E0B','#8B5CF6','#06B6D4'];
+const isShort=s=>{s=String(s||'');return s.length>34?s.slice(0,33)+'…':s;};
+function isSmooth(p){let d='M'+p[0][0]+','+p[0][1];for(let i=0;i<p.length-1;i++){const x=(p[i][0]+p[i+1][0])/2;d+=` C${x},${p[i][1]} ${x},${p[i+1][1]} ${p[i+1][0]},${p[i+1][1]}`;}return d;}
+function isSpark(a,c){if(a.length<2)return '';const mx=Math.max(...a,1),p=a.map((v,i)=>[i/(a.length-1)*120,24-v/mx*20]);return `<svg class="is-spark" viewBox="0 0 120 26" width="120" aria-hidden="true"><path d="${isSmooth(p)}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/></svg>`;}
+function isCombo(bk){
+  if(!bk.length)return '<div class="cm-msg">ไม่มีข้อมูลในช่วงที่เลือก</div>';
+  const w=680,h=190,mx=Math.max(...bk.map(x=>x.val),1),mq=Math.max(...bk.map(x=>x.v),1),bw=w/bk.length,g=IS.f.gran,ev=Math.ceil(bk.length/14);
+  const lab=k=>g==='day'?k.slice(5):(g==='year'?k:k.slice(2));
+  const pts=bk.map((x,i)=>[i*bw+bw/2,h-x.v/mq*h*.8-6]);const best=bk.findIndex(x=>x.val===mx);
+  return `<svg viewBox="0 0 ${w} ${h+26}" width="100%" role="img" aria-label="มูลค่าและจำนวนที่เบิก"><defs><linearGradient id="isg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0584A"/><stop offset="1" stop-color="#CF3326" stop-opacity=".25"/></linearGradient><linearGradient id="isg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3B82F6" stop-opacity=".30"/><stop offset="1" stop-color="#3B82F6" stop-opacity="0"/></linearGradient></defs>${[0,.5,1].map(t=>`<line x1="0" x2="${w}" y1="${h-t*h}" y2="${h-t*h}" class="is-gl" stroke-dasharray="3 5"/>`).join('')}${bk.map((x,i)=>{const bh=x.val/mx*h;return `<rect x="${i*bw+bw/2-Math.min(bw*.28,18)}" y="${h-bh}" width="${Math.min(bw*.56,36)}" height="${bh}" rx="${Math.min(8,bw*.28)}" fill="url(#isg1)"><title>${esc(x.k)}: ฿${isNf(x.val)} · ${isNf(x.v)} ชิ้น</title></rect>${i%ev===0?`<text x="${i*bw+bw/2}" y="${h+17}" font-size="11" text-anchor="middle" class="is-ax">${esc(lab(x.k))}</text>`:''}`;}).join('')}${bk.length>1?`<path d="${isSmooth(pts)} L${pts[pts.length-1][0]},${h} L${pts[0][0]},${h}Z" fill="url(#isg2)"/><path d="${isSmooth(pts)}" fill="none" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>`:''}${bk.length<=36?pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" class="is-dot" stroke="#3B82F6" stroke-width="2.5"/>`).join(''):''}${mx>0?`<g transform="translate(${best*bw+bw/2},${h-mx/mx*h-8})"><rect class="is-bd" x="-30" y="-22" width="60" height="20" rx="10" fill="#222D3A"/><text y="-8" font-size="11" fill="#fff" text-anchor="middle" font-weight="600">฿${isNf(Math.round(mx))}</text></g>`:''}</svg><div class="is-lg"><span><i style="background:#F0584A"></i>บาท</span><span><i style="background:#3B82F6"></i>ชิ้น</span></div>`;
+}
+function isDonut(sl,total){
+  if(!total)return '<div class="cm-msg">ไม่มีข้อมูล</div>';
+  const R=52,c=2*Math.PI*R;let off=0;
+  const arcs=sl.map((x,i)=>{const l=x.v/total*c,d=Math.max(l-7,1),e=`<circle cx="75" cy="75" r="${R}" fill="none" stroke="${IS_C[i]}" stroke-width="16" stroke-linecap="round" stroke-dasharray="${d} ${c-d}" stroke-dashoffset="${-off-3.5}" transform="rotate(-90 75 75)"/>`;off+=l;return e;}).join('');
+  return `<div class="is-donut"><svg viewBox="0 0 150 150" width="150" role="img" aria-label="สัดส่วนมูลค่า"><circle cx="75" cy="75" r="${R}" fill="none" class="is-track" stroke-width="16"/>${arcs}<text x="75" y="70" text-anchor="middle" font-size="11" class="is-ax">รวม</text><text x="75" y="91" text-anchor="middle" font-size="18" font-weight="700" class="is-tx">฿${total>=1e6?isNf(total/1e6)+'M':total>=1e3?isNf(total/1e3)+'k':isNf(total)}</text></svg><div class="is-lgd">${sl.map((x,i)=>`<${x.k?'button type="button" data-isd="part" data-isv="'+escAttr(x.k)+'"':'div'} class="is-lgi"><i style="background:${IS_C[i]}"></i><span title="${escAttr(x.l)}">${esc(isShort(x.l))}</span><b>${Math.round(x.v/total*100)}%</b></${x.k?'button':'div'}>`).join('')}</div></div>`;
+}
+function isWho(rows){
+  const m={};
+  rows.forEach(r=>{const o=m[r.req]=m[r.req]||{req:r.req,qty:0,val:0,items:{}};o.qty+=r.qty;o.val+=r.value||0;const it=o.items[r.part]=o.items[r.part]||{name:r.pname,qty:0,val:0};it.qty+=r.qty;it.val+=r.value||0;});
+  return Object.values(m).sort((a,b)=>b.val-a.val||b.qty-a.qty);
+}
+function isDashHtml(rows,st,bk){
+  const who=isWho(rows),sp=who.find(x=>x.req==='ไม่ระบุ');
+  const pm={};rows.forEach(r=>{const o=pm[r.part]=pm[r.part]||{k:r.part,l:r.pname,v:0};o.v+=r.value||0;});
+  const pl=Object.values(pm).sort((a,b)=>b.v-a.v),top=pl.slice(0,5),rest=pl.slice(5).reduce((s,x)=>s+x.v,0);
+  const sl=top.map(x=>({k:x.k,l:x.l,v:x.v}));if(rest>0)sl.push({k:'',l:'อื่น ๆ',v:rest});
+  const tot=sl.reduce((s,x)=>s+x.v,0);
+  const named=who.filter(x=>x.req!=='ไม่ระบุ').slice(0,6),hm=top.slice(0,5);
+  let hmx=1;named.forEach(w=>hm.forEach(p=>{hmx=Math.max(hmx,(w.items[p.k]||{}).val||0);}));
+  const heat=named.length&&hm.length?`<table class="is-heat"><tr><th></th>${hm.map(p=>`<th title="${escAttr(p.l)}">${esc(isShort(p.l).slice(0,14))}</th>`).join('')}</tr>${named.map(w=>`<tr><td>${esc(w.req)}</td>${hm.map(p=>{const v=(w.items[p.k]||{}).val||0;return `<td>${v?`<button type="button" class="is-hc" data-ish="${escAttr(w.req)}\u0001${escAttr(p.k)}" style="background:rgba(240,88,74,${(.15+v/hmx*.8).toFixed(2)});color:${v/hmx>.45?'#fff':'inherit'}" title="${escAttr(w.req+' · '+p.l)}">${isNf(v)}</button>`:'<span class="is-nil">–</span>'}</td>`;}).join('')}</tr>`).join('')}</table>`:'<div class="cm-msg">ไม่มีข้อมูล</div>';
+  const ordered=who.filter(x=>x.req!=='ไม่ระบุ').slice(0,8).concat(sp?[sp]:[]);
+  const wt=ordered.length?`<table class="is-who"><tr><th>ชื่อ</th><th>รายการหลัก</th><th class="n">ชิ้น</th><th class="n">฿</th></tr>${ordered.map(w=>{const its=Object.values(w.items).sort((a,b)=>b.val-a.val||b.qty-a.qty);return `<tr><td><button type="button" class="is-nm" data-isd="req" data-isv="${escAttr(w.req)}">${esc(w.req)}</button></td><td>${esc(isShort(its[0].name))} ×${isNf(its[0].qty)}${its.length>1?`<span class="is-more" tabindex="0" title="${escAttr(its.slice(1,9).map(x=>x.name+' ×'+isNf(x.qty)).join('\n'))}">+${its.length-1}</span>`:''}</td><td class="n">${isNf(w.qty)}</td><td class="n"><b>${isNf(w.val)}</b></td></tr>`;}).join('')}</table>`:'<div class="cm-msg">ไม่มีข้อมูล</div>';
+  const spv=sp&&st.val?Math.round(sp.val/st.val*100):0,ppl=who.filter(x=>x.req!=='ไม่ระบุ').length;
+  const tail=a=>a.slice(-12);
+  return `<div class="is-kpis"><div class="is-kpi"><span>มูลค่า (฿)</span><b>${isNf(st.val)}</b>${st.nov?`<small>ไม่มีราคา ${isNf(st.nov)} รายการ</small>`:''}${isSpark(tail(bk.map(x=>x.val)),'#10B981')}</div><div class="is-kpi"><span>จำนวน</span><b>${isNf(st.qty)}</b><small>${isNf(st.lines)} รายการ · ${isNf(st.iv)} ใบเบิก</small>${isSpark(tail(bk.map(x=>x.v)),'#3B82F6')}</div><div class="is-kpi"><span>ผู้เบิก</span><b>${isNf(ppl)}</b>${spv?`<small>ไม่ระบุ ${spv}%</small>`:''}</div><div class="is-kpi"><span>ชนิดอะไหล่</span><b>${isNf(st.parts)}</b></div></div>
+<div class="is-row2"><section class="is-card"><h3>รายเดือน</h3>${isCombo(bk)}</section><section class="is-card"><h3>สัดส่วนมูลค่า</h3>${isDonut(sl,tot)}</section></div>
+<div class="is-row2 b"><section class="is-card"><h3>ผู้เบิก × อะไหล่ (฿)</h3>${heat}</section><section class="is-card"><h3>ผู้เบิก</h3>${wt}</section></div>`;
+}
+
 function isRender(){
   const host=IS.host;if(!host)return;const f=IS.f;
   const types=[...new Set(IS.rows.map(r=>r.type))].sort();
@@ -5499,7 +5679,6 @@ function isRender(){
   const rows=isFiltered(),st=isStats(rows),bk=isBuckets(rows);
   const sorted=rows.slice().sort((a,b)=>(a.date<b.date?-1:a.date>b.date?1:0)*(IS.asc?1:-1));
   const PS=50,pages=Math.max(1,Math.ceil(sorted.length/PS));if(IS.page>=pages)IS.page=pages-1;
-  const mxb=Math.max(...bk.map(x=>x.v),1);
   host.querySelector('#isBody').innerHTML=`
 <div class="is-filters">
  <label>มุมมอง<select data-isf="gran">${[['day','รายวัน'],['month','รายเดือน'],['year','รายปี']].map(x=>`<option value="${x[0]}"${f.gran===x[0]?' selected':''}>${x[1]}</option>`).join('')}</select></label>
@@ -5511,39 +5690,41 @@ function isRender(){
  <label>โครงการ<select data-isf="proj">${isOpts(prjs,f.proj,'ทั้งหมด')}</select></label>
  <label class="is-q">ค้นหา<input type="search" data-isf="q" value="${escAttr(f.q)}" placeholder="ชื่อ / รหัส / ใบเบิก / ใบสั่งงาน"></label>
 </div>
-<div class="is-quick"><button type="button" class="btn btn-soft" data-isq="all">ทั้งหมด</button><button type="button" class="btn btn-soft" data-isq="y">ปีนี้</button><button type="button" class="btn btn-soft" data-isq="12m">12 เดือนล่าสุด</button><button type="button" class="btn btn-soft" data-isq="m">เดือนนี้</button><button type="button" class="btn btn-soft" data-isq="clear">ล้างตัวกรอง</button><span class="is-sp"></span><button type="button" class="btn btn-soft" id="isDl">ดาวน์โหลด Excel</button><button type="button" class="btn btn-primary" id="isSend">ส่งสรุป + Dashboard ให้หัวหน้า</button></div>
-<div class="is-kpis"><div class="is-kpi"><span>Total QTY</span><b>${isNf(st.qty)}</b><small>รวมทุกหน่วย</small></div><div class="is-kpi"><span>Total Value (บาท)</span><b>${isNf(st.val)}</b><small>${st.nov?`ไม่มีราคา ${st.nov} รายการ`:'ตามราคาต่อหน่วยในรายการอะไหล่'}</small></div><div class="is-kpi"><span>ใบเบิก</span><b>${isNf(st.iv)}</b><small>${isNf(st.lines)} รายการ</small></div><div class="is-kpi"><span>ชนิดอะไหล่</span><b>${isNf(st.parts)}</b><small>รหัสที่ไม่ซ้ำ</small></div></div>
-<div class="is-grid">
- <section class="is-card is-wide"><h3>ปริมาณการเบิก ${f.gran==='day'?'รายวัน':(f.gran==='year'?'รายปี':'รายเดือน')}</h3><div class="is-cols" id="isCols">${bk.length?bk.map(x=>`<div class="is-col" title="${esc(x.k)}: ${isNf(x.v)}"><span class="is-cv">${bk.length<=24&&x.v?isNf(x.v):''}</span><i style="height:${x.v?Math.max(3,x.v/mxb*100):0}%"></i><span class="is-cl">${esc(f.gran==='day'?x.k.slice(5):x.k)}</span></div>`).join(''):'<div class="cm-msg">ไม่มีข้อมูลในช่วงที่เลือก</div>'}</div></section>
- <section class="is-card"><h3>Qty by Material (Top 10)</h3>${isHbar(isGroup(rows,r=>r.part,10).map(x=>({k:x.k,v:x.v,l:((IS.parts[x.k]||{}).name||x.k)})),'part')}</section>
- <section class="is-card"><h3>Qty by Requester (Top 10)</h3>${isHbar(isGroup(rows,r=>r.req,10),'req')}</section>
- <section class="is-card"><h3>Qty by Project</h3>${isHbar(isGroup(rows,r=>r.prj,10),'proj')}</section>
-</div>
+<div class="is-quick"><button type="button" class="btn btn-soft" data-isq="all">ทั้งหมด</button><button type="button" class="btn btn-soft" data-isq="y">ปีนี้</button><button type="button" class="btn btn-soft" data-isq="12m">12 เดือนล่าสุด</button><button type="button" class="btn btn-soft" data-isq="m">เดือนนี้</button><button type="button" class="btn btn-soft" data-isq="clear">ล้างตัวกรอง</button><span class="is-sp"></span><button type="button" class="btn btn-soft" id="isDl">ดาวน์โหลด</button><button type="button" class="btn btn-primary" id="isSend">ส่งสรุปให้หัวหน้า</button></div>
+${isDashHtml(rows,st,bk)}
 <div class="is-tablewrap"><div class="cm-wrap"><table class="cm-tbl"><thead><tr><th><button type="button" class="is-sort" id="isSort">วันที่ ${IS.asc?'▲':'▼'}</button></th><th>ใบเบิก</th><th>รหัส</th><th>ชื่ออะไหล่</th><th>ประเภท</th><th>จำนวน</th><th>หน่วย</th><th>ผู้เบิก</th><th>โครงการ</th><th>ใบสั่งงาน</th><th>มูลค่า</th></tr></thead><tbody>${sorted.slice(IS.page*PS,IS.page*PS+PS).map(r=>`<tr><td>${esc(r.d)}</td><td>${esc(r.iv)}</td><td>${esc(r.part)}</td><td>${esc(r.pname)}</td><td>${esc(r.type)}</td><td class="n">${isNf(r.qty)}</td><td>${esc(r.unit)}</td><td>${esc(r.req==='ไม่ระบุ'?'':r.req)}</td><td>${esc(r.prj==='ไม่ระบุ'?'':r.prj)}</td><td>${esc(r.wo)}</td><td class="n">${r.value==null?'':isNf(r.value)}</td></tr>`).join('')||'<tr><td colspan="11" class="cm-msg">ไม่มีรายการ</td></tr>'}</tbody></table></div>
 <div class="cm-pg"><button type="button" class="btn btn-soft" id="isPrev" ${IS.page<=0?'disabled':''}>ก่อนหน้า</button><span>หน้า ${IS.page+1} / ${pages} · ${isNf(sorted.length)} รายการ</span><button type="button" class="btn btn-soft" id="isNext" ${IS.page+1>=pages?'disabled':''}>ถัดไป</button></div></div>`;
 }
 function isEmailHtml(){
-  const rows=isFiltered(),st=isStats(rows),bk=isBuckets(rows);
-  const bar=(v,mx)=>`<div style="background:#e8eaed;border-radius:3px"><div style="background:#c62828;height:10px;border-radius:3px;width:${Math.max(1,Math.round(v/(mx||1)*100))}%"></div></div>`;
-  const tbl=(t,list)=>{const mx=Math.max(...list.map(x=>x.v),1);return `<h3 style="margin:18px 0 6px;font-size:15px">${esc(t)}</h3><table style="border-collapse:collapse;width:100%;font-size:13px">${list.map(x=>`<tr><td style="padding:3px 6px;width:34%;border-bottom:1px solid #eee">${esc(x.k)}</td><td style="padding:3px 6px;border-bottom:1px solid #eee">${bar(x.v,mx)}</td><td style="padding:3px 6px;text-align:right;width:70px;border-bottom:1px solid #eee">${isNf(x.v)}</td></tr>`).join('')||'<tr><td>ไม่มีข้อมูล</td></tr>'}</table>`;};
-  const kp=(l,v)=>`<td style="padding:10px 14px;border:1px solid #e0e0e0;border-radius:6px;text-align:center"><div style="font-size:12px;color:#666">${esc(l)}</div><div style="font-size:22px;font-weight:700">${v}</div></td>`;
-  const nm=c=>((IS.parts[c]||{}).name||c);
-  const html=`<div style="font-family:Tahoma,Arial,sans-serif;max-width:720px;margin:auto;color:#222"><h2 style="margin:0 0 4px">สรุปการเบิกอะไหล่</h2><div style="color:#666;font-size:13px">${isDesc().map(esc).join(' · ')}</div>
-<table style="border-collapse:separate;border-spacing:8px;width:100%;margin-top:10px"><tr>${kp('Total QTY',isNf(st.qty))}${kp('Total Value (บาท)',isNf(st.val))}${kp('ใบเบิก',isNf(st.iv))}${kp('ชนิดอะไหล่',isNf(st.parts))}</tr></table>
-${tbl('ปริมาณการเบิก'+(IS.f.gran==='day'?'รายวัน':IS.f.gran==='year'?'รายปี':'รายเดือน'),bk.slice(-36).map(x=>({k:x.k,v:x.v})))}
-${tbl('อะไหล่ที่เบิกมากสุด (Top 10)',isGroup(rows,r=>r.part,10).map(x=>({k:nm(x.k),v:x.v})))}${tbl('ผู้เบิก (Top 10)',isGroup(rows,r=>r.req,10))}${tbl('ตามโครงการ',isGroup(rows,r=>r.prj,10))}
-<p style="color:#888;font-size:12px;margin-top:20px">ส่งจากระบบ AMR Project Equipment Report · ข้อมูลจากใบเบิกอะไหล่ใน CMMS</p></div>`;
-  return {subject:'[AMR] สรุปการเบิกอะไหล่ — '+isDesc().slice(0,3).join(' · '),html};
+  const rows=isFiltered(),st=isStats(rows),who=isWho(rows),ppl=who.filter(x=>x.req!=='ไม่ระบุ').length;
+  const F='font-family:Tahoma,Arial,sans-serif',th='padding:8px 10px;font-size:11px;color:#6b7683;text-align:left;background:#f4f6f8',td='padding:9px 10px;border-bottom:1px solid #eceff2;font-size:13px';
+  const kp=(l,v)=>`<td style="padding:12px 14px;background:#f4f6f8;border-radius:10px;width:33%"><div style="font-size:11px;color:#6b7683">${esc(l)}</div><div style="font-size:22px;font-weight:700;color:#1b2430">${v}</div></td>`;
+  const pill=n=>`<span style="background:#fde8e6;color:#c62828;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:6px">+${n}</span>`;
+  const sp=who.find(x=>x.req==='ไม่ระบุ'),list=who.filter(x=>x.req!=='ไม่ระบุ').slice(0,10).concat(sp?[sp]:[]);
+  const rw=list.map(w=>{const its=Object.values(w.items).sort((a,b)=>b.val-a.val||b.qty-a.qty);return `<tr><td style="${td}"><b>${esc(w.req)}</b></td><td style="${td}">${esc(isShort(its[0].name))} ×${isNf(its[0].qty)}${its.length>1?pill(its.length-1):''}</td><td style="${td};text-align:right">${isNf(w.qty)}</td><td style="${td};text-align:right"><b>${isNf(w.val)}</b></td></tr>`;}).join('')||`<tr><td colspan="4" style="${td}">ไม่มีข้อมูล</td></tr>`;
+  const pm={};rows.forEach(r=>{const o=pm[r.part]=pm[r.part]||{n:r.pname,q:0,v:0};o.q+=r.qty;o.v+=r.value||0;});
+  const top=Object.values(pm).sort((a,b)=>b.v-a.v).slice(0,5).map(x=>`<tr><td style="${td}">${esc(isShort(x.n))}</td><td style="${td};text-align:right">${isNf(x.q)}</td><td style="${td};text-align:right"><b>${isNf(x.v)}</b></td></tr>`).join('');
+  const link=(typeof appLink==='function'?appLink():location.href.split('#')[0].split('?')[0]);
+  const html=`<div style="${F};max-width:680px;margin:auto;color:#1b2430"><div style="background:#222d3a;color:#fff;padding:18px 22px;border-radius:12px 12px 0 0"><div style="font-size:18px;font-weight:700">เบิกอะไหล่</div><div style="font-size:12px;opacity:.75;margin-top:4px">${isDesc().map(esc).join(' · ')}</div></div>
+<table role="presentation" style="border-collapse:separate;border-spacing:8px;width:100%;margin-top:6px"><tr>${kp('มูลค่า (฿)',isNf(st.val))}${kp('จำนวน (ชิ้น)',isNf(st.qty))}${kp('ผู้เบิก (คน)',isNf(ppl))}</tr></table>
+<div style="font-weight:700;margin:14px 0 6px">ผู้เบิก</div><table style="border-collapse:collapse;width:100%"><tr><th style="${th}">ชื่อ</th><th style="${th}">รายการหลัก</th><th style="${th};text-align:right">ชิ้น</th><th style="${th};text-align:right">฿</th></tr>${rw}</table>
+<div style="font-weight:700;margin:18px 0 6px">อะไหล่ที่ใช้เงินมากสุด</div><table style="border-collapse:collapse;width:100%"><tr><th style="${th}">อะไหล่</th><th style="${th};text-align:right">ชิ้น</th><th style="${th};text-align:right">฿</th></tr>${top||`<tr><td colspan="3" style="${td}">ไม่มีข้อมูล</td></tr>`}</table>
+<p style="text-align:center;margin:22px 0"><a href="${escAttr(link)}" style="background:#cf3326;color:#fff;text-decoration:none;padding:11px 26px;border-radius:8px;font-weight:700;font-size:14px">เปิดดู Dashboard เต็ม</a></p>
+<p style="color:#98a1ab;font-size:11px;text-align:center">AMR Project Equipment Report</p></div>`;
+  return {subject:'[AMR] เบิกอะไหล่ · ฿'+isNf(st.val)+' · '+isNf(st.qty)+' ชิ้น',html};
 }
 async function isSend(){
   if(!isFiltered().length){toast('ไม่มีข้อมูลในตัวกรองนี้',false);return;}
   const d=await api(ACT.sendIssueSummary,{dryRun:true});
   if(!d||!d.ok){toast((d&&d.message)||'ไม่สามารถดึงรายชื่อผู้รับ',false);return;}
   if(!d.recipients.length){toast('ไม่มีหัวหน้าที่ตั้งอีเมลไว้ — เพิ่มอีเมลในหน้าจัดการผู้ใช้ก่อน',false);return;}
-  const names=d.recipients.slice(0,12).map(u=>`• ${u.name} (${u.role})`).join('\n')+(d.recipients.length>12?`\n… และอีก ${d.recipients.length-12} คน`:'');
-  if(!confirm(`ส่งสรุปและ Dashboard ตามตัวกรองปัจจุบัน ให้หัวหน้า ${d.recipients.length} คน?\n\n${names}`))return;
-  const m=isEmailHtml();const r=await api(ACT.sendIssueSummary,{subject:m.subject,html:m.html});
-  toast(r&&r.ok?`ส่งแล้ว ${r.sent}/${r.total} คน`:((r&&r.message)||'ส่งไม่สำเร็จ'),!!(r&&r.ok));
+  const m=cmModal({title:'ส่งสรุป + Dashboard',body:`<div class="cm-sum2">${isDesc().map(esc).join(' · ')}</div><div class="cm-rcp">${d.recipients.map(u=>`<label><input type="checkbox" data-id="${escAttr(u.id)}" checked><span><b>${esc(u.name)}</b><small>${esc(u.role)} · ${esc(u.email)}</small></span></label>`).join('')}</div><div class="cmi-st bad" role="alert"></div>`,foot:'<button type="button" class="btn btn-primary" id="isGo"></button>'});
+  const go=m.foot.querySelector('#isGo'),sel=()=>[...m.body.querySelectorAll('[data-id]:checked')].map(x=>x.dataset.id);
+  const upd=()=>{const n=sel().length;go.textContent=`ส่ง ${n} คน`;go.disabled=!n;};upd();m.body.addEventListener('change',upd);
+  go.addEventListener('click',async()=>{
+    go.disabled=true;const mm=isEmailHtml();const r=await api(ACT.sendIssueSummary,{subject:mm.subject,html:mm.html,only:sel()});
+    if(r&&r.ok){m.close();toast(`ส่งแล้ว ${r.sent}/${r.total} คน`,true);}else{m.body.querySelector('.cmi-st').textContent=(r&&r.message)||'ส่งไม่สำเร็จ';upd();}
+  });
 }
 async function isDownload(){
   const rows=isFiltered().sort((a,b)=>a.date<b.date?-1:1);if(!rows.length){toast('ไม่มีข้อมูลให้ดาวน์โหลด',false);return;}
@@ -5562,18 +5743,15 @@ function isQuick(k){
 }
 function isBuildPanel(host){
   IS.host=host;
-  host.innerHTML=`<div class="panel-title">ระบบควบคุมบัญชีของ — อะไหล่ที่ใช้ (เบิก)</div>
-<div class="cm-info">ตารางและ Dashboard การเบิกอะไหล่ เลือกดูตามประเภทอะไหล่ ชื่ออะไหล่ ผู้เบิก โครงการ ระดับวัน/เดือน/ปี · คลิกแท่งในกราฟเพื่อกรอง · เลือก "Consumable" ที่ประเภทอะไหล่ แล้วกด "ส่งสรุป" เพื่อส่งให้หัวหน้าทางอีเมล</div>
-<div class="cm-bar"><button type="button" class="btn btn-primary" id="isImpIv">นำเข้าใบเบิก (IssuedVoucherReport)</button><button type="button" class="btn btn-soft" id="isImpTx">นำเข้ารายการ Consumable (Transaction Excel)</button><input type="file" id="isFile" accept=".xls,.xlsx" hidden></div><div id="isBody"></div>`;
-  let src='iv',tm;const file=host.querySelector('#isFile');
-  host.querySelector('#isImpIv').addEventListener('click',()=>{src='iv';file.click();});
-  host.querySelector('#isImpTx').addEventListener('click',()=>{src='tx';file.click();});
-  file.addEventListener('change',()=>{const f=file.files[0];file.value='';if(f)isImport(f,src);});
+  host.innerHTML=`<div class="cm-top"><span class="cm-tools"><button type="button" class="btn btn-primary" id="isImp" aria-label="นำเข้า Excel">${cmI('up')}<span>นำเข้า</span></button></span></div><div id="isBody"></div>`;
+  let tm;
+  host.querySelector('#isImp').addEventListener('click',isImportOpen);
   host.addEventListener('change',e=>{const k=e.target.dataset&&e.target.dataset.isf;if(!k||k==='q')return;IS.f[k]=e.target.value;if(k==='type')IS.f.part='';IS.page=0;isRender();});
   host.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.isf==='q'){IS.f.q=e.target.value;clearTimeout(tm);tm=setTimeout(()=>{IS.page=0;isRender();const q=host.querySelector('[data-isf="q"]');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length);}},300);}});
   host.addEventListener('click',e=>{
     const t=e.target.closest&&e.target.closest('button');if(!t)return;
     if(t.dataset.isd){const d=t.dataset.isd;IS.f[d]=IS.f[d]===t.dataset.isv?'':t.dataset.isv;IS.page=0;isRender();}
+    else if(t.dataset.ish){const [a,b]=t.dataset.ish.split('\u0001');IS.f.req=a;IS.f.part=b;IS.page=0;isRender();}
     else if(t.dataset.isq)isQuick(t.dataset.isq);
     else if(t.id==='isDl')isDownload();else if(t.id==='isSend')isSend();
     else if(t.id==='isSort'){IS.asc=!IS.asc;isRender();}
@@ -5582,8 +5760,40 @@ function isBuildPanel(host){
   });
 }
 
+/* ═══ Phase 47: Team — ความคืบหน้างานที่มอบหมายรายเดือน (ผู้จัดการ: โครงการ → หัวหน้าโครงการ → ลูกทีม, หัวหน้า: ทีมตัวเอง, พนักงาน: ของตัวเอง) ═══ */
+const TM={month:'',data:null};
+const tmPct=(d,a)=>a?Math.round(d/a*100):0;
+const tmCls=p=>p>=80?'ok':(p>=60?'mid':'bad');
+const tmMon=m=>{const [y,n]=String(m).split('-');return (['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][+n]||m)+' '+String((+y+543)%100);};
+function tmRing(p){const R=34,c=2*Math.PI*R,k=tmCls(p);return `<svg class="tm-ring ${k}" viewBox="0 0 90 90" width="96" role="img" aria-label="${p}%"><circle cx="45" cy="45" r="${R}" fill="none" class="tm-rt" stroke-width="10"/><circle cx="45" cy="45" r="${R}" fill="none" class="tm-rv" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(c*p/100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 45 45)"/><text x="45" y="51" text-anchor="middle" font-size="19" font-weight="700" class="tm-tx">${p}%</text></svg>`;}
+function tmTrend(tr){const mx=Math.max(...tr.map(x=>x.assigned),1);return `<div class="tm-trend">${tr.map(x=>`<div title="${escAttr(tmMon(x.m)+': '+x.done+'/'+x.assigned)}"><span class="a" style="height:${Math.max(3,x.assigned/mx*100)}%"></span><span class="d" style="height:${x.done/mx*100}%"></span><em>${esc(tmMon(x.m).split(' ')[0])}</em></div>`).join('')}</div>`;}
+function tmProject(p,role){
+  const pc=tmPct(p.done,p.assigned),ld=(p.leaders||[]).join(', ');
+  const rows=(p.members||[]).slice().sort((a,b)=>b.open-a.open).map(m=>{const q=tmPct(m.done,m.assigned);return `<tr><td>${esc(m.name||m.username)}</td><td class="n">${isNf(m.assigned)}</td><td class="n">${isNf(m.done)}</td><td class="n">${m.open?`<b>${isNf(m.open)}</b>`:'0'}</td><td><span class="tm-bar ${tmCls(q)}"><i style="width:${q}%"></i></span></td><td class="n"><span class="tm-pc ${tmCls(q)}">${q}%</span></td></tr>`;}).join('')||'<tr><td colspan="6" class="cm-msg">ไม่มีงานที่มอบหมาย</td></tr>';
+  return `<section class="is-card tm-card"><div class="tm-h"><div><h3>${esc(p.project)}</h3>${ld&&role!=='inspector'?`<small>หัวหน้า ${esc(ld)}</small>`:''}</div>${tmRing(pc)}</div>${tmTrend(p.trend||[])}<table class="is-who tm-t"><tr><th>ชื่อ</th><th class="n">มอบ</th><th class="n">เสร็จ</th><th class="n">ค้าง</th><th></th><th class="n">%</th></tr>${rows}</table></section>`;
+}
+function tmRender(){
+  const d=TM.data,host=$('#teamBody');if(!host)return;
+  if(!d){host.innerHTML='<div class="cm-msg">กำลังโหลด...</div>';return;}
+  const ps=d.projects||[],A=ps.reduce((s,p)=>s+p.assigned,0),D=ps.reduce((s,p)=>s+p.done,0),O=ps.reduce((s,p)=>s+p.open,0),pc=tmPct(D,A);
+  host.innerHTML=`<div class="tm-top"><div class="tm-mon" role="tablist" aria-label="เดือน">${(d.months||[]).map(m=>`<button type="button" role="tab" aria-selected="${m===d.month}" class="${m===d.month?'on':''}" data-tm="${escAttr(m)}">${esc(tmMon(m))}</button>`).join('')}</div></div>
+<div class="is-kpis"><div class="is-kpi"><span>มอบหมาย</span><b>${isNf(A)}</b></div><div class="is-kpi"><span>เสร็จ</span><b>${isNf(D)}</b></div><div class="is-kpi"><span>ความคืบหน้า</span><b class="tm-pc ${tmCls(pc)}">${pc}%</b></div><div class="is-kpi"><span>ค้าง</span><b>${isNf(O)}</b></div></div>
+<div class="tm-grid">${ps.map(p=>tmProject(p,d.role)).join('')||'<div class="cm-msg">ไม่มีงานที่มอบหมายในเดือนนี้</div>'}</div>`;
+}
+async function tmLoad(month){
+  TM.data=null;tmRender();
+  let r;try{r=await api(ACT.getTeamReport,{month:month||''});}catch(e){r=null;}
+  if(!r||!r.ok){$('#teamBody').innerHTML=`<div class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</div>`;return;}
+  TM.data=r;TM.month=r.month;tmRender();
+}
+(function(){
+  const h=$('#teamBody');if(!h)return;
+  h.addEventListener('click',e=>{const b=e.target.closest('[data-tm]');if(b&&b.dataset.tm!==TM.month)tmLoad(b.dataset.tm);});
+  document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('.tab[data-tab="team"]'))tmLoad(TM.month);});
+})();
+
 /* เลขรุ่นเล็ก ๆ ท้ายหน้า — ใช้เช็กว่าอัปโหลดไฟล์ชุดล่าสุดขึ้นจริงหรือยัง (ทุกครั้งที่ส่งงานใหม่เลขนี้จะเปลี่ยน) */
-const APP_BUILD='Phase 45';
+const APP_BUILD='Phase 47';
 (function(){const m=document.querySelector('main');if(!m||document.getElementById('buildTag'))return;const d=document.createElement('div');d.id='buildTag';d.textContent='Build: '+APP_BUILD;m.parentNode.insertBefore(d,m.nextSibling);try{console.info('OMA build',APP_BUILD);}catch(e){}})();
 
 /* ── Phase 40: each project gets its own planet in the report-loading animation ── */

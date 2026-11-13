@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Orbitron:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=1794390812191">
+<link rel="stylesheet" href="styles.css?v=1794535834850">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D93A2B">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -92,13 +92,14 @@
   <button type="button" role="tab" class="side-item active" data-side="doc">เอกสารรายงาน</button>
   <button type="button" role="tab" class="side-item" data-side="oma">การจัดการงานภายใน OMA</button>
   <button type="button" role="tab" class="side-item" data-side="cmms">ข้อมูล CMMS</button>
+  <button type="button" role="tab" class="side-item" data-side="users" hidden>กำหนดผู้ใช้</button>
 </div>
 <nav class="tabs" id="mainNav">
   <button class="tab active" data-tab="dash" id="tabDash">Overview</button>
   <button class="tab" data-tab="add" id="tabAdd">Add Record</button>
   <button class="tab" data-tab="saved">Records <span class="pill" id="savedPill">0</span></button>
   <button class="tab" data-tab="master" id="tabMaster">Master Data <span class="pill" id="masterPill">0</span></button>
-  <button class="tab" data-tab="users" id="tabUsers">Users <span class="pill" id="usersPill">0</span></button>
+  <button class="tab" data-tab="team" id="tabTeam">Team</button>
 </nav>
 <nav class="tabs nav-off" id="omaTabs" aria-label="การจัดการงานภายใน OMA"></nav>
 <div class="oma-search nav-off" id="omaSearch"><input type="search" id="omaQ" class="tin" placeholder="ค้นหางาน เช่น ใบงาน, CMMS, PR" aria-label="ค้นหางาน" autocomplete="off"><div id="omaRes" class="oma-res" role="listbox"></div></div>
@@ -363,7 +364,10 @@
   <div id="masterLoadMoreWrap" style="text-align:center;margin-top:14px"></div>
 </section>
 
-<!-- ══════ PANEL: USERS ══════ -->
+<!-- ══════ PANEL: TEAM ══════ -->
+<section class="panel" id="panel-team"><div id="teamBody"></div></section>
+
+<!-- ══════ PANEL: USERS (เปิดจากเมนูซ้าย "กำหนดผู้ใช้") ══════ -->
 <section class="panel" id="panel-users">
   <div class="admin-only" style="margin-bottom:22px">
     <div class="panel-title" style="font-size:16px">Page Permissions</div>
@@ -579,7 +583,7 @@
   </div>
 </div>
 
-<script src="script.js?v=1794390812191"></script>
+<script src="script.js?v=1794535834850"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
