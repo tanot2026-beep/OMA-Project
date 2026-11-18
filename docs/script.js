@@ -225,7 +225,7 @@ const PDPA_VERSION = '1.0';
 const DRIVE_THUMB = 'https:\x2f\x2fdrive.google.com/thumbnail?id=';
 const ACT = {
   login:'login', verifyToken:'verifyToken', pdpaStatus:'getPdpaStatus', pdpaAccept:'acceptPdpa',
-  listRepairs:'listRepairs', saveRepair:'saveRepair', deleteRepair:'deleteRepair', importRepairs:'importRepairs', listCmms:'listCmms', importCmms:'importCmms', setCmmsImage:'setCmmsImage', getWorkOrderDoc:'getWorkOrderDoc', saveWorkOrderSign:'saveWorkOrderSign', importIssue:'importIssue', importStaff:'importStaff', getTeamReport:'getTeamReport', getIssueData:'getIssueData', sendIssueSummary:'sendIssueSummary',
+  listRepairs:'listRepairs', saveRepair:'saveRepair', deleteRepair:'deleteRepair', importRepairs:'importRepairs', listCmms:'listCmms', refreshCache:'refreshCache', importCmms:'importCmms', setCmmsImage:'setCmmsImage', getWorkOrderDoc:'getWorkOrderDoc', saveWorkOrderSign:'saveWorkOrderSign', importIssue:'importIssue', importStaff:'importStaff', getTeamReport:'getTeamReport', getIssueData:'getIssueData', sendIssueSummary:'sendIssueSummary',
   createRecord:'createRecord', listRecords:'listRecords', deleteRecord:'deleteRecord', restoreRecord:'restoreRecord', listRecordHistory:'listRecordHistory', listTrash:'listTrash', purgeTrash:'purgeTrash', confirmRecordReviewed:'confirmRecordReviewed', returnRecord:'returnRecord', exportPhotosZip:'exportPhotosZip', listReportInfo:'listReportInfo', saveReportInfo:'saveReportInfo', setProjectInfo:'setProjectInfo',listRepairs:'listRepairs',saveRepair:'saveRepair',deleteRepair:'deleteRepair',importRepairs:'importRepairs',
   createUser:'createUser', bulkCreateUsers:'bulkCreateUsers', listUsers:'listUsers',
   saveMaster:'saveMaster', masterUpsert:'masterUpsert', masterDelete:'masterDelete', masterImport:'masterImport', listMaster:'listMaster', getProgress:'getProgress',
@@ -272,7 +272,7 @@ async function getClientIP(){
 }
 getClientIP();
 
-const FETCH_URL=/(^|\.)google(usercontent)?\.com$/.test(location.hostname)?API_URL:'/api/proxy';
+const FETCH_URL=/(^|\.)google(usercontent)?\.com$/.test(location.hostname)?API_URL:(/\.workers\.dev$/.test(location.hostname)?'https://amr-proxy.tanot2026.workers.dev/':'/api/proxy');
 const LIB_SRC={
   xlsx:'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   docx:'https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js',
@@ -3044,6 +3044,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){const o=document.qu
    ถูกแปลอัตโนมัติผ่าน MutationObserver. ข้อมูลของผู้ใช้ (ชื่อโครงการ ฯลฯ) ไม่ถูกแตะ.
    ข้อความที่ยังไม่มีในพจนานุกรมจะแสดงเป็นอังกฤษตามเดิม — เพิ่มคำได้ที่ I18N_TH / I18N_RE */
 const I18N_TH={
+  'Report documents':'เอกสารรายงาน','OMA task management':'การจัดการงานภายใน OMA','CMMS data':'ข้อมูล CMMS','User management':'กำหนดผู้ใช้',
+  'Assigned':'มอบหมาย','Open':'ค้าง','Parts issued this month':'เบิกอะไหล่เดือนนี้','No work assigned this month':'ไม่มีงานที่มอบหมายในเดือนนี้','Name':'ชื่อ','No work assigned':'ไม่มีงานที่มอบหมาย','Could not load data':'โหลดข้อมูลไม่สำเร็จ','Month':'เดือน','Leader':'หัวหน้า',
 'Overview':'ภาพรวม','Add Record':'เพิ่มรายการ','Records':'รายการที่บันทึก','Master Data':'ข้อมูลหลัก','Users':'ผู้ใช้','Trash':'ถังขยะ',
 'Sign In':'เข้าสู่ระบบ','Sign Out':'ออกจากระบบ','Username':'ชื่อผู้ใช้','Password':'รหัสผ่าน','Accept':'ยอมรับ','Cancel':'ยกเลิก','Close':'ปิด','Save':'บันทึก','Delete':'ลบ','Edit':'แก้ไข','Restore':'กู้คืน','Undo':'เลิกทำ','OK':'ตกลง',
 'Recorded':'บันทึกแล้ว','Equipment':'อุปกรณ์','Project':'โครงการ','Project *':'โครงการ *','System':'ระบบ','Location':'สถานที่','Location Type':'ประเภทสถานที่','Sub-location':'พื้นที่ย่อย','Brand':'ยี่ห้อ','Model':'รุ่น','Serial':'ซีเรียล','Serial Number':'หมายเลขซีเรียล','Note':'หมายเหตุ','Status':'สถานะ','Role':'บทบาท','Email':'อีเมล','Order':'ลำดับ','Total':'ทั้งหมด','Details':'รายละเอียด','Photos':'รูปภาพ','Done':'เสร็จแล้ว','Remaining':'คงเหลือ','Progress':'ความคืบหน้า','Pending':'รอดำเนินการ','Enabled':'เปิดใช้งาน','Date':'วันที่','Photo':'รูป',
@@ -3073,6 +3075,7 @@ const I18N_TH={
 'Uploading':'กำลังอัปโหลด','Uploading...':'กำลังอัปโหลด...','Uploading to server...':'กำลังอัปโหลดขึ้นเซิร์ฟเวอร์...'
 };
 const I18N_RE=[
+[/^Late (\d+)$/,m=>`เลย ${m[1]}`],
 [/^(\d+) record\(s\), about (\d+) photo\(s\) from the current list$/,m=>`${m[1]} รายการ รูปประมาณ ${m[2]} รูป จากรายการปัจจุบัน`],
 [/^(\d+) photo\(s\) could not be read and were skipped$/,m=>`รูปที่อ่านไม่ได้และถูกข้าม ${m[1]} รูป`],
 [/^Returned: (.+)$/,m=>`ตีกลับ: ${m[1]}`],
@@ -4610,6 +4613,39 @@ async function plPdfToJpeg(file){
   await pg.render({canvasContext:g,viewport:vp}).promise;
   const d=c.toDataURL('image/jpeg',0.82);c.width=c.height=0;return d;
 }
+/* ── อ่านใบงาน PDF (PM / CM / CL / RF / RO) แล้วกรอกฟอร์ม ── */
+async function plPdfLines(file){
+  await loadLib('pdfjs');
+  try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){}
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  const tc=await(await pdf.getPage(1)).getTextContent(),rows=[];
+  tc.items.forEach(it=>{if(!it.str||!it.str.trim())return;const y=Math.round(it.transform[5]/3);(rows.find(r=>r.y===y)||(rows[rows.length]={y,a:[]})).a.push({x:it.transform[4],w:it.width,s:it.str});});
+  return rows.sort((a,b)=>b.y-a.y).map(r=>{r.a.sort((p,q)=>p.x-q.x);let o='',e=null;r.a.forEach(i=>{o+=(e===null?'':(i.x-e>8?'   ':''))+i.s;e=i.x+i.w;});return o;});
+}
+function plWoParse(lines){
+  const L=lines.map(x=>String(x).replace(/\s+$/,'')),txt=L.join('\n');
+  const m=txt.match(/\b((?:PM|CM|CL|RF|RO|RTO)\d{2}-\d+)\b/);if(!m)return null;
+  const iso=s=>{const d=String(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(!d)return '';let y=+d[3];if(y>2400)y-=543;return y+'-'+d[2].padStart(2,'0')+'-'+d[1].padStart(2,'0');};
+  const val=re=>{const l=L.find(x=>re.test(x));return l?l.replace(re,'').trim():'';};
+  const cut=(a,stop)=>{const i=L.findIndex(x=>a.test(x));if(i<0)return '';const o=[L[i].replace(a,'').trim().split(/ {3,}/)[0].trim()];for(let j=i+1;j<L.length&&!stop.test(L[j]);j++)if(L[j].trim())o.push(L[j].trim().split(/ {3,}/)[0]);return o.filter(Boolean).join('\n');};
+  const o={wo:m[1],t:m[1].slice(0,2)==='PM'?'PM':'CM'};
+  const fin=iso(val(/^.*?Actual Work Finish\.?:/)),st=iso(val(/^.*?Actual Work Start\.?:/)),rq=iso(val(/^.*?Request Date\.?:/)),pf=iso(val(/^.*?(?:Plan Finish|Plan Start)\.?:/));
+  o.d=fin||st||pf||rq;o.rd=rq;
+  o.code=(val(/^\s*Equipment No:/).split(/ {2,}/)[0]||'').trim();
+  o.prob=cut(/^\s*Problem Details\.?:/,/รายละเอียดการ|Maintenance Tasks|^\s*Actual Work/);
+  o.fix=cut(/^\s*Solution Details:/,/Activity Description|Instruction|รายละเอียดของการเปลี่ยน|Spare Part/);
+  const sp=[];let on=false;
+  L.forEach(x=>{if(/รายการของเสีย|รายละเอียดการรับ/.test(x))on=false;if(on&&x.trim()&&!/หมายเลขอะไหล่|Part Name/.test(x)){const c=x.trim().split(/ {2,}/);if(c.length>=3)sp.push({c:c[0],n:c[1],u:c[2],q:/^\d+(\.\d+)?$/.test(c[c.length-1])?c[c.length-1]:(c.find((v,i)=>i>2&&/^\d+(\.\d+)?$/.test(v))||'')});}if(/รายการอุปกรณ์ที่ใช้ในการเปลี่ยน/.test(x))on=true;});
+  o.sp=sp;return o;
+}
+function plApplyWo(o){
+  if(!o)return false;
+  const S=(id,v)=>{const e=plQ(id);if(e&&v&&!e.value)e.value=v;};
+  plSetType(o.t);plQ('#plWo').value=o.wo;
+  if(o.t==='PM'){S('#plDate',o.d);S('#plDesc',o.fix);}
+  else{S('#plDate2',o.d);S('#plRd',o.rd);S('#plCode',o.code);S('#plProb',o.prob);S('#plFix',o.fix);if(o.sp.length&&!PLS.sp.some(r=>r.c||r.n)){PLS.sp=o.sp;plPaintSp();}}
+  plRefresh();plReqPaint();return true;
+}
 (function(){
   const _rc=readChecks;readChecks=function(){return isPlate(sel.project)?plRead():_rc();};
   const _fc=fillChecks;fillChecks=function(j){if(isPlate(sel.project))plLoad(j);else _fc(j);};
@@ -4626,6 +4662,7 @@ async function plPdfToJpeg(file){
     try{
       const data=/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)?await plPdfToJpeg(f):await compressImage(f,1900,900000);
       imgMain=data;lbl.classList.add('has-img');lbl.style.backgroundImage=`url(${data})`;const ph=lbl.querySelector('.ph-content');if(ph)ph.style.display='none';
+      if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)){try{if(plApplyWo(plWoParse(await plPdfLines(f))))toast('Filled from the PDF. Please check the Thai text and the fields',true);}catch(x){}}
     }catch(err){t.value='';toast('Could not read this PDF. Please attach a photo or screenshot of the work order instead',false);}
     finally{imgBusy--;lbl.classList.remove('img-busy');plReqPaint();}
   },true);
@@ -4740,7 +4777,7 @@ async function openPlateReport(){
   ${ta('plProd','Production (Month MOTO1 CAR1)',rd.prod,4,'Jan 12000 30000\nFeb 11500 28000')}
   ${ta('plDef','Defect rate (Month MOTO1 CAR1)',rd.def,4,'Jan 0.05 0.08\nFeb 0.03 0.1')}
   <label class="st-l">${esc(_tx('Appendix A image (master plan, optional)'))}<input id="plAppA" type="file" accept="image/*" class="tin"></label>
-  <label class="st-chk"><input type="checkbox" id="plForms" checked> ${esc(_tx('Attach work order forms (Appendix B / C)'))}</label>`;
+  <label class="st-chk"><input type="checkbox" id="plForms"> ${esc(_tx('Attach work order forms (Appendix B / C)'))}</label>`;
   Object.assign(I18N_TH,{'Machine status summary':'สรุปสถานะเครื่อง','Major incidents and service interruptions':'เหตุขัดข้องสำคัญในเดือน','Safety and security issues':'ประเด็นด้านความปลอดภัย','Planned PM tasks (default = completed)':'จำนวนงาน PM ที่วางแผน (ค่าเริ่มต้น = ทำแล้ว)','HARO (machine name line, then: Month H A R O)':'HARO (บรรทัดชื่อเครื่อง แล้วตามด้วย เดือน H A R O)','Production (Month MOTO1 CAR1)':'ยอดผลิต (เดือน MOTO1 CAR1)','Defect rate (Month MOTO1 CAR1)':'อัตราของเสีย (เดือน MOTO1 CAR1)','Appendix A image (master plan, optional)':'ภาพภาคผนวก A (แผน PM, ไม่บังคับ)','Attach work order forms (Appendix B / C)':'แนบใบงาน (ภาคผนวก B / C)'});
   foot.style.display='';foot.innerHTML=`<button class="btn btn-primary" id="plGo">${esc(_tx('Create Word report'))}</button>`;
   $('#plGo').onclick=async()=>{
@@ -4759,8 +4796,8 @@ async function generatePlateReport(opt){
   startWarpAnimation();setWarpStatus('Preparing data...');
   try{
     const PAGE={width:11906,height:16838},MARGIN={top:1500,bottom:900,left:1130,right:1130,header:400,footer:300};
-    const CONTENT=PAGE.width-MARGIN.left-MARGIN.right,FONT='Times New Roman',FT='TH Sarabun New';
-    const T=(t,o={})=>new TextRun({text:String(t),font:o.font||FONT,size:o.size||22,bold:!!o.bold,color:o.color||'000000'});
+    const CONTENT=PAGE.width-MARGIN.left-MARGIN.right,FONT='Times New Roman',FT='Cordia New';
+    const T=(t,o={})=>new TextRun({text:String(t),font:o.font||{ascii:FONT,hAnsi:FONT,cs:'Cordia New'},size:o.size||22,bold:!!o.bold,color:o.color||'000000'});
     const P=(t,o={})=>new Paragraph({alignment:o.al,keepNext:!!o.kn,spacing:{before:o.b??0,after:o.a??80},indent:o.ind?{left:o.ind}:undefined,children:Array.isArray(t)?t:[T(t,o)]});
     const H1=t=>P(t,{size:28,bold:true,al:AlignmentType.CENTER,b:120,a:200,kn:true}),H2=t=>P(t,{size:24,bold:true,b:200,a:100,kn:true}),H3=t=>P(t,{size:22,bold:true,b:120,a:80,kn:true});
     const brk=()=>new Paragraph({children:[new PageBreak()]});
@@ -4775,7 +4812,7 @@ async function generatePlateReport(opt){
     const mon=(()=>{let b='';recs.forEach(v=>{if(!b||v.d>b)b=v.d;});const d=parseAnyDate(b);return d?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear():'';})();
     const kids=[];const tables=[],figs=[];
     /* สารบัญ (รายการหัวข้อ) */
-    const toc=['1  Executive Summary','   1.1  Executive Summary','   1.2  Major incidents and service interruptions in the month','   1.3  Safety and security issues','2  Monthly Reviews of Maintenance Services','   2.1  Overall Preventive Maintenance','   2.2  Overall AMR Corrective Maintenance','   2.3  Equipment Replacement','3  Production summary','4  Appendix','   Appendix A: Master plan of AMR PM','   Appendix B: PM Work Order','   Appendix C: CM Work Order'];
+    const toc=['1  Executive Summary','   1.1  Executive Summary','   1.2  Major incidents and service interruptions in the month','   1.3  Safety and security issues','2  Monthly Reviews of Maintenance Services','   2.1  Overall Preventive Maintenance','   2.2  Overall AMR Corrective Maintenance','   2.3  Equipment Replacement','3  Production summary','4  Appendix','   Appendix A: Master plan of AMR PM','   Appendix B: PM Work order','   Appendix C: CM Work order'];
     kids.push(P('Table of Contents',{size:26,bold:true,al:AlignmentType.CENTER,a:200}),...toc.map(t=>P(t,{size:22,a:40})),brk());
     /* 1 */
     kids.push(H1('1   Executive Summary'),H2('1.1   Executive Summary'),P('-  '+(opt.data.stat||'-'),{ind:200}),H2('1.2   Major incidents and service interruptions in the month'));
@@ -4812,7 +4849,7 @@ async function generatePlateReport(opt){
     uniq(cm.map(v=>v.loc)).forEach(L=>{
       const W=[700,1300,1500,2300,CONTENT-700-1300-1500-2300-1300,1300];const mine=cm.filter(v=>v.loc===L);
       kids.push(P(L+' machine:',{bold:true,b:160,kn:true}));
-      kids.push(table(W,[new TableRow({tableHeader:true,children:['Item','Date','WO No.','Equipment','Problem Details','Status'].map((t,i)=>cell(t,W[i],{bold:true,fill:HF}))}),...mine.map((v,i)=>new TableRow({cantSplit:true,children:[cell(String(i+1),W[0]),cell(plFmtD(v.d),W[1]),cell(v.o.wo||'',W[2]),cell(v.o.code||v.eq,W[3]),cell(v.o.prob||'',W[4],{al:AlignmentType.LEFT,font:FT,size:22}),cell(v.o.st==='In progress'?'In progress':'Complete',W[5])]}))]));
+      kids.push(table(W,[new TableRow({tableHeader:true,children:['Item','Date','WO No.','Equipment','Problem Details','Status'].map((t,i)=>cell(t,W[i],{bold:true,fill:HF}))}),...mine.map((v,i)=>new TableRow({cantSplit:true,children:[cell(String(i+1),W[0]),cell(plFmtD(v.d),W[1]),cell(v.o.wo||'',W[2]),cell(v.o.code||v.eq,W[3]),cell(v.o.prob||'',W[4],{al:AlignmentType.LEFT,font:FT,size:24}),cell(v.o.st==='In progress'?'In progress':'Complete',W[5])]}))]));
       const dn=mine.filter(v=>v.o.st!=='In progress').length;
       kids.push(P([T('Summary '+L+' work order: ',{bold:true}),T('Total work '+mine.length+', Complete '+dn)],{b:120}));
     });
@@ -4839,7 +4876,7 @@ async function generatePlateReport(opt){
     kids.push(P('Table 4 The summary of the AMR equipment replaced in '+mon,{bold:true,al:AlignmentType.CENTER,b:100,a:100,kn:true}));
     if(!rep.length)kids.push(P('No equipment was replaced in this period.',{ind:200}));
     else{const W=[600,1200,1300,1700,CONTENT-600-1200-1300-1700-1900-1100,1900,1100];
-      kids.push(table(W,[new TableRow({tableHeader:true,children:['Item','Date','WO No.','Equipment','Problem Details','Spare part replaced','Status'].map((t,i)=>cell(t,W[i],{bold:true,fill:HY}))}),...rep.map((v,i)=>new TableRow({cantSplit:true,children:[cell(String(i+1),W[0]),cell(plFmtD(v.d),W[1]),cell(v.o.wo||'',W[2]),cell(v.o.code||v.eq,W[3]),cell(v.o.prob||'',W[4],{al:AlignmentType.LEFT,font:FT,size:22}),cell(v.o.sp.map(s=>(s.n||s.c)+' '+(s.q||'')+' '+(s.u||'')).join('\n').replace(/\s+\n/g,'\n').trim(),W[5],{al:AlignmentType.LEFT,font:FT,size:22}),cell(v.o.st==='In progress'?'In progress':'Complete',W[6])]}))]));}
+      kids.push(table(W,[new TableRow({tableHeader:true,children:['Item','Date','WO No.','Equipment','Problem Details','Spare part replaced','Status'].map((t,i)=>cell(t,W[i],{bold:true,fill:HY}))}),...rep.map((v,i)=>new TableRow({cantSplit:true,children:[cell(String(i+1),W[0]),cell(plFmtD(v.d),W[1]),cell(v.o.wo||'',W[2]),cell(v.o.code||v.eq,W[3]),cell(v.o.prob||'',W[4],{al:AlignmentType.LEFT,font:FT,size:24}),cell(v.o.sp.map(s=>(s.n||s.c)+' '+(s.q||'')+' '+(s.u||'')).join('\n').replace(/\s+\n/g,'\n').trim(),W[5],{al:AlignmentType.LEFT,font:FT,size:24}),cell(v.o.st==='In progress'?'In progress':'Complete',W[6])]}))]));}
     kids.push(brk());
     /* 3 ผลิต */
     kids.push(H1('3   Production summary'),H2('3.1   Number of plate production in '+mon));
@@ -4857,13 +4894,15 @@ async function generatePlateReport(opt){
     const FW=Math.round(CONTENT/15),FH=870;
     const fitImg=r=>{const k=Math.min(FW/r.w,FH/r.h);return{width:Math.round(r.w*k),height:Math.round(r.h*k)};};
     const imgPage=(r)=>new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:r.buf,type:'jpg',transformation:fitImg(r)})]});
+    /* ใบงานแนบ (Appendix B / C): ค่าเริ่มต้นเว้นหน้าหัวข้อไว้ ให้แทรก PDF ใบงานทีหลัง */
+    if(!opt.forms)kids.push(brk(),P('Appendix B: PM Work order',{bold:true,size:24,a:100}),brk(),P('Appendix C: CM Work order',{bold:true,size:24,a:100}));
     if(opt.forms){
       const jobs=[];pm.forEach(v=>jobs.push({v,k:'pm',u:v.e.imgMain}));cm.forEach(v=>{jobs.push({v,k:'cmf',u:v.e.imgMain});jobs.push({v,k:'bef',u:v.e.imgSticker});jobs.push({v,k:'aft',u:v.e.img3});});
       setWarpStatus('Loading images...');let n=0;
       await runPool(jobs,4,async j=>{let r=null;try{const b=await plFetchBuf(j.u,j.k==='pm'||j.k==='cmf'?1600:1000);if(b){r=await shrinkImage(b,j.k==='pm'||j.k==='cmf'?1500:900);if(j.k==='cmf')j.v.sig=await cropSignatureStrip(b).catch(()=>null);}}catch(e){r=null;}j.r=r;j.v[j.k]=r;n++;if(n%4===0||n===jobs.length)setWarpStatus('Loading images... '+n+'/'+jobs.length);});
-      kids.push(brk(),P('Appendix B: PM Work Order',{bold:true,size:24,a:100}));
+      kids.push(brk(),P('Appendix B: PM Work order',{bold:true,size:24,a:100}));
       pm.forEach((v,i)=>{if(i)kids.push(brk());kids.push(v.pm?imgPage(v.pm):P('(Work order form not available) '+(v.o.wo||''),{al:AlignmentType.CENTER}));});
-      kids.push(brk(),P('Appendix C: CM Work Order',{bold:true,size:24,a:100}));
+      kids.push(brk(),P('Appendix C: CM Work order',{bold:true,size:24,a:100}));
       const BW=CONTENT;
       cm.forEach((v,i)=>{
         if(i)kids.push(brk());
@@ -4876,8 +4915,8 @@ async function generatePlateReport(opt){
       });
     }
     function LW0(x){return x;}
-    const header=new Header({children:[new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:[2400,CONTENT-2400],layout:TableLayoutType.FIXED,borders:none(),rows:[new TableRow({children:[new TableCell({borders:none(),width:{size:2400,type:WidthType.DXA},children:[logoP(90,56)]}),new TableCell({borders:none(),width:{size:CONTENT-2400,type:WidthType.DXA},verticalAlign:VerticalAlign.CENTER,children:[new Paragraph({alignment:AlignmentType.CENTER,children:[T('Licence Plate Machine Maintenance Project',{bold:true,size:20})]})]})]})]})]});
-    const footer=new Footer({children:[new Paragraph({alignment:AlignmentType.RIGHT,children:[new TextRun({text:'Page ',font:FONT,size:18}),new TextRun({children:[PageNumber.CURRENT],font:FONT,size:18}),new TextRun({text:' of ',font:FONT,size:18}),new TextRun({children:[PageNumber.TOTAL_PAGES],font:FONT,size:18})]})]});
+    const header=new Header({children:[new Table({width:{size:CONTENT,type:WidthType.DXA},columnWidths:[2400,CONTENT-2400],layout:TableLayoutType.FIXED,borders:none(),rows:[new TableRow({children:[new TableCell({borders:none(),width:{size:2400,type:WidthType.DXA},children:[logoP(90,56)]}),new TableCell({borders:none(),width:{size:CONTENT-2400,type:WidthType.DXA},verticalAlign:VerticalAlign.CENTER,children:[new Paragraph({alignment:AlignmentType.CENTER,children:[T('Licence Plate Machine Maintenance Project',{bold:true,size:22,font:'Calibri'})]})]})]})]})]});
+    const footer=new Footer({children:[new Paragraph({alignment:AlignmentType.RIGHT,children:[new TextRun({text:'Page ',font:'Calibri',size:22}),new TextRun({children:[PageNumber.CURRENT],font:'Calibri',size:22}),new TextRun({text:' of ',font:'Calibri',size:22}),new TextRun({children:[PageNumber.TOTAL_PAGES],font:'Calibri',size:22})]})]});
     setWarpStatus('Building document...');
     const doc=new Document({styles:{default:{document:{run:{font:FONT,size:22}}}},sections:[{properties:{page:{size:PAGE,margin:MARGIN}},headers:{default:header},footers:{default:footer},children:kids}]});
     const blob=await Packer.toBlob(doc);
@@ -5722,27 +5761,29 @@ function isRender(){
  <label>โครงการ<select class="tin" data-isf="proj">${isOpts(prjs,f.proj,'ทั้งหมด')}</select></label>
  <label class="is-q">ค้นหา<input type="search" class="tin" data-isf="q" value="${escAttr(f.q)}" placeholder="ชื่อ / รหัส / ใบเบิก / ใบสั่งงาน"></label>
 </div>
-<div class="is-quick"><button type="button" class="btn btn-soft" data-isq="all">ทั้งหมด</button><button type="button" class="btn btn-soft" data-isq="y">ปีนี้</button><button type="button" class="btn btn-soft" data-isq="12m">12 เดือนล่าสุด</button><button type="button" class="btn btn-soft" data-isq="m">เดือนนี้</button><button type="button" class="btn btn-soft" data-isq="clear">ล้างตัวกรอง</button><span class="is-sp"></span><button type="button" class="btn btn-soft" id="isDl">ดาวน์โหลด</button><button type="button" class="btn btn-primary" id="isSend">ส่งสรุปให้หัวหน้า</button></div>
+<div class="is-quick"><button type="button" class="btn btn-soft" data-isq="all">ทั้งหมด</button><button type="button" class="btn btn-soft" data-isq="y">ปีนี้</button><button type="button" class="btn btn-soft" data-isq="12m">12 เดือนล่าสุด</button><button type="button" class="btn btn-soft" data-isq="m">เดือนนี้</button><button type="button" class="btn btn-soft" data-isq="clear">ล้างตัวกรอง</button><span class="is-sp"></span><button type="button" class="btn btn-soft" id="isDl">ดาวน์โหลด</button>${['admin','manager'].includes(AUTH.user&&AUTH.user.role)?'<button type="button" class="btn btn-soft" id="isRefresh" title="ดึงข้อมูลล่าสุดจากชีต">รีเฟรชข้อมูล</button>':''}<button type="button" class="btn btn-primary" id="isSend">ส่งสรุปให้หัวหน้า</button></div>
 ${isDashHtml(rows,st,bk)}
 <div class="is-tablewrap"><div class="cm-wrap"><table class="cm-tbl"><thead><tr><th><button type="button" class="is-sort" id="isSort">วันที่ ${IS.asc?'▲':'▼'}</button></th><th>ใบเบิก</th><th>รหัส</th><th>ชื่ออะไหล่</th><th>ประเภท</th><th>จำนวน</th><th>หน่วย</th><th>ผู้เบิก</th><th>โครงการ</th><th>ใบสั่งงาน</th><th>มูลค่า</th></tr></thead><tbody>${sorted.slice(IS.page*PS,IS.page*PS+PS).map(r=>`<tr><td>${esc(r.d)}</td><td>${esc(r.iv)}</td><td>${esc(r.part)}</td><td>${esc(r.pname)}</td><td>${esc(r.type)}</td><td class="n">${isNf(r.qty)}</td><td>${esc(r.unit)}</td><td>${esc(r.req==='ไม่ระบุ'?'':r.req)}</td><td>${esc(r.prj==='ไม่ระบุ'?'':r.prj)}</td><td>${esc(r.wo)}</td><td class="n">${r.value==null?'':isNf(r.value)}</td></tr>`).join('')||'<tr><td colspan="11" class="cm-msg">ไม่มีรายการ</td></tr>'}</tbody></table></div>
 <div class="cm-pg"><button type="button" class="btn btn-soft" id="isPrev" ${IS.page<=0?'disabled':''}>ก่อนหน้า</button><span>หน้า ${IS.page+1} / ${pages} · ${isNf(sorted.length)} รายการ</span><button type="button" class="btn btn-soft" id="isNext" ${IS.page+1>=pages?'disabled':''}>ถัดไป</button></div></div>`;
 }
 function isEmailHtml(){
-  const rows=isFiltered(),st=isStats(rows),who=isWho(rows),ppl=who.filter(x=>x.req!=='ไม่ระบุ').length;
-  const F='font-family:Tahoma,Arial,sans-serif',th='padding:8px 10px;font-size:11px;color:#6b7683;text-align:left;background:#f4f6f8',td='padding:9px 10px;border-bottom:1px solid #eceff2;font-size:13px';
-  const kp=(l,v)=>`<td style="padding:12px 14px;background:#f4f6f8;border-radius:10px;width:33%"><div style="font-size:11px;color:#6b7683">${esc(l)}</div><div style="font-size:22px;font-weight:700;color:#1b2430">${v}</div></td>`;
-  const pill=n=>`<span style="background:#fde8e6;color:#c62828;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:6px">+${n}</span>`;
-  const sp=who.find(x=>x.req==='ไม่ระบุ'),list=who.filter(x=>x.req!=='ไม่ระบุ').slice(0,10).concat(sp?[sp]:[]);
-  const rw=list.map(w=>{const its=Object.values(w.items).sort((a,b)=>b.val-a.val||b.qty-a.qty);return `<tr><td style="${td}"><b>${esc(w.req)}</b></td><td style="${td}">${esc(isShort(its[0].name))} ×${isNf(its[0].qty)}${its.length>1?pill(its.length-1):''}</td><td style="${td};text-align:right">${isNf(w.qty)}</td><td style="${td};text-align:right"><b>${isNf(w.val)}</b></td></tr>`;}).join('')||`<tr><td colspan="4" style="${td}">ไม่มีข้อมูล</td></tr>`;
-  const pm={};rows.forEach(r=>{const o=pm[r.part]=pm[r.part]||{n:r.pname,q:0,v:0};o.q+=r.qty;o.v+=r.value||0;});
-  const top=Object.values(pm).sort((a,b)=>b.v-a.v).slice(0,5).map(x=>`<tr><td style="${td}">${esc(isShort(x.n))}</td><td style="${td};text-align:right">${isNf(x.q)}</td><td style="${td};text-align:right"><b>${isNf(x.v)}</b></td></tr>`).join('');
+  const rows=isFiltered(),st=isStats(rows),who=isWho(rows),named=who.filter(x=>x.req!=='ไม่ระบุ'),sp=who.find(x=>x.req==='ไม่ระบุ');
+  const F='font-family:Tahoma,Arial,sans-serif',NAVY='#222d3a';
+  const bar=(lab,v,max,txt)=>`<tr><td style="padding:10px 0 2px;font-size:15px;color:#1b2430">${esc(lab)}</td><td style="padding:10px 0 2px;font-size:15px;font-weight:700;text-align:right;white-space:nowrap;color:#1b2430;width:1%">${txt}</td></tr><tr><td colspan="2" style="padding:0 0 4px"><div style="background:#eef1f4;border-radius:7px"><div style="width:${Math.max(3,Math.round(v/(max||1)*100))}%;height:10px;background:${NAVY};border-radius:7px"></div></div></td></tr>`;
+  const kp=(l,v,u)=>`<td style="padding:14px 4px;background:#f4f6f8;border-radius:12px;width:33%;text-align:center"><div style="font-size:13px;color:#566070">${esc(l)}</div><div style="font-size:22px;font-weight:700;color:#1b2430;line-height:1.3">${v}</div><div style="font-size:13px;color:#566070">${u}</div></td>`;
+  const top5=named.slice(0,5),mx=Math.max(1,...top5.map(x=>x.val));
+  const wr=top5.map(w=>bar(w.req,w.val,mx,'฿'+isNf(w.val))).join('')||'<tr><td style="padding:8px 0;font-size:14px;color:#566070">ไม่มีข้อมูล</td></tr>';
+  const pm={};rows.forEach(r=>{const o=pm[r.part]=pm[r.part]||{n:r.pname,c:r.part,q:0,v:0};o.q+=r.qty;o.v+=r.value||0;});
+  const pt=Object.values(pm).sort((a,b)=>b.v-a.v).slice(0,5),pmx=Math.max(1,...pt.map(x=>x.v));
+  const pr=pt.map(x=>bar(String(x.n||'').slice(0,26)+' ('+x.c+')',x.v,pmx,'฿'+isNf(x.v))).join('')||'<tr><td style="padding:8px 0;font-size:14px;color:#566070">ไม่มีข้อมูล</td></tr>';
+  const spn=sp?`<p style="font-size:13px;color:#566070;margin:8px 0 0">ไม่ระบุผู้เบิก (เลขที่ใบสั่งไม่ใช่รหัสพนักงาน): ฿${isNf(sp.val)} · ${isNf(sp.qty)} ชิ้น</p>`:'';
   const link=(typeof appLink==='function'?appLink():location.href.split('#')[0].split('?')[0]);
-  const html=`<div style="${F};max-width:680px;margin:auto;color:#1b2430"><div style="background:#222d3a;color:#fff;padding:18px 22px;border-radius:12px 12px 0 0"><div style="font-size:18px;font-weight:700">เบิกอะไหล่</div><div style="font-size:12px;opacity:.75;margin-top:4px">${isDesc().map(esc).join(' · ')}</div></div>
-<table role="presentation" style="border-collapse:separate;border-spacing:8px;width:100%;margin-top:6px"><tr>${kp('มูลค่า (฿)',isNf(st.val))}${kp('จำนวน (ชิ้น)',isNf(st.qty))}${kp('ผู้เบิก (คน)',isNf(ppl))}</tr></table>
-<div style="font-weight:700;margin:14px 0 6px">ผู้เบิก</div><table style="border-collapse:collapse;width:100%"><tr><th style="${th}">ชื่อ</th><th style="${th}">รายการหลัก</th><th style="${th};text-align:right">ชิ้น</th><th style="${th};text-align:right">฿</th></tr>${rw}</table>
-<div style="font-weight:700;margin:18px 0 6px">อะไหล่ที่ใช้เงินมากสุด</div><table style="border-collapse:collapse;width:100%"><tr><th style="${th}">อะไหล่</th><th style="${th};text-align:right">ชิ้น</th><th style="${th};text-align:right">฿</th></tr>${top||`<tr><td colspan="3" style="${td}">ไม่มีข้อมูล</td></tr>`}</table>
-<p style="text-align:center;margin:22px 0"><a href="${escAttr(link)}" style="background:#cf3326;color:#fff;text-decoration:none;padding:11px 26px;border-radius:8px;font-weight:700;font-size:14px">เปิดดู Dashboard เต็ม</a></p>
-<p style="color:#98a1ab;font-size:11px;text-align:center">AMR Project Equipment Report</p></div>`;
+  const html=`<div style="${F};max-width:640px;margin:auto;color:#1b2430"><div style="background:${NAVY};color:#fff;padding:22px 24px;border-radius:14px"><div style="font-size:13px;opacity:.7">AMR · เบิกอะไหล่</div><div style="font-size:24px;font-weight:700;margin-top:4px">เบิกอะไหล่</div><div style="font-size:14px;opacity:.85;margin-top:6px">${isDesc().map(esc).join(' · ')}</div></div>
+<table role="presentation" style="border-collapse:separate;border-spacing:6px;width:100%;table-layout:fixed;margin:4px 0 0"><tr>${kp('มูลค่า',isNf(st.val),'บาท')}${kp('จำนวน',isNf(st.qty),'ชิ้น')}${kp('ผู้เบิก',isNf(named.length),'คน')}</tr></table>
+<div style="font-size:17px;font-weight:700;margin:20px 0 4px">ใครเบิกมากสุด</div><table role="presentation" style="border-collapse:collapse;width:100%">${wr}</table>${spn}
+<div style="font-size:17px;font-weight:700;margin:24px 0 4px">อะไหล่ที่ใช้เงินมากสุด</div><table role="presentation" style="border-collapse:collapse;width:100%">${pr}</table>
+<p style="text-align:center;margin:26px 0 14px"><a href="${escAttr(link)}" style="background:#cf3326;color:#fff;text-decoration:none;padding:13px 30px;border-radius:9px;font-weight:700;font-size:15px">เปิดดู Dashboard เต็ม</a></p>
+<p style="color:#566070;font-size:12px;text-align:center">AMR Project Equipment Report</p></div>`;
   return {subject:'[AMR] เบิกอะไหล่ · ฿'+isNf(st.val)+' · '+isNf(st.qty)+' ชิ้น',html};
 }
 async function isSend(){
@@ -5786,6 +5827,7 @@ function isBuildPanel(host){
     else if(t.dataset.ish){const [a,b]=t.dataset.ish.split('\u0001');IS.f.req=a;IS.f.part=b;IS.page=0;isRender();}
     else if(t.dataset.isq)isQuick(t.dataset.isq);
     else if(t.id==='isDl')isDownload();else if(t.id==='isSend')isSend();
+    else if(t.id==='isRefresh'){t.disabled=true;api(ACT.refreshCache,{}).then(async r=>{if(r&&r.ok){try{KV.clear();}catch(x){}IS.loaded=false;IS.v='';await isLoad();toast('รีเฟรชข้อมูลแล้ว',true);}else toast((r&&r.message)||'รีเฟรชไม่สำเร็จ',false);}).catch(()=>toast('รีเฟรชไม่สำเร็จ',false)).finally(()=>{t.disabled=false;});}
     else if(t.id==='isSort'){IS.asc=!IS.asc;isRender();}
     else if(t.id==='isPrev'){IS.page=Math.max(0,IS.page-1);isRender();}
     else if(t.id==='isNext'){IS.page++;isRender();}
@@ -5801,21 +5843,21 @@ function tmRing(p){const R=34,c=2*Math.PI*R,k=tmCls(p);return `<svg class="tm-ri
 function tmTrend(tr){const mx=Math.max(...tr.map(x=>x.assigned),1);return `<div class="tm-trend">${tr.map(x=>`<div title="${escAttr(tmMon(x.m)+': '+x.done+'/'+x.assigned)}"><span class="a" style="height:${Math.max(3,x.assigned/mx*100)}%"></span><span class="d" style="height:${x.done/mx*100}%"></span><em>${esc(tmMon(x.m).split(' ')[0])}</em></div>`).join('')}</div>`;}
 function tmProject(p,role){
   const pc=tmPct(p.done,p.assigned),ld=(p.leaders||[]).join(', ');
-  const rows=(p.members||[]).slice().sort((a,b)=>b.open-a.open).map(m=>{const q=tmPct(m.done,m.assigned);return `<tr><td>${esc(m.name||m.username)}</td><td class="n">${isNf(m.assigned)}</td><td class="n">${isNf(m.done)}</td><td class="n">${m.open?`<b>${isNf(m.open)}</b>`:'0'}</td><td><span class="tm-bar ${tmCls(q)}"><i style="width:${q}%"></i></span></td><td class="n"><span class="tm-pc ${tmCls(q)}">${q}%</span></td></tr>`;}).join('')||'<tr><td colspan="6" class="cm-msg">ไม่มีงานที่มอบหมาย</td></tr>';
-  return `<section class="is-card tm-card"><div class="tm-h"><div><h3>${esc(p.project)}</h3>${ld&&role!=='inspector'?`<small>หัวหน้า ${esc(ld)}</small>`:''}</div>${tmRing(pc)}</div>${tmTrend(p.trend||[])}<table class="is-who tm-t"><tr><th>ชื่อ</th><th class="n">มอบ</th><th class="n">เสร็จ</th><th class="n">ค้าง</th><th></th><th class="n">%</th></tr>${rows}</table></section>`;
+  const rows=(p.members||[]).slice().sort((a,b)=>b.open-a.open).map(m=>{const q=tmPct(m.done,m.assigned);return `<tr><td>${esc(m.name||m.username)}</td><td class="n">${isNf(m.assigned)}</td><td class="n">${isNf(m.done)}</td><td class="n">${m.open?`<b>${isNf(m.open)}</b>`:'0'}${m.late?` <span class="tm-late">Late ${isNf(m.late)}</span>`:''}</td><td><span class="tm-bar ${tmCls(q)}"><i style="width:${q}%"></i></span></td><td class="n"><span class="tm-pc ${tmCls(q)}">${q}%</span></td></tr>`;}).join('')||'<tr><td colspan="6" class="cm-msg">No work assigned</td></tr>';
+  return `<section class="is-card tm-card"><div class="tm-h"><div><h3>${esc(p.project)}</h3>${ld&&role!=='inspector'?`<small>${_tx('Leader')} ${esc(ld)}</small>`:''}</div>${tmRing(pc)}</div>${tmTrend(p.trend||[])}<table class="is-who tm-t"><tr><th>Name</th><th class="n">Assigned</th><th class="n">Done</th><th class="n">Open</th><th></th><th class="n">%</th></tr>${rows}</table></section>`;
 }
 function tmRender(){
   const d=TM.data,host=$('#teamBody');if(!host)return;
-  if(!d){host.innerHTML='<div class="cm-msg">กำลังโหลด...</div>';return;}
-  const ps=d.projects||[],A=ps.reduce((s,p)=>s+p.assigned,0),D=ps.reduce((s,p)=>s+p.done,0),O=ps.reduce((s,p)=>s+p.open,0),pc=tmPct(D,A);
-  host.innerHTML=`<div class="tm-top"><div class="tm-mon" role="tablist" aria-label="เดือน">${(d.months||[]).map(m=>`<button type="button" role="tab" aria-selected="${m===d.month}" class="${m===d.month?'on':''}" data-tm="${escAttr(m)}">${esc(tmMon(m))}</button>`).join('')}</div></div>
-<div class="is-kpis"><div class="is-kpi"><span>มอบหมาย</span><b>${isNf(A)}</b></div><div class="is-kpi"><span>เสร็จ</span><b>${isNf(D)}</b></div><div class="is-kpi"><span>ความคืบหน้า</span><b class="tm-pc ${tmCls(pc)}">${pc}%</b></div><div class="is-kpi"><span>ค้าง</span><b>${isNf(O)}</b></div></div>
-<div class="tm-grid">${ps.map(p=>tmProject(p,d.role)).join('')||'<div class="cm-msg">ไม่มีงานที่มอบหมายในเดือนนี้</div>'}</div>`;
+  if(!d){host.innerHTML='<div class="cm-msg">Loading...</div>';return;}
+  const ps=d.projects||[],A=ps.reduce((s,p)=>s+p.assigned,0),D=ps.reduce((s,p)=>s+p.done,0),O=ps.reduce((s,p)=>s+p.open,0),L=ps.reduce((s,p)=>s+(p.late||0),0),pc=tmPct(D,A);
+  host.innerHTML=`<div class="tm-top"><div class="tm-mon" role="tablist" aria-label="Month">${(d.months||[]).map(m=>`<button type="button" role="tab" aria-selected="${m===d.month}" class="${m===d.month?'on':''}" data-tm="${escAttr(m)}">${esc(tmMon(m))}</button>`).join('')}</div></div>
+<div class="is-kpis"><div class="is-kpi"><span>Assigned</span><b>${isNf(A)}</b></div><div class="is-kpi"><span>Done</span><b>${isNf(D)}</b></div><div class="is-kpi"><span>Progress</span><b class="tm-pc ${tmCls(pc)}">${pc}%</b></div><div class="is-kpi"><span>Open</span><b>${isNf(O)}</b></div>${L?`<div class="is-kpi"><span>Overdue</span><b class="tm-pc bad">${isNf(L)}</b></div>`:''}${d.parts?`<div class="is-kpi"><span>Parts issued this month</span><b>฿${isNf(d.parts.value)}</b></div>`:''}</div>
+<div class="tm-grid">${ps.map(p=>tmProject(p,d.role)).join('')||'<div class="cm-msg">No work assigned this month</div>'}</div>`;
 }
 async function tmLoad(month){
   TM.data=null;tmRender();
   let r;try{r=await api(ACT.getTeamReport,{month:month||''});}catch(e){r=null;}
-  if(!r||!r.ok){$('#teamBody').innerHTML=`<div class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</div>`;return;}
+  if(!r||!r.ok){$('#teamBody').innerHTML=`<div class="cm-msg">${esc((r&&r.message)||'Could not load data')}</div>`;return;}
   TM.data=r;TM.month=r.month;tmRender();
 }
 (function(){
@@ -5825,7 +5867,7 @@ async function tmLoad(month){
 })();
 
 /* เลขรุ่นเล็ก ๆ ท้ายหน้า — ใช้เช็กว่าอัปโหลดไฟล์ชุดล่าสุดขึ้นจริงหรือยัง (ทุกครั้งที่ส่งงานใหม่เลขนี้จะเปลี่ยน) */
-const APP_BUILD='Phase 47';
+const APP_BUILD='Phase 48';
 (function(){const m=document.querySelector('main');if(!m||document.getElementById('buildTag'))return;const d=document.createElement('div');d.id='buildTag';d.textContent='Build: '+APP_BUILD;m.parentNode.insertBefore(d,m.nextSibling);try{console.info('OMA build',APP_BUILD);}catch(e){}})();
 
 /* ── Phase 40: each project gets its own planet in the report-loading animation ── */

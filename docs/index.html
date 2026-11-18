@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Orbitron:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=1794556188891">
+<link rel="stylesheet" href="styles.css?v=1794710706930">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D93A2B">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -89,10 +89,10 @@
 
 <!-- ══════════════════════ TABS ════════════════════════════ -->
 <div class="side-nav nav-off" id="sideNav" role="tablist" aria-label="Sections">
-  <button type="button" role="tab" class="side-item active" data-side="doc">เอกสารรายงาน</button>
-  <button type="button" role="tab" class="side-item" data-side="oma">การจัดการงานภายใน OMA</button>
-  <button type="button" role="tab" class="side-item" data-side="cmms">ข้อมูล CMMS</button>
-  <button type="button" role="tab" class="side-item" data-side="users" hidden>กำหนดผู้ใช้</button>
+  <button type="button" role="tab" class="side-item active" data-side="doc">Report documents</button>
+  <button type="button" role="tab" class="side-item" data-side="oma">OMA task management</button>
+  <button type="button" role="tab" class="side-item" data-side="cmms">CMMS data</button>
+  <button type="button" role="tab" class="side-item" data-side="users" hidden>User management</button>
 </div>
 <nav class="tabs" id="mainNav">
   <button class="tab active" data-tab="dash" id="tabDash">Overview</button>
@@ -584,7 +584,7 @@
   </div>
 </div>
 
-<script src="script.js?v=1794556188891"></script>
+<script src="script.js?v=1794710706930"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

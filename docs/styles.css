@@ -1379,3 +1379,6 @@ body.has-side #buildTag{margin-left:var(--sideW)}
 .is-grid .is-card{border-radius:16px}
 .is-hb{padding:6px 8px;min-height:36px}
 @media(prefers-reduced-motion:reduce){.is-col i{transition:none}}
+
+.tm-late{display:inline-block;margin-left:4px;padding:1px 8px;border-radius:10px;background:#fde8e6;color:#c62828;font-size:12px;font-weight:700}
+:root[data-theme="dark"] .tm-late{background:#4a2321;color:#ff9b94}
