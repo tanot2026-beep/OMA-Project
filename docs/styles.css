@@ -1382,3 +1382,14 @@ body.has-side #buildTag{margin-left:var(--sideW)}
 
 .tm-late{display:inline-block;margin-left:4px;padding:1px 8px;border-radius:10px;background:#fde8e6;color:#c62828;font-size:12px;font-weight:700}
 :root[data-theme="dark"] .tm-late{background:#4a2321;color:#ff9b94}
+
+.cm-att{display:flex;gap:8px;align-items:center;margin:12px 0 4px;font-size:14px;cursor:pointer}
+.cm-att input{width:18px;height:18px;accent-color:var(--brand,#cf3326)}
+/* ใบส่งอุปกรณ์ */
+.dn-card{border:1px solid var(--line-soft);border-radius:16px;background:var(--surface);padding:16px;margin:0 0 16px;box-shadow:var(--shadow)}
+.dn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:12px}
+.dn-f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink-soft);min-width:0}.dn-f .tin{width:100%;min-height:44px}.dn-w{grid-column:1/-1}
+.dn-wo{margin:4px 0 12px}.dn-tbl td{padding:4px}.dn-tbl .tin{min-width:110px}.dn-tbl td:nth-child(2) .tin{min-width:380px}.dn-tbl .dn-q{min-width:64px;max-width:90px}.dn-tbl td.c{text-align:center}
+.dn-x{min-width:44px;min-height:44px}.dn-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:12px 0 0}.dn-sp{flex:1}.dn-s{min-width:200px}.dn-sq{max-width:280px}
+.pl-wbbar{margin:0 0 12px}.wb-drop{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}.wb-drop small{color:var(--ink-soft)}.wb-ph{min-height:36px;padding:4px 10px;font-size:13px;margin:0 4px 4px 0;cursor:pointer}
+.wb-edg{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;padding:6px 0}.wb-ed td{background:var(--surface-2,transparent)}
