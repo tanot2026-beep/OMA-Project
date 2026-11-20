@@ -3601,24 +3601,40 @@ async function openStationReport(){
     const map=Object.assign({},texts);if(edited)map[sysKey]=edited;else delete map[sysKey];
     const opt={title:q('#stTitle').value.trim()||ST_DEFAULT_TITLE,sub:q('#stSub').value.trim(),mode:q('#stMode').value,dmode:q('#stDate').value,stdFor:e=>String(map[e.system]||map['*']||stationDefaultText(e.system)).trim(),items:current(),ovr:Object.assign({},ovr),rd:Object.assign({},rdg)};
     if(!opt.items.length){toast('No data matches the current filter',false);return;}
-    if(q('#stSave').checked){projects.forEach(p=>{const pi=info.find(x=>x.project===p)||{};const m=Object.assign({},parseStationTexts(pi.stationText));if(edited)m[sysKey]=edited;else delete m[sysKey];api(ACT.saveReportInfo,{row:Object.assign({project:p,reportTitle:opt.title,stationText:JSON.stringify(m)},q('#stRdLabel')?{readingLabel:q('#stRdLabel').value.trim(),simpleForm:q('#stSimple')&&q('#stSimple').checked?'1':''}:{})}).then(()=>loadReportInfoCache());});}
+    if(q('#stSave').checked){projects.forEach(p=>{const pi=info.find(x=>x.project===p)||{};const m=Object.assign({},parseStationTexts(pi.stationText));if(edited)m[sysKey]=edited;else delete m[sysKey];api(ACT.saveReportInfo,{row:Object.assign({project:p,reportTitle:opt.title,stationText:JSON.stringify(m)},q('#stRdLabel')?{readingLabel:q('#stRdLabel').value.trim(),simpleForm:q('#stSimple')&&q('#stSimple').checked?String(SIMPLE_FORM[p]||'1'):''}:{})}).then(()=>loadReportInfoCache());});}
     dlg.style.display='none';
     await generateStationReport(opt,projects);
   };
 }
 /* ช่องค่าที่วัดได้ (เช่น ค่าระดับน้ำ): แสดงเฉพาะโครงการที่ admin/manager ตั้งชื่อช่องไว้ (ReportInfo.readingLabel) */
 let RD_LABELS={},SIMPLE_FORM={};
-async function loadReportInfoCache(){try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok){RD_LABELS={};SIMPLE_FORM={};CHECK_COLS={};TPL={};PLN={};(r.info||[]).forEach(x=>{if(x.project)TPL[x.project]=String(x.reportTemplate||'');if(x.project&&x.planet)PLN[x.project]=String(x.planet);if(x.reportData){try{RPT_DATA[x.project]=JSON.parse(x.reportData);}catch(e){}}if(x.project&&x.checkCols){try{CHECK_COLS[x.project]=JSON.parse(x.checkCols);}catch(e){}}if(x.project&&(x.simpleForm===true||String(x.simpleForm)==='1'||String(x.simpleForm)==='true'))SIMPLE_FORM[x.project]=1;if(x.project&&String(x.readingLabel||'').trim())RD_LABELS[x.project]=String(x.readingLabel).trim();});paintReadingField();}}catch(e){}}
+async function loadReportInfoCache(){try{const r=await api(ACT.listReportInfo,{});if(r&&r.ok){RD_LABELS={};SIMPLE_FORM={};CHECK_COLS={};TPL={};PLN={};(r.info||[]).forEach(x=>{if(x.project)TPL[x.project]=String(x.reportTemplate||'');if(x.project&&x.planet)PLN[x.project]=String(x.planet);if(x.reportData){try{RPT_DATA[x.project]=JSON.parse(x.reportData);}catch(e){}}if(x.project&&x.checkCols){try{CHECK_COLS[x.project]=JSON.parse(x.checkCols);}catch(e){}}if(x.project&&(x.simpleForm===true||String(x.simpleForm)==='1'||String(x.simpleForm)==='true'))SIMPLE_FORM[x.project]=1;else if(x.project&&String(x.simpleForm||'').length>1&&String(x.simpleForm)!=='false')SIMPLE_FORM[x.project]=String(x.simpleForm);if(x.project&&String(x.readingLabel||'').trim())RD_LABELS[x.project]=String(x.readingLabel).trim();});paintReadingField();}}catch(e){}}
 /* ช่องค่าระดับน้ำ: ใช้ชื่อที่ admin ตั้ง; ถ้าไม่ได้ตั้ง โครงการแบบรูปรายสถานีจะบังคับกรอกเฉพาะระบบ Flood Detector / Water */
 function readingLabelOf(p,system){return RD_LABELS[p]||((system&&tplOf(p)==='station'&&/flood|water/i.test(system))?'ค่าระดับน้ำ (ม.รทก.)':'');}
 /* Add Record แบบย่อ: โครงการที่ตั้งไว้จะเห็นเฉพาะช่องที่ใช้ทำรายงาน (ซ่อน Location Type, Equipment Type, Brand/Model, Note; Sub-location/Serial ซ่อนเมื่อมีตัวเลือกเดียวซึ่งระบบเลือกให้เอง) */
 function applySimpleForm(){
-  const on=!!SIMPLE_FORM[sel.project]||tplOf(sel.project)==='station';
+  /* SIMPLE_FORM[p]: 1 = แบบย่อเดิม; ข้อความ "sub,note,p3" = ซ่อนเฉพาะช่องที่ admin เลือก (ช่องที่มีตัวเลือก >1 ไม่ซ่อน กันเลือกไม่ได้) */
+  const v=String(SIMPLE_FORM[sel.project]||''),legacy=v==='1'||tplOf(sel.project)==='station';
+  const H=new Set(legacy?['typeloc','asset','bm','note','sub','serial']:v.split(','));
   const fld=lv=>{const c=document.querySelector('.combo[data-level="'+lv+'"]');return c&&c.closest('.field');};
   const hide=(el,h)=>{if(el)el.style.display=h?'none':'';};
-  hide(fld('typeloc'),on);hide($('#inpAsset')&&$('#inpAsset').closest('.field'),on);hide(document.querySelector('.bm-row'),on);hide($('#inpNote')&&$('#inpNote').closest('.field'),on);
-  let n1=2,n2=2;try{n1=optionsFor('sub').length;n2=optionsFor('serial').length;}catch(e){}
-  hide(fld('sub'),on&&n1<=1);hide(fld('serial'),on&&n2<=1);
+  const one=lv=>{try{return optionsFor(lv).length<=1;}catch(e){return true;}};
+  hide(fld('typeloc'),H.has('typeloc')&&(legacy||one('typeloc')));hide(fld('sub'),H.has('sub')&&one('sub'));hide(fld('serial'),H.has('serial')&&one('serial'));
+  hide($('#inpAsset')&&$('#inpAsset').closest('.field'),H.has('asset'));hide(document.querySelector('.bm-row'),H.has('bm'));hide($('#inpNote')&&$('#inpNote').closest('.field'),H.has('note'));
+  [['p2','dropSticker'],['p3','dropImg3'],['p4','dropImg4']].forEach(([k,id])=>{const el=$('#'+id);hide(el&&el.closest('.imgslot'),H.has(k));});
+}
+/* admin / manager: เลือกช่อง Add Record ที่โครงการนี้ไม่ต้องกรอก */
+const HIDE_OPTS=[['typeloc','Location Type'],['sub','Sub-location'],['asset','Equipment Type'],['serial','Serial Number'],['bm','Brand / Model'],['p2','Photo 2 (sticker)'],['p3','Photo 3'],['p4','Photo 4'],['note','Note']];
+Object.assign(I18N_TH,{'Hide fields':'ซ่อนช่องที่ไม่ต้องกรอก','Hide fields not needed in this project':'ซ่อนช่องที่โครงการนี้ไม่ต้องกรอก','Photo 2 (sticker)':'รูปที่ 2 (สติกเกอร์)','Photo 3':'รูปที่ 3','Photo 4':'รูปที่ 4','Brand / Model':'ยี่ห้อ / รุ่น','Show all':'แสดงทุกช่อง','Fields with more than one choice stay visible so workers can still pick.':'ช่องที่มีตัวเลือกมากกว่า 1 จะยังแสดงอยู่ เพื่อให้คนทำงานเลือกได้'});
+function openHideFields(){
+  const p=sel.project;if(!p)return;
+  const cur=String(SIMPLE_FORM[p]||''),on=new Set(cur==='1'?['typeloc','asset','bm','note','sub','serial']:cur.split(','));
+  const {dlg,body,foot}=simpleDlg('hfDlg',_tx('Hide fields not needed in this project'),420);
+  body.innerHTML=`<div class="st-hint">${esc(PN(p))}</div>`+HIDE_OPTS.map(o=>`<label class="st-chk"><input type="checkbox" data-k="${o[0]}"${on.has(o[0])?' checked':''}> ${esc(_tx(o[1]))}</label>`).join('')+`<div class="st-hint">${esc(_tx('Fields with more than one choice stay visible so workers can still pick.'))}</div>`;
+  foot.style.display='';foot.innerHTML=`<button class="btn btn-soft" id="hfAll">${esc(_tx('Show all'))}</button><button class="btn btn-primary" id="hfSave">${esc(_tx('Save'))}</button>`;
+  const go=async v=>{dlg.style.display='none';const r=await api(ACT.saveReportInfo,{row:{project:p,simpleForm:v}});if(!(r&&r.ok)){toast((r&&r.message)||'Save failed',false);return;}try{await loadReportInfoCache();}catch(e){}applySimpleForm();toast('Saved',true);};
+  $('#hfAll').onclick=()=>go('');
+  $('#hfSave').onclick=()=>{const ks=[...dlg.querySelectorAll('[data-k]:checked')].map(i=>i.dataset.k);go(ks.length===1?ks[0]+',':ks.join(','));};
 }
 /* เลือกฟอร์ม Add Record ของโครงการจากหน้า Add Record เอง (admin / manager) — ใช้ค่าเดียวกับตั้งค่าโครงการ */
 const ADD_FORMS=[['equip','Standard form'],['station','Simplified (station photos)'],['cctv','CCTV checklist'],['plate','License plate PM/CM']];
@@ -3629,7 +3645,7 @@ function paintAddFormSel(){
   sl.innerHTML=ADD_FORMS.map(o=>`<option value="${o[0]}"${cur===o[0]?' selected':''}>${esc(_tx(o[1]))}</option>`).join('');
   sl.dataset.p=p;
 }
-document.addEventListener('DOMContentLoaded',()=>{const sl=$('#addFormSel');if(!sl)return;
+document.addEventListener('DOMContentLoaded',()=>{const hb=$('#addHideBtn');if(hb)hb.onclick=openHideFields;const sl=$('#addFormSel');if(!sl)return;
   sl.addEventListener('change',async()=>{
     const p=sl.dataset.p,v=sl.value;if(!p)return;sl.disabled=true;
     const r=await api(ACT.saveReportInfo,{row:{project:p,reportTemplate:v}});sl.disabled=false;
@@ -4541,7 +4557,7 @@ function plSlots(){
     if(on){sl.style.display=caps[i][1]?'':'none';if(cap&&caps[i][0])cap.innerHTML=`<span class="tagn">${i===0?'1':i===1?'2':'3'}</span> ${esc(_tx(caps[i][0]))} <span class="req">*</span>`;}
     else{sl.style.display='';if(cap&&cap.dataset.o!==undefined)cap.innerHTML=cap.dataset.o;}
   });
-  const fm=$('#fileMain');if(fm)fm.accept=on?'image/*,application/pdf':'image/*';
+  const fm=$('#fileMain');if(fm)fm.accept=on?'image/*,application/pdf,.xls,.xlsx':'image/*';
 }
 function plReqPaint(){
   const e=plQ('#plReq');if(!e)return;
@@ -4638,7 +4654,7 @@ function plWoParse(lines){
   o.fix=cut(/^\s*Solution Details:/,/Activity Description|Instruction|รายละเอียดของการเปลี่ยน|Spare Part/);
   const sp=[];let on=false;
   L.forEach(x=>{if(/รายการของเสีย|รายละเอียดการรับ/.test(x))on=false;if(on&&x.trim()&&!/หมายเลขอะไหล่|Part Name/.test(x)){const c=x.trim().split(/ {2,}/);if(c.length>=3)sp.push({c:c[0],n:c[1],u:c[2],q:/^\d+(\.\d+)?$/.test(c[c.length-1])?c[c.length-1]:(c.find((v,i)=>i>2&&/^\d+(\.\d+)?$/.test(v))||'')});}if(/รายการอุปกรณ์ที่ใช้ในการเปลี่ยน/.test(x))on=true;});
-  o.sp=sp;
+  o.sp=sp;if(o.t==='PM')o.fq=plFreq(txt);
   /* ใบงานแบบ CMMS ภาษาไทย: ตัวหนังสือไทยอ่านจาก PDF ไม่ได้เสมอไป จึงใช้ตำแหน่ง — วันที่เริ่ม/เสร็จอยู่บรรทัดเดียวกับ OT1/OT2, รหัสเครื่องอยู่บรรทัดรหัส-ชื่อ */
   const dl=/\d{1,2}\/\d{1,2}\/\d{4}/;
   if(!o.d){const ot=n=>{const l=L.find(x=>new RegExp('\\bOT'+n+'\\b').test(x)&&dl.test(x));return l?iso(l):'';};o.d=ot(2)||ot(1)||o.d;}
@@ -4648,10 +4664,26 @@ function plWoParse(lines){
   if(!sp.length)L.forEach(x=>{const m=x.trim().match(/^(\d{5,7})\s{2,}(.+?)\s{2,}([A-Za-z]{2,6})\s+(?:(\S+)\s+)?(\d+(?:\.\d+)?)$/);if(m)sp.push({c:m[1],n:m[2],u:m[3],q:m[5]});});
   return o;
 }
+/* รอบ PM จากรหัสขั้นตอน (…-W1/M1/M3/Y1) หรือคำไทยในรหัสโปรแกรม */
+function plFreq(t){t=String(t||'');const m=t.match(/-(W1|M1|M3|Y1)\b/);if(m)return m[1];if(/สัปดาห|ัปดาห/.test(t))return 'W1';if(/3\s*เดือน|ไตรมาส/.test(t))return 'M3';if(/รายปี|ประจําปี|ประจำปี|\bYear/i.test(t))return 'Y1';if(/เดือน/.test(t))return 'M1';return '';}
+/* รหัสเครื่อง (เช่น AEP-CAR1, MOTO2-AEP-HAND-PAD) → Machine / Equipment ในข้อมูลหลักของโครงการ */
+function plMatchLocEq(code){
+  const tk=String(code||'').toUpperCase().split(/[-\s]+/).filter(Boolean),ms=ccMaster(sel.project),U=x=>String(x).toUpperCase();
+  const loc=uniq(ms.map(m=>m.locName)).find(l=>tk.includes(U(l)));if(!loc)return {};
+  const eqs=uniq(ms.filter(m=>m.locName===loc).map(m=>m.equipment));
+  return {loc,eq:eqs.find(x=>tk.includes(U(x)))||eqs.find(x=>tk.some(t=>t.length>2&&t!==U(loc)&&U(x).includes(t)))||''};
+}
+/* ใบงาน CMMS (Excel) → รูปแบบเดียวกับที่อ่านจาก PDF */
+function plFromWb(d){
+  const iso=x=>{const m=String(x||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):'';};
+  return {wo:d.woNo,t:d.type==='PM'?'PM':'CM',d:iso(d.actualFinish)||iso(d.actualStart)||iso(d.planStart),rd:iso(d.reqDate),code:d.equipmentNo||'',prob:d.problem||'',fix:d.fix||d.detail||'',fq:plFreq((d.stepCode||'')+' '+(d.program||'')),sp:(d.used||[]).filter(r=>r&&r[0]).map(r=>({c:r[0],n:r[1]||'',u:r[2]||'',q:r[4]||''}))};
+}
 function plApplyWo(o){
   if(!o)return false;
   const S=(id,v,force)=>{const e=plQ(id);if(e&&v&&(force||!e.value))e.value=v;};
   plSetType(o.t);plQ('#plWo').value=o.wo;
+  try{const m=plMatchLocEq(o.code);if(m.loc){choose('loc',m.loc);plRefresh();if(m.eq){choose('equip',m.eq);plRefresh();}}}catch(e){}
+  if(o.t==='PM'&&o.fq)plQ('#plFq').value=o.fq;
   if(o.t==='PM'){S('#plDate',o.d,1);S('#plDesc',o.fix);}
   else{S('#plDate2',o.d,1);S('#plRd',o.rd,1);S('#plCode',o.code);S('#plProb',o.prob);S('#plFix',o.fix);if(o.sp.length&&!PLS.sp.some(r=>r.c||r.n)){PLS.sp=o.sp;plPaintSp();}}
   plRefresh();plReqPaint();return true;
@@ -4670,10 +4702,15 @@ function plApplyWo(o){
     e.stopImmediatePropagation();
     const lbl=$('#dropMain');imgBusy++;lbl.classList.add('img-busy');
     try{
-      const data=/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)?await plPdfToJpeg(f):await compressImage(f,1900,900000);
-      imgMain=data;lbl.classList.add('has-img');lbl.style.backgroundImage=`url(${data})`;const ph=lbl.querySelector('.ph-content');if(ph)ph.style.display='none';
-      if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)){try{if(plApplyWo(plWoParse(await plPdfLines(f))))toast('Filled from the PDF. Please check the Thai text and the fields',true);}catch(x){}}
-    }catch(err){t.value='';toast('Could not read this PDF. Please attach a photo or screenshot of the work order instead',false);}
+      let data,wbd=null;
+      if(/\.xlsx?$/i.test(f.name)){ /* Excel จาก CMMS: เติมช่อง + สร้างรูปใบงานจากข้อมูลเอง */
+        const L=await wbReadFile(f);wbd=L[0];if(!wbd)throw new Error('empty');
+        const bl=await wbPng(wbd,{},0).catch(()=>null);data=bl?await compressImage(new File([bl],'wo.png',{type:'image/png'}),1900,900000):'';
+      }else data=/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)?await plPdfToJpeg(f):await compressImage(f,1900,900000);
+      if(data){imgMain=data;lbl.classList.add('has-img');lbl.style.backgroundImage=`url(${data})`;const ph=lbl.querySelector('.ph-content');if(ph)ph.style.display='none';}
+      if(wbd){plApplyWo(plFromWb(wbd));toast(data?'Filled from the Excel. Please check the fields':'Filled from the Excel. Please also attach a photo or PDF of the work order form',true);}
+      else if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)){try{if(plApplyWo(plWoParse(await plPdfLines(f))))toast('Filled from the PDF. Please check the Thai text and the fields',true);}catch(x){}}
+    }catch(err){t.value='';toast('Could not read this file. Please attach a photo or screenshot of the work order instead',false);}
     finally{imgBusy--;lbl.classList.remove('img-busy');plReqPaint();}
   },true);
   ['fileSticker','fileImg3'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('change',()=>setTimeout(plReqPaint,900));});
