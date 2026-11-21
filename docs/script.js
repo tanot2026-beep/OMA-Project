@@ -827,7 +827,7 @@ async function restoreFromTrash(id){const r=await api(ACT.restoreRecord,{id});if
 function openTrash(){
   let dlg=document.getElementById('trashDlg');
   if(!dlg){dlg=document.createElement('div');dlg.id='trashDlg';dlg.style.cssText='position:fixed;inset:0;z-index:450;background:rgba(20,26,34,.55);display:none;align-items:center;justify-content:center;padding:16px';
-    dlg.innerHTML='<div style="background:var(--surface);border-radius:16px;max-width:560px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(20,26,34,.18)"><div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px"><b style="font-size:16px">Trash (deleted records)</b><button id="trashClose" class="ghost-btn" style="padding:6px 12px">Close</button></div><div id="trashList" style="overflow:auto;padding:0 20px 8px"></div><div id="trashFoot" style="display:none;padding:10px 20px 16px;border-top:1px solid var(--line-soft);justify-content:space-between;align-items:center;gap:10px"><span style="font-size:12px;color:var(--ink-faint)">Delete forever moves the photos to the Google Drive bin (recoverable there for 30 days)</span><button id="trashEmpty" class="ghost-btn" style="color:var(--danger);border-color:var(--danger);white-space:nowrap">Empty Trash</button></div></div>';
+    dlg.innerHTML='<div style="background:var(--surface);border-radius:16px;max-width:560px;width:100%;max-height:calc(85vh / var(--z,1));display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(20,26,34,.18)"><div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px"><b style="font-size:16px">Trash (deleted records)</b><button id="trashClose" class="ghost-btn" style="padding:6px 12px">Close</button></div><div id="trashList" style="overflow:auto;padding:0 20px 8px"></div><div id="trashFoot" style="display:none;padding:10px 20px 16px;border-top:1px solid var(--line-soft);justify-content:space-between;align-items:center;gap:10px"><span style="font-size:12px;color:var(--ink-faint)">Delete forever moves the photos to the Google Drive bin (recoverable there for 30 days)</span><button id="trashEmpty" class="ghost-btn" style="color:var(--danger);border-color:var(--danger);white-space:nowrap">Empty Trash</button></div></div>';
     document.body.appendChild(dlg);dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.style.display='none';});dlg.querySelector('#trashClose').onclick=()=>{dlg.style.display='none';};}
   const box=dlg.querySelector('#trashList');box.innerHTML='<div style="padding:18px;color:var(--ink-faint)">Loading...</div>';dlg.style.display='flex';
   (async()=>{const r=await api(ACT.listTrash,{});
@@ -998,7 +998,7 @@ function openImageViewer(imgs){
     const lbl=document.createElement('span');lbl.style.cssText='color:#fff;font-size:14px;font-weight:600';lbl.textContent=imgs[cur].label+'  ('+(cur+1)+'/'+imgs.length+')';
     const xBtn=document.createElement('button');xBtn.textContent='✕';xBtn.style.cssText='background:rgba(255,255,255,.18);border:none;color:#fff;font-size:18px;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0';xBtn.onclick=()=>ov.remove();
     hd.appendChild(lbl);hd.appendChild(xBtn);ov.appendChild(hd);
-    const wrap=document.createElement('div');wrap.style.cssText='width:min(90vw,760px);height:65vh;overflow:hidden;border-radius:10px;background:#111;touch-action:none';
+    const wrap=document.createElement('div');wrap.style.cssText='width:min(90vw,760px);height:calc(65vh / var(--z,1));overflow:hidden;border-radius:10px;background:#111;touch-action:none';
     const img=document.createElement('img');img.src=imgs[cur].src;img.style.cssText='width:100%;height:100%;object-fit:contain;display:block;transition:transform .15s ease;transform-origin:center center;user-select:none;-webkit-user-drag:none;cursor:zoom-in';
     function apply(){img.style.transform=`translate(${panX}px,${panY}px) scale(${scale})`;img.style.cursor=scale>1?'grab':'zoom-in';}
     function toggleZoom(cx,cy){
@@ -1210,7 +1210,7 @@ function renderDashEquipTable(scopedMaster){
 }
 $('#dashEquipLocFilter')?.addEventListener('change',()=>renderDashEquipTable());
 
-function renderProgress(){const df=$('#dashMainFilter');const pick=df?df.value:'__all';const list=(!pick||pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;$('#progSummary').innerHTML=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--danger)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--accent)">${pct}%</div><div>Progress</div></div></div>`;const pctEl=$('#progTotalPct');if(pctEl)pctEl.textContent=tot?pct+'%':'—';const chart=$('#progChart');if(!list.length){chart.innerHTML='';return;}chart.innerHTML=list.slice().sort((a,b)=>(a.total?a.done/a.total:0)-(b.total?b.done/b.total:0)||String(a.project).localeCompare(String(b.project),'th')).map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;const color=w>=80?'#22C55E':w>=40?'#F97316':'#EF4444';return `<div class="prog-row"><span class="pl">${esc(PN(p.project))}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%;background:${color}"></div></div><span class="pn" style="color:${w>=80?'var(--ok-text)':w>=40?'var(--warn-text)':'var(--danger-text)'};font-weight:600">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');}
+function renderProgress(){const df=$('#dashMainFilter');const pick=df?df.value:'__all';const list=(!pick||pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;$('#progSummary').innerHTML=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--warn-text)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--ink)">${pct}%</div><div>Progress</div></div></div>`;const pctEl=$('#progTotalPct');if(pctEl)pctEl.textContent=tot?pct+'%':'—';const chart=$('#progChart');if(!list.length){chart.innerHTML='';return;}chart.innerHTML=list.slice().sort((a,b)=>(a.total?a.done/a.total:0)-(b.total?b.done/b.total:0)||String(a.project).localeCompare(String(b.project),'th')).map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;const color=w>=80?'#22C55E':w>=40?'#F97316':'#EF4444';return `<div class="prog-row"><span class="pl">${esc(PN(p.project))}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%;background:${color}"></div></div><span class="pn" style="color:${w>=80?'var(--ok-text)':w>=40?'var(--warn-text)':'var(--danger-text)'};font-weight:600">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');}
 
 function filterRecordsByDate(dateKey){recordsDateFilter=dateKey;recordsStatusFilter=null;goTab('saved');renderSaved();}
 function filterRecordsByStatus(status){recordsStatusFilter=status;recordsDateFilter=null;goTab('saved');renderSaved();}
@@ -1331,7 +1331,7 @@ function renderOverviewRight(selectedProj){
     wrap.innerHTML=html||'<div style="color:var(--ink-faint);font-size:12px;text-align:center;padding:20px">No data yet</div>';
   }
 }
-function renderSavedProgress(){const role=(AUTH.user&&AUTH.user.role)||'';const box=$('#savedProgress');if(!box)return;const show=(role==='leader'||role==='manager'||role==='admin')&&progressCache.length;box.style.display=show?'':'none';if(!show)return;const sel_f=$('#savedProgFilter');const multi=(role==='manager'||role==='admin');sel_f.style.display=multi?'':'none';if(multi){const cur=sel_f.value;sel_f.innerHTML=['<option value="__all">All Projects</option>'].concat(progressCache.map(p=>`<option value="${esc(PN(p.project))}">${esc(PN(p.project))}</option>`)).join('');if(cur&&[...sel_f.options].some(o=>o.value===cur))sel_f.value=cur;sel_f.onchange=()=>renderSavedProgress();}const pick=multi?sel_f.value:'__all';const list=(pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;let html=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--danger)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--accent)">${pct}%</div><div>Progress</div></div></div>`;html+=list.map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;return `<div class="prog-row"><span class="pl">${esc(PN(p.project))}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%"></div></div><span class="pn">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');$('#savedProgBody').innerHTML=html;}
+function renderSavedProgress(){const role=(AUTH.user&&AUTH.user.role)||'';const box=$('#savedProgress');if(!box)return;const show=(role==='leader'||role==='manager'||role==='admin')&&progressCache.length;box.style.display=show?'':'none';if(!show)return;const sel_f=$('#savedProgFilter');const multi=(role==='manager'||role==='admin');sel_f.style.display=multi?'':'none';if(multi){const cur=sel_f.value;sel_f.innerHTML=['<option value="__all">All Projects</option>'].concat(progressCache.map(p=>`<option value="${esc(PN(p.project))}">${esc(PN(p.project))}</option>`)).join('');if(cur&&[...sel_f.options].some(o=>o.value===cur))sel_f.value=cur;sel_f.onchange=()=>renderSavedProgress();}const pick=multi?sel_f.value:'__all';const list=(pick==='__all')?progressCache:progressCache.filter(p=>p.project===pick);const tot=list.reduce((a,p)=>a+p.total,0),done=list.reduce((a,p)=>a+p.done,0),remain=Math.max(0,tot-done),pct=tot?Math.round(done/tot*100):0;let html=`<div class="prog-cards"><div class="prog-c"><div class="v">${tot}</div><div>Total</div></div><div class="prog-c"><div class="v" style="color:var(--ok)">${done}</div><div>Done</div></div><div class="prog-c"><div class="v" style="color:var(--warn-text)">${remain}</div><div>Remaining</div></div><div class="prog-c"><div class="v" style="color:var(--ink)">${pct}%</div><div>Progress</div></div></div>`;html+=list.map(p=>{const w=p.total?Math.round(p.done/p.total*100):0;return `<div class="prog-row"><span class="pl">${esc(PN(p.project))}</span><div class="prog-track"><div class="prog-fill" style="width:${w}%"></div></div><span class="pn">${p.done}/${p.total} (${w}%)</span></div>`;}).join('');$('#savedProgBody').innerHTML=html;}
 
 const DONUT_COLORS=['#D93A2B','#3B82F6','#10B981','#8B5CF6','#EC4899','#F59E0B','#14B8A6','#6366F1','#EF4444','#84CC16'];
 let targetsCache=[];
@@ -1588,7 +1588,7 @@ function editMaster(id){
       <label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">${label}${req?' <span style="color:#E2231A">*</span>':''}</label>
       <input class="tin mfield" data-k="${k}" value="${escAttr(m[k]||'')}" style="width:100%" placeholder="${label}" autocomplete="off">
     </div>`).join('');
-  dlg.innerHTML=`<div style="background:var(--surface);border-radius:16px;max-width:520px;width:100%;padding:24px;box-shadow:var(--shadow-lift);max-height:90vh;overflow:auto">
+  dlg.innerHTML=`<div style="background:var(--surface);border-radius:16px;max-width:520px;width:100%;padding:24px;box-shadow:var(--shadow-lift);max-height:calc(90vh / var(--z,1));overflow:auto">
     <h3 style="font-size:17px;font-weight:700;margin-bottom:4px">${id?'Edit Equipment':'Add Equipment'}</h3>
     <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:16px">Only edit the fields you need · type to pick from existing values within the same project</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px">${fields}</div>
@@ -2165,7 +2165,7 @@ function openPdfReportDialog(list){
     dlg=document.createElement('div');
     dlg.id='pdfReportDlg';
     dlg.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(20,26,34,.55);display:flex;align-items:center;justify-content:center;padding:20px';
-    dlg.innerHTML=`<div style="background:var(--surface);border-radius:16px;max-width:480px;width:100%;padding:24px;box-shadow:var(--shadow-lift);max-height:90vh;overflow:auto">
+    dlg.innerHTML=`<div style="background:var(--surface);border-radius:16px;max-width:480px;width:100%;padding:24px;box-shadow:var(--shadow-lift);max-height:calc(90vh / var(--z,1));overflow:auto">
       <h3 style="font-size:17px;font-weight:700;margin-bottom:4px">Generate PDF Report</h3>
       <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:16px">Uses the records currently filtered in the table (<span id="pdfDlgCount">0</span> records) · type to pick from previously entered values</div>
       <div style="display:flex;flex-direction:column;gap:10px">
@@ -2426,7 +2426,7 @@ function openEditUser(username){
     d.id='editUserDlg';
     d.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(20,26,34,.6);display:none;align-items:center;justify-content:center;padding:16px';
     const projectOptions=uniq([...master.map(m=>m.project),...(window._userList||[]).map(x=>x.project)]).filter(Boolean);
-    d.innerHTML=`<div style="background:var(--surface);border-radius:18px;padding:28px;width:400px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+    d.innerHTML=`<div style="background:var(--surface);border-radius:18px;padding:28px;width:400px;max-width:95vw;max-height:calc(92vh / var(--z,1));overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.18)">
       <h3 style="margin:0 0 18px;font-size:17px;font-weight:700">Edit User</h3>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div><label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px">Username</label>
@@ -3198,7 +3198,7 @@ function simpleDlg(id,title,maxW){
   if(!dlg){
     dlg=document.createElement('div');dlg.id=id;
     dlg.style.cssText='position:fixed;inset:0;z-index:450;background:rgba(20,26,34,.55);display:none;align-items:center;justify-content:center;padding:16px';
-    dlg.innerHTML='<div style="background:var(--surface);border-radius:16px;max-width:'+(maxW||560)+'px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(20,26,34,.18)"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 20px 10px"><b class="sd-title" style="font-size:16px"></b><button type="button" class="ghost-btn" id="'+id+'Close" style="padding:6px 14px">Close</button></div><div class="sd-body" style="padding:0 20px 8px;overflow:auto;flex:1"></div><div class="sd-foot" style="padding:12px 20px 18px;display:none;gap:10px;justify-content:flex-end;align-items:center;border-top:1px solid var(--line-soft)"></div></div>';
+    dlg.innerHTML='<div style="background:var(--surface);border-radius:16px;max-width:'+(maxW||560)+'px;width:100%;max-height:calc(85vh / var(--z,1));display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(20,26,34,.18)"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 20px 10px"><b class="sd-title" style="font-size:16px"></b><button type="button" class="ghost-btn" id="'+id+'Close" style="padding:6px 14px">Close</button></div><div class="sd-body" style="padding:0 20px 8px;overflow:auto;flex:1"></div><div class="sd-foot" style="padding:12px 20px 18px;display:none;gap:10px;justify-content:flex-end;align-items:center;border-top:1px solid var(--line-soft)"></div></div>';
     document.body.appendChild(dlg);
     dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.style.display='none';});
     dlg.querySelector('#'+id+'Close').onclick=()=>{dlg.style.display='none';};
@@ -4605,7 +4605,7 @@ function plLoad(json,system){
   plRefresh();plReqPaint();
 }
 function plReset(){
-  PLS.type='PM';PLS.sp=[];
+  PLS.type='PM';PLS.sp=[];try{const pb=$('#plateField');if(pb){pb.classList.remove('pl-auto','pl-edit');const sm=pb.querySelector('#plSum');if(sm)sm.remove();pb.querySelectorAll('.pl-got').forEach(x=>x.classList.remove('pl-got'));}}catch(e){}
   const b=$('#plateField');if(b&&PLS.built){b.querySelectorAll('input,textarea').forEach(i=>{if(i.type!=='file')i.value='';});plQ('#plSt').value='Complete';plQ('#plFq').value='W1';b.classList.remove('is-cm');b.querySelectorAll('.pl-tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t==='PM'));}
 }
 function plValidate(){
@@ -4686,7 +4686,19 @@ function plApplyWo(o){
   if(o.t==='PM'&&o.fq)plQ('#plFq').value=o.fq;
   if(o.t==='PM'){S('#plDate',o.d,1);S('#plDesc',o.fix);}
   else{S('#plDate2',o.d,1);S('#plRd',o.rd,1);S('#plCode',o.code);S('#plProb',o.prob);S('#plFix',o.fix);if(o.sp.length&&!PLS.sp.some(r=>r.c||r.n)){PLS.sp=o.sp;plPaintSp();}}
-  plRefresh();plReqPaint();return true;
+  plRefresh();plReqPaint();plAutoCollapse();return true;
+}
+/* ช่องที่ดึงจากใบงานได้แล้วไม่ต้องให้กรอก: ซ่อนไว้ แสดงเป็นสรุปบรรทัดเดียว (ปุ่ม แก้ไข เปิดดู); ช่องที่ยังว่างจะยังแสดงให้กรอก */
+function plAutoCollapse(){
+  const b=$('#plateField');if(!b)return;
+  b.classList.add('pl-auto');b.classList.remove('pl-edit');
+  const grid=plQ('#plWo').closest('label').parentNode,cm=PLS.type==='CM';
+  grid.querySelectorAll('.st-l').forEach(l=>{const f=l.querySelector('input,select,textarea');l.classList.toggle('pl-got',!!(f&&f.value&&f.type!=='file'&&f.id!=='plSt'&&f.id!=='plCause'));});
+  const v=i=>{const e=plQ(i);return e&&e.value?(e.tagName==='SELECT'?e.selectedOptions[0].textContent:e.value):'';};
+  const fq=cm?'':v('#plFq'),dt=plFmtD(plQ(cm?'#plDate2':'#plDate').value);
+  let sum=b.querySelector('#plSum');if(!sum){sum=document.createElement('div');sum.id='plSum';sum.className='pl-sum';grid.prepend(sum);}
+  sum.innerHTML='<span>'+[PLS.type,v('#plWo'),v('#plLoc'),v('#plEq')!=='—'?v('#plEq'):'',fq,dt].filter(Boolean).map(x=>'<b>'+esc(x)+'</b>').join(' · ')+'</span><button type="button" class="btn btn-soft">'+esc(_tx('Edit'))+'</button>';
+  sum.querySelector('button').onclick=()=>b.classList.toggle('pl-edit');
 }
 (function(){
   const _rc=readChecks;readChecks=function(){return isPlate(sel.project)?plRead():_rc();};
@@ -6227,6 +6239,8 @@ async function wbReadFile(f){
   await loadLib('xlsx');const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});
   return wb.SheetNames.map(n=>XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''})).filter(a=>a.length).map(wbParse).filter(d=>d.woNo);
 }
+/* สถานะใบงาน: สี + ไอคอน/ข้อความเสมอ (ไม่พึ่งสีอย่างเดียว); แดงแบรนด์ใช้กับปุ่มหลักเท่านั้น */
+const stPill=t=>{t=String(t||'');const k=/complete|done|เสร็จ/i.test(t)?'ok':/hold|wait|progress|pending|รอ/i.test(t)?'wait':/fail|error|cancel|reject/i.test(t)?'bad':'';return `<span class="st-pill ${k}">${k==='ok'?'✓ ':k==='wait'?'⏸ ':k==='bad'?'✕ ':''}${esc(t)}</span>`;};
 const wbLoc=s=>{const m=String(s||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}T${(m[4]||'00').padStart(2,'0')}:${m[5]||'00'}`:'';};
 const wbUnloc=v=>{const m=String(v||'').match(/^(\d{4})-(\d\d)-(\d\d)(?:T(\d\d):(\d\d))?/);return m?`${m[3]}/${m[2]}/${m[1]}${m[4]?` ${m[4]}:${m[5]}`:''}`:'';};
 const wbUsedTxt=d=>(d.used||[]).map(r=>(r||[]).join(' | ')).join('\n');
@@ -6244,7 +6258,7 @@ function wbSplitDT(s){const m=String(s||'').match(/^(\S+)(?:\s+(\S+))?/);return 
 function wbSheetHtml(d,sg){
   const g=k=>esc(d[k]==null?'':d[k]),pm=d.type==='PM',sat=+d.satisfaction||0;
   const TT=pm?'ใบงานบำรุงรักษาเชิงป้องกัน<br>(Preventive Maintenance Work Order)':'ใบงานบำรุงรักษาเชิงแก้ไขปรับปรุง<br>(Corrective Maintenance Work Order)';
-  const hd=(t1,t2)=>`<div class="hd"><img src="${WO_LOGO}" alt="AMR Asia"><div><h1>${t1}</h1><div class="no">${esc(d.woNo)}</div></div><div class="r">${pm||t2?'':woBarcode('*'+d.woNo+'*')}<div class="st">${t2?'':g('status')}</div></div></div>`;
+  const hd=(t1,t2)=>`<div class="hd"><img src="${WO_LOGO}" alt="AMR Asia"><div><h1>${t1}</h1><div class="no">${esc(d.woNo)}</div></div><div class="r">${t2?'':woBarcode('*'+d.woNo+'*')}<div class="st">${t2?'':g('status')}</div></div></div>`;
   const S=t=>`<div class="sec">${t}</div>`;
   const row=(a,b,c,e)=>`<tr><td class="k">${a}</td><td>${b}</td>${c!=null?`<td class="k">${c}</td><td>${e}</td>`:''}</tr>`;
   const wide=(a,b)=>`<tr><td class="k">${a}</td><td colspan="3">${b}</td></tr>`;
@@ -6269,31 +6283,32 @@ ${S('รายละเอียดของการเปลี่ยนอุ
 <table><thead><tr><th colspan="3">รายละเอียดการรับของเสียที่ถอดออกมาจากงานซ่อม</th></tr></thead><tbody><tr><td style="width:40%"><b>เลขที่เอกสารการรับเข้า</b> ${esc(d.receipt[0]||'')}</td><td><b>ผู้รับ</b> ${esc(d.receipt[1]||'')}</td><td><b>ผู้ตรวจ</b> ${esc(d.receipt[2]||'')}</td></tr></tbody></table>`;
   }
   const dt=wbSplitDT(d.actualFinish||d.actualStart||d.planStart||d.reqDate)[0]||sg.today;
-  const sc=k=>{const x=(sg.sig&&sg.sig[k])||{};return `<td>${x.img?`<img class="sg" src="${esc(x.img)}" alt="">`:'&nbsp;'}${x.name?`<small>( ${esc(x.name)} )</small>`:''}</td>`;};
+  const sc=(k,lab)=>{const x=(sg.sig&&sg.sig[k])||{};return `<td class="sc"><span class="lb">${lab}</span>${x.img?`<img class="sg" src="${esc(x.img)}" alt="">`:'&nbsp;'}${x.name?`<small>( ${esc(x.name)} )</small>`:''}</td>`;};
   const sd=k=>{const x=(sg.sig&&sg.sig[k])||{};return `<td>วันที่ ${(x.img||x.name)?esc(sg.useWoDate?dt:sg.today):''}</td>`;};
-  const sigT=`<table class="sig"><tr><td class="h">ผู้ปฏิบัติงาน</td><td class="h">หัวหน้างาน</td><td class="h">ลูกค้า/ผู้แจ้งงาน</td></tr><tr>${sc('op')}${sc('sp')}${sc('cu')}</tr><tr>${sd('op')}${sd('sp')}${sd('cu')}</tr></table>`;
+  const sigT=`<table class="sig"><tr>${sc('op','ผู้ปฏิบัติงาน')}${sc('sp','หัวหน้างาน')}${sc('cu','ลูกค้า/ผู้แจ้งงาน')}</tr><tr>${sd('op')}${sd('sp')}${sd('cu')}</tr></table>`;
   const satT=`<table><tr><td class="k">ประเมินผลความพึงพอใจ:</td><td>${WO_SAT.map(x=>`<span class="sv"><span class="cb">${x[0]===sat?'✓':''}</span>${x[1]}</span>`).join('')}</td></tr><tr><td class="k"><b>${pm?'หมายเหตุ:':'โปรดสังเกต'}</b></td><td>${g('remark')}</td></tr></table>`;
   const p1=`<section class="sh"><div class="in">${hd(TT)}${body}${satT}${sigT}<div class="ft">Internal Use Only</div></div></section>`;
   if(pm)return p1;
   const ph=(t,u)=>`<div class="sec">${t}</div><div class="ph">${u?`<img src="${esc(u)}" alt="${t}">`:''}</div>`;
   return p1+`<section class="sh"><div class="in">${hd('Corrective Maintenance<br>(Corrective Maintenance Work Order)',1)}${ph('ภาพก่อนซ่อม',d.photos.before)}${ph('ภาพหลังซ่อม',d.photos.after)}${sigT.replace('ผู้ปฏิบัติงาน','Operator').replace('หัวหน้างาน','Supervisor').replace('ลูกค้า/ผู้แจ้งงาน','Customer/Request By')}<div class="ft">Internal Use Only</div></div></section>`;
 }
-const WB_CSS='@page{size:A4;margin:8mm}*{box-sizing:border-box}html,body{margin:0;font-family:Loma,Tahoma,sans-serif;color:#000;background:#fff}body{font-size:9.5px;line-height:1.28}.sh{width:194mm;height:281mm;overflow:hidden;page-break-after:always;break-after:page;margin:0 auto}.sh:last-child{page-break-after:auto;break-after:auto}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:2px 4px;vertical-align:top;overflow-wrap:anywhere}th{background:#f3f3f3;text-align:center;font-weight:700}.c{text-align:center}.k{width:19%}.o{width:5%}.o2{width:12%}.hd{display:grid;grid-template-columns:34mm 1fr 44mm;align-items:center;gap:6px;margin-bottom:4px}.hd img{width:30mm;height:auto}.hd h1{margin:0 0 4px;font-size:14px;line-height:1.25}.hd .r{text-align:right}.hd .bc{width:100%;height:30px}.hd .no{font-weight:700;font-size:12px}.st{font-weight:700;font-size:12px}.sec{background:#e3e3e3;font-weight:700;font-size:10.5px;border:1px solid #000;border-bottom:0;padding:3px 4px;margin-top:4px}.sv{margin-right:12px;white-space:nowrap}.cb{display:inline-block;width:10px;height:10px;border:1px solid #000;margin-right:4px;text-align:center;line-height:8px;font-size:9px;vertical-align:-1px}.sig td{text-align:left}.sig .h{height:15px}.sig tr:nth-child(2) td{height:40px}.sg{height:30px;max-width:90%;object-fit:contain;display:block}.sig small{font-size:8.5px}.ft{text-align:center;font-size:8.5px;margin-top:3px}.ph{height:104mm;border:1px solid #000;display:flex;align-items:center;justify-content:center;overflow:hidden}.ph img{max-width:100%;max-height:100%;object-fit:contain}';
+const WB_CSS='@page{size:A4;margin:8mm}*{box-sizing:border-box}html,body{margin:0;font-family:Loma,Tahoma,sans-serif;color:#000;background:#fff}body{font-size:9.5px;line-height:1.28}.sh{width:194mm;height:281mm;overflow:hidden;page-break-after:always;break-after:page;margin:0 auto}.sh:last-child{page-break-after:auto;break-after:auto}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:2px 4px;vertical-align:top;overflow-wrap:anywhere}th{background:#f3f3f3;text-align:center;font-weight:700}.c{text-align:center}.k{width:19%}.o{width:5%}.o2{width:12%}.hd{display:grid;grid-template-columns:34mm 1fr 44mm;align-items:center;gap:6px;margin-bottom:4px}.hd img{width:30mm;height:auto}.hd h1{margin:0 0 4px;font-size:14px;line-height:1.25}.hd .r{text-align:right}.hd .bc{width:100%;height:30px}.hd .no{font-weight:700;font-size:12px}.st{font-weight:700;font-size:12px}.sec{background:#e3e3e3;font-weight:700;font-size:10.5px;border:1px solid #000;border-bottom:0;padding:3px 4px;margin-top:4px}.sv{margin-right:12px;white-space:nowrap}.cb{display:inline-block;width:10px;height:10px;border:1px solid #000;margin-right:4px;text-align:center;line-height:8px;font-size:9px;vertical-align:-1px}.sig td{text-align:left}.sig .sc{height:56px}.sig .lb{display:block;font-size:9px}.sg{height:30px;max-width:90%;object-fit:contain;display:block}.sig small{font-size:8.5px}.ft{text-align:center;font-size:8.5px;margin-top:3px}.ph{height:104mm;border:1px solid #000;display:flex;align-items:center;justify-content:center;overflow:hidden}.ph img{max-width:100%;max-height:100%;object-fit:contain}';
 /* บีบให้พอดี 1 หน้าต่อแผ่น (ลดสเกลทีละน้อย ขั้นต่ำ 50%) */
-const WB_FIT='(function(){var A=281*96/25.4;document.querySelectorAll(".sh").forEach(function(s){var n=s.firstChild,z=1;n.style.width="194mm";while(n.scrollHeight*z>A&&z>.5){z-=.02;n.style.zoom=z;n.style.width=(194/z)+"mm";}});})();';
+const wbFit=f=>WB_FIT.replace('var F=0','var F='+(f?1:0));
+const WB_FIT='(function(){var F=0,A=281*96/25.4;document.querySelectorAll(".sh").forEach(function(s){var n=s.firstChild,z=1;n.style.width="194mm";while(n.scrollHeight*z>A&&z>.5){z-=.02;n.style.zoom=z;n.style.width=(194/z)+"mm";}if(F&&z>=1){var g=function(){n.style.zoom=z;n.style.width=(194/z)+"mm";};while(n.scrollHeight*z<A*.96&&z<1.45){z+=.02;g();}while(n.scrollHeight*z>A&&z>1){z-=.02;g();}}});})();';
 function wbDoc(list,sg){return `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ใบงาน</title><style>${WB_CSS}</style></head><body>${list.map(d=>wbSheetHtml(d,sg)).join('')}`;}
 function wbPrint(list,sg){
   const w=window.open('','_blank');if(!w){toast('เบราว์เซอร์บล็อกหน้าต่างใหม่ — อนุญาต pop-up แล้วลองอีกครั้ง',false);return false;}
-  w.document.open();w.document.write(wbDoc(list,sg)+`<script>addEventListener("load",function(){${WB_FIT}setTimeout(function(){print();},300);});<\/script></body></html>`);w.document.close();return true;
+  w.document.open();w.document.write(wbDoc(list,sg)+`<script>addEventListener("load",function(){${wbFit(sg.fill)}setTimeout(function(){print();},300);});<\/script></body></html>`);w.document.close();return true;
 }
 /* ใบงาน 1 หน้า → รูป PNG (ไว้แนบเป็น "Work order form" ในรายงาน) ผ่าน SVG foreignObject */
 async function wbPng(d,sg,page){
   const fr=document.createElement('iframe');fr.style.cssText='position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:0';document.body.appendChild(fr);
   fr.srcdoc=wbDoc([d],sg)+'</body></html>';await new Promise(r=>{fr.onload=r;});
-  const D=fr.contentDocument;try{D.defaultView.eval(WB_FIT);}catch(e){}
+  const D=fr.contentDocument;try{D.defaultView.eval(wbFit(sg&&sg.fill));}catch(e){}
   const sh=D.querySelectorAll('.sh')[page||0];if(!sh){fr.remove();return null;}
   const xml=new XMLSerializer().serializeToString(sh),W=794,H=1123;
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="background:#fff;width:${W}px;height:${H}px;padding:30px 30px;box-sizing:border-box"><style>${WB_CSS.replace(/@page\{[^}]*\}/,'')}</style>${xml}</div></foreignObject></svg>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="background:#fff;width:${W}px;height:${H}px;padding:30px 30px;box-sizing:border-box;font:9.5px/1.28 Loma,Tahoma,sans-serif;color:#000"><style>${WB_CSS.replace(/@page\{[^}]*\}/,'')}</style>${xml}</div></foreignObject></svg>`;
   fr.remove();
   const im=new Image();await new Promise((res,rej)=>{im.onload=res;im.onerror=rej;im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);});
   const c=document.createElement('canvas');c.width=W*2;c.height=H*2;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
@@ -6312,12 +6327,13 @@ function wbOpen(){
 <div id="wbList"></div>
 <div class="wo-lab">ประเมินความพึงพอใจ (ใช้กับทุกใบที่ติ๊กไว้)</div><div class="wo-sat" role="radiogroup">${WO_SAT.map(x=>`<button type="button" role="radio" aria-checked="false" data-s="${x[0]}"><b>${x[0]}</b><small>${esc(x[1].slice(4))}</small></button>`).join('')}</div>
 <div class="wo-sigs">${WO_SIGS.map(g=>`<div class="wo-sig" data-g="${g[0]}"><div class="wo-lab">${g[1]} <small>${g[2]}</small></div><canvas width="480" height="160" aria-label="ช่องลายเซ็น ${g[1]}"></canvas><div class="wo-sa"><button type="button" class="btn btn-soft" data-a="clear">ล้าง</button><button type="button" class="btn btn-soft" data-a="up">${cmI('img')}<span>แนบรูป</span></button>${g[0]!=='cu'&&mine[g[0]]?'<button type="button" class="btn btn-soft" data-a="mine">ใช้ที่จำไว้</button>':''}<input type="file" accept="image/*" hidden></div><input class="tin" data-n placeholder="ชื่อ" aria-label="ชื่อ ${g[1]}"></div>`).join('')}</div>
+<label class="wo-rem"><input type="checkbox" id="wbFill" checked><span>ขยายให้เต็มหน้ากระดาษ A4 (ไม่ติ๊ก = ขนาดปกติ ย่อเฉพาะเมื่อล้น)</span></label>
 <label class="wo-rem"><input type="checkbox" id="wbDate" checked><span>วันที่ใต้ลายเซ็น = วันที่ปฏิบัติงานของแต่ละใบ (ไม่ติ๊ก = วันนี้)</span></label>`;
   m.foot.innerHTML='<button type="button" class="btn btn-soft" id="wbPng">ดาวน์โหลดเป็นรูป (ต่อหน้า)</button><button type="button" class="btn btn-primary" id="wbPrint">'+cmI('doc')+'<span>พิมพ์ / PDF ทั้งหมด</span></button>';
   WO_SIGS.forEach(g=>{pads[g[0]]=woPad(m.body.querySelector(`.wo-sig[data-g="${g[0]}"] canvas`));});
-  const paint=()=>{m.body.querySelector('#wbList').innerHTML=WB.list.length?`<div class="cm-wrap"><table class="cm-tbl"><thead><tr><th></th><th>เลขที่ใบงาน</th><th>ประเภท</th><th>เครื่อง</th><th>วันที่</th><th>สถานะ</th><th>รูปก่อน / หลังซ่อม (CM)</th><th></th></tr></thead><tbody>${WB.list.map((d,i)=>`<tr><td><input type="checkbox" data-on="${i}" ${d.on!==false?'checked':''} aria-label="เลือก ${escAttr(d.woNo)}"></td><td><b>${esc(d.woNo)}</b></td><td>${d.type}</td><td>${esc(d.equipmentNo)}</td><td>${esc((d.actualFinish||d.actualStart||d.planStart||d.reqDate||'').slice(0,10))}</td><td>${esc(d.status)}</td><td>${d.type==='CM'?['before','after'].map(k=>`<label class="btn btn-soft wb-ph"><input type="file" accept="image/*" hidden data-ph="${i}:${k}"><span>${d.photos[k]?'✓ ':''}${k==='before'?'ก่อนซ่อม':'หลังซ่อม'}</span></label>`).join(''):'—'}</td><td><button type="button" class="btn btn-soft" data-edit="${i}" aria-expanded="${!!d.ed}">${d.ed?'ซ่อนข้อมูล':'กรอก / แก้ข้อมูล'}</button></td></tr>${d.ed?wbEditor(d,i):''}`).join('')}</tbody></table></div><datalist id="wbStL"><option>Complete</option><option>Hold</option><option>Active</option><option>Closed</option></datalist>`:'<div class="cm-msg">ยังไม่ได้เลือกไฟล์</div>';};
+  const paint=()=>{m.body.querySelector('#wbList').innerHTML=WB.list.length?`<div class="cm-wrap"><table class="cm-tbl"><thead><tr><th></th><th>เลขที่ใบงาน</th><th>ประเภท</th><th>เครื่อง</th><th>วันที่</th><th>สถานะ</th><th>รูปก่อน / หลังซ่อม (CM)</th><th></th></tr></thead><tbody>${WB.list.map((d,i)=>`<tr><td><input type="checkbox" data-on="${i}" ${d.on!==false?'checked':''} aria-label="เลือก ${escAttr(d.woNo)}"></td><td><b>${esc(d.woNo)}</b></td><td>${d.type}</td><td>${esc(d.equipmentNo)}</td><td>${esc((d.actualFinish||d.actualStart||d.planStart||d.reqDate||'').slice(0,10))}</td><td>${stPill(d.status)}</td><td>${d.type==='CM'?['before','after'].map(k=>`<label class="btn btn-soft wb-ph"><input type="file" accept="image/*" hidden data-ph="${i}:${k}"><span>${d.photos[k]?'✓ ':''}${k==='before'?'ก่อนซ่อม':'หลังซ่อม'}</span></label>`).join(''):'—'}</td><td><button type="button" class="btn btn-soft" data-edit="${i}" aria-expanded="${!!d.ed}">${d.ed?'ซ่อนข้อมูล':'กรอก / แก้ข้อมูล'}</button></td></tr>${d.ed?wbEditor(d,i):''}`).join('')}</tbody></table></div><datalist id="wbStL"><option>Complete</option><option>Hold</option><option>Active</option><option>Closed</option></datalist>`:'<div class="cm-msg">ยังไม่ได้เลือกไฟล์</div>';};
   paint();
-  const sgOf=()=>{const sig={};m.body.querySelectorAll('.wo-sig').forEach(e=>{const g=e.dataset.g,img=pads[g].toData(),name=e.querySelector('[data-n]').value.trim();sig[g]={img,name};});return {sig,today:woToday(),useWoDate:m.body.querySelector('#wbDate').checked};};
+  const sgOf=()=>{const sig={};m.body.querySelectorAll('.wo-sig').forEach(e=>{const g=e.dataset.g,img=pads[g].toData(),name=e.querySelector('[data-n]').value.trim();sig[g]={img,name};});return {sig,today:woToday(),useWoDate:m.body.querySelector('#wbDate').checked,fill:m.body.querySelector('#wbFill').checked};};
   const sel=()=>{const s=+WB.sat||0;return WB.list.filter(d=>d.on!==false).map(d=>Object.assign(d,{satisfaction:s}));};
   m.body.addEventListener('change',async e=>{
     const t=e.target;

@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Orbitron:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=1795162405314">
+<link rel="stylesheet" href="styles.css?v=1795233272763">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D93A2B">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -131,7 +131,7 @@
   </div>
 
   <div id="projDetailModal" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(20,26,34,.6);align-items:center;justify-content:center;padding:20px">
-    <div style="background:var(--surface);border-radius:18px;max-width:480px;width:100%;padding:28px;box-shadow:var(--shadow-lift);position:relative">
+    <div style="background:var(--surface);border-radius:18px;max-width:480px;width:100%;padding:28px;box-shadow:var(--shadow-lift);position:relative;max-height:calc(92vh / var(--z,1));overflow-y:auto">
       <button onclick="document.getElementById('projDetailModal').style.display='none'" style="position:absolute;top:14px;right:16px;font-size:20px;color:var(--ink-faint);cursor:pointer;background:none;border:none">&times;</button>
       <div id="projDetailContent"></div>
     </div>
@@ -584,7 +584,7 @@
   </div>
 </div>
 
-<script src="script.js?v=1795162405314"></script>
+<script src="script.js?v=1795233272763"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
