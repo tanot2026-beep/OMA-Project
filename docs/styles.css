@@ -1420,3 +1420,20 @@ body.has-side #buildTag{margin-left:var(--sideW)}
 @media(min-width:761px) and (max-width:999px){main{padding-inline:18px}.kpi-row{grid-template-columns:repeat(2,1fr)}}
 
 .ps-row3>*{min-width:0}.ps-row3 .tin{min-width:0;width:100%}
+
+/* Phase 54: กล่อง autocomplete ของเราเอง (แทน datalist ของเบราว์เซอร์ที่เปลี่ยนเป็นสีดำตาม OS) */
+:root{color-scheme:light}
+.ac-pop{position:fixed;z-index:100000;background:#fff;color:#1F1D1A;border:1px solid #CFCAC0;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.18);max-height:260px;overflow:auto;font-size:14px;min-width:200px}
+.ac-pop[hidden]{display:none}
+.ac-o{padding:9px 12px;cursor:pointer;border-bottom:1px solid #EEEBE5;overflow-wrap:anywhere}
+.ac-o small{display:block;color:#645F57;font-size:12px}
+.ac-o:hover,.ac-o.on{background:var(--accent-wash,#FDECEA)}
+:root[data-theme="dark"] .ac-pop{background:#1F2124;color:#ECEBE8;border-color:#37393E}
+:root[data-theme="dark"] .ac-o{border-color:#2B2D31}:root[data-theme="dark"] .ac-o small{color:#B6B3AD}
+
+/* Phase 55: ฟอร์มแผ่นป้ายเน้นแนบไฟล์ — ซ่อนช่องกรอกจนกว่าจะจำเป็น */
+#plateField .pl-hint{display:none;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;font-size:14px;margin-bottom:10px}
+#plateField.pl-file:not(.pl-edit) .pl-hint{display:flex}
+#plateField.pl-file:not(.pl-edit) .pl-grid .st-l,#plateField.pl-file:not(.pl-edit) .pl-sp{display:none!important}
+#plateField.pl-auto:not(.pl-edit) .pl-opt{display:none!important}
+#plateField.pl-auto .pl-hint{display:none!important}

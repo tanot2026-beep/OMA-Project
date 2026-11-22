@@ -4188,7 +4188,7 @@ const CC_EQUIP='ตรวจสภาพอุปกรณ์ (PM)';
 let TPL={};const RPT_DATA={};
 const CC={loc:'',date:'',st:{},why:{},note:{}};
 /* เทมเพลตเริ่มต้นตามชื่อโครงการ (เมื่อ admin ยังไม่ได้ตั้ง): CCTV → cctv, โทรมาตร → รูปรายสถานี */
-function inferTemplate(p){const n=String(p||'');if(/cctv/i.test(n))return 'cctv';if(/โทรมาตร|telemetry/i.test(n))return 'station';if(/สายสัญญาณ/.test(n))return 'equip';if(/แผ่นป้ายทะเบียน|license ?plate/i.test(n))return 'plate';return '';}
+function inferTemplate(p){const n=String(p||'');if(/cctv/i.test(n))return 'cctv';if(/โทรมาตร|telemetry/i.test(n))return 'station';if(/สายสัญญาณ/.test(n))return 'equip';if(/แผ่นป้ายทะเบียน|license[\s_-]*plate|\bl?pr\b/i.test(n))return 'plate';return '';}
 const tplOf=p=>TPL[p]||inferTemplate(p);
 function isCctv(p){return !!p&&tplOf(p)==='cctv';}
 const ccKey=m=>m.serial?String(m.serial):(String(m.subName||'')+'|'+String(m.equipment||''));
@@ -4512,25 +4512,27 @@ function plateBuild(box){
   box.innerHTML=`<div class="card-h"><span class="step">1b</span><h3>${esc(_tx('Work order'))}</h3></div><div class="card-b">
   <div class="pl-tabs" role="tablist"><button type="button" role="tab" data-t="PM" class="on">PM</button><button type="button" role="tab" data-t="CM">CM</button></div>
   <div class="pl-wbbar"><button type="button" class="btn btn-soft" id="plWb">${cmI('doc')}<span>สร้างใบงาน PM / CM จาก Excel (ลายเซ็น + ประเมิน ใช้ครั้งเดียวหลายใบ)</span></button></div>
+  <div class="pl-hint"><span>แนบไฟล์ใบงาน (PDF / Excel) ในช่อง Work order form ด้านล่าง ระบบกรอกให้เอง</span><button type="button" class="btn btn-soft" id="plManual">กรอกเอง</button></div>
   <div class="pl-grid">
     <label class="st-l">${esc(_tx('Work order no.'))} <span class="req">*</span><input id="plWo" class="tin" placeholder="PM25-173073" autocomplete="off"></label>
     <label class="st-l">${esc(_tx('Machine'))} <span class="req">*</span><select id="plLoc" class="tin"></select></label>
     <label class="st-l pl-wide">${esc(_tx('Equipment'))} <span class="req">*</span><select id="plEq" class="tin"></select></label>
     <label class="st-l pl-pm">${esc(_tx('Frequency'))} <span class="req">*</span><select id="plFq" class="tin">${PLATE_FQ.map(f=>`<option value="${f[0]}">${esc(_tx(f[1]))}</option>`).join('')}</select></label>
     <label class="st-l pl-pm">${esc(_tx('Date performed'))} <span class="req">*</span><input id="plDate" class="tin" type="date"></label>
-    <label class="st-l pl-cm">${esc(_tx('Reported on'))}<input id="plRd" class="tin" type="date"></label>
+    <label class="st-l pl-cm pl-opt">${esc(_tx('Reported on'))}<input id="plRd" class="tin" type="date"></label>
     <label class="st-l pl-cm">${esc(_tx('Date performed'))} <span class="req">*</span><input id="plDate2" class="tin" type="date"></label>
-    <label class="st-l pl-cm pl-wide">${esc(_tx('Equipment code / detail'))}<input id="plCode" class="tin" placeholder="CAR1-PACK-KUKA-GRIP" autocomplete="off"></label>
+    <label class="st-l pl-cm pl-wide pl-opt">${esc(_tx('Equipment code / detail'))}<input id="plCode" class="tin" placeholder="CAR1-PACK-KUKA-GRIP" autocomplete="off"></label>
     <label class="st-l pl-cm pl-wide">${esc(_tx('Problem reported'))} <span class="req">*</span><textarea id="plProb" class="tin" rows="2"></textarea></label>
-    <label class="st-l pl-cm pl-wide">${esc(_tx('Cause'))}<textarea id="plCause" class="tin" rows="2"></textarea></label>
+    <label class="st-l pl-cm pl-wide pl-opt">${esc(_tx('Cause'))}<textarea id="plCause" class="tin" rows="2"></textarea></label>
     <label class="st-l pl-cm pl-wide">${esc(_tx('Repair done'))} <span class="req">*</span><textarea id="plFix" class="tin" rows="2"></textarea></label>
-    <label class="st-l pl-cm">${esc(_tx('Status'))}<select id="plSt" class="tin"><option value="Complete">${esc(_tx('Complete'))}</option><option value="In progress">${esc(_tx('In progress'))}</option></select></label>
-    <label class="st-l pl-pm pl-wide">${esc(_tx('Activity description'))}<textarea id="plDesc" class="tin" rows="2"></textarea></label>
+    <label class="st-l pl-cm pl-opt">${esc(_tx('Status'))}<select id="plSt" class="tin"><option value="Complete">${esc(_tx('Complete'))}</option><option value="In progress">${esc(_tx('In progress'))}</option></select></label>
+    <label class="st-l pl-pm pl-wide pl-opt">${esc(_tx('Activity description'))}<textarea id="plDesc" class="tin" rows="2"></textarea></label>
   </div>
-  <div class="pl-cm pl-sp"><div class="st-l">${esc(_tx('Spare parts used'))}</div><div id="plSpRows"></div><button type="button" class="btn btn-soft" id="plSpAdd">+ ${esc(_tx('Add part'))}</button></div>
+  <div class="pl-cm pl-sp pl-opt"><div class="st-l">${esc(_tx('Spare parts used'))}</div><div id="plSpRows"></div><button type="button" class="btn btn-soft" id="plSpAdd">+ ${esc(_tx('Add part'))}</button></div>
   <div id="plReq" class="pl-req"></div></div>`;
   box.querySelectorAll('.pl-tabs button').forEach(b=>b.onclick=()=>plSetType(b.dataset.t));
   plQ('#plWb').onclick=()=>wbOpen();
+  box.classList.add('pl-file');plQ('#plManual').onclick=()=>box.classList.add('pl-edit');
   plQ('#plLoc').onchange=e=>{choose('loc',e.target.value);plRefresh();};
   plQ('#plEq').onchange=e=>{choose('equip',e.target.value);};
   plQ('#plSpAdd').onclick=()=>{PLS.sp.push({c:'',n:'',u:'',q:''});plPaintSp();};
@@ -4598,14 +4600,14 @@ function plRead(){
 function plLoad(json,system){
   let o=null;try{o=JSON.parse(json||'{}');}catch(e){}
   if(!o||!o.t)return;
-  paintPlate();plSetType(o.t);
+  paintPlate();plSetType(o.t);{const pb=$('#plateField');if(pb)pb.classList.remove('pl-file');}
   plQ('#plWo').value=o.wo||'';
   if(o.t==='PM'){plQ('#plFq').value=o.fq||'W1';plQ('#plDate').value=o.d||'';plQ('#plDesc').value=o.desc||'';}
   else{plQ('#plRd').value=o.rd||'';plQ('#plCode').value=o.code||'';plQ('#plProb').value=o.prob||'';plQ('#plCause').value=o.cause||'';plQ('#plFix').value=o.fix||'';plQ('#plDate2').value=o.d||'';plQ('#plSt').value=o.st||'Complete';PLS.sp=(o.sp||[]).map(r=>({c:r.c||'',n:r.n||'',u:r.u||'',q:r.q||''}));plPaintSp();}
   plRefresh();plReqPaint();
 }
 function plReset(){
-  PLS.type='PM';PLS.sp=[];try{const pb=$('#plateField');if(pb){pb.classList.remove('pl-auto','pl-edit');const sm=pb.querySelector('#plSum');if(sm)sm.remove();pb.querySelectorAll('.pl-got').forEach(x=>x.classList.remove('pl-got'));}}catch(e){}
+  PLS.type='PM';PLS.sp=[];try{const pb=$('#plateField');if(pb){pb.classList.remove('pl-auto','pl-edit');pb.classList.add('pl-file');const sm=pb.querySelector('#plSum');if(sm)sm.remove();pb.querySelectorAll('.pl-got').forEach(x=>x.classList.remove('pl-got'));}}catch(e){}
   const b=$('#plateField');if(b&&PLS.built){b.querySelectorAll('input,textarea').forEach(i=>{if(i.type!=='file')i.value='';});plQ('#plSt').value='Complete';plQ('#plFq').value='W1';b.classList.remove('is-cm');b.querySelectorAll('.pl-tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t==='PM'));}
 }
 function plValidate(){
@@ -4699,6 +4701,8 @@ function plAutoCollapse(){
   let sum=b.querySelector('#plSum');if(!sum){sum=document.createElement('div');sum.id='plSum';sum.className='pl-sum';grid.prepend(sum);}
   sum.innerHTML='<span>'+[PLS.type,v('#plWo'),v('#plLoc'),v('#plEq')!=='—'?v('#plEq'):'',fq,dt].filter(Boolean).map(x=>'<b>'+esc(x)+'</b>').join(' · ')+'</span><button type="button" class="btn btn-soft">'+esc(_tx('Edit'))+'</button>';
   sum.querySelector('button').onclick=()=>b.classList.toggle('pl-edit');
+  const need=['#plWo','#plLoc','#plEq',cm?'#plDate2':'#plDate'].concat(cm?['#plProb','#plFix']:[]);
+  b.classList.toggle('pl-file',need.every(i=>plQ(i).value));
 }
 (function(){
   const _rc=readChecks;readChecks=function(){return isPlate(sel.project)?plRead():_rc();};
@@ -4706,7 +4710,7 @@ function plAutoCollapse(){
   const _dn=detectNewFields;detectNewFields=function(){return isPlate(sel.project)?[]:_dn();};
   const _pr=paintReadingField;paintReadingField=function(){_pr();try{paintPlate();}catch(e){}};
   const _rf=resetForm;resetForm=function(){plReset();_rf();try{paintPlate();}catch(x){}};
-  document.addEventListener('click',e=>{if(e.target&&e.target.id==='saveBtn'&&isPlate(sel.project)){sel.system=PLS.type;if(!plValidate()){e.stopImmediatePropagation();e.preventDefault();}}},true);
+  document.addEventListener('click',e=>{if(e.target&&e.target.id==='saveBtn'&&isPlate(sel.project)){sel.system=PLS.type;if(!plValidate()){const pb=$('#plateField');if(pb)pb.classList.add('pl-edit');e.stopImmediatePropagation();e.preventDefault();}}},true);
   /* ไฟล์ใบงาน: รับ PDF (แปลงหน้าแรกเป็นรูป) และรูปความละเอียดสูงกว่าปกติ เพื่อให้ตัวหนังสือในใบงานอ่านออก */
   document.addEventListener('change',async e=>{
     const t=e.target;if(!t||t.id!=='fileMain'||!isPlate(sel.project))return;
@@ -6046,6 +6050,47 @@ function isQuick(k){
   if(k==='m'){f.from=isYmd(y,t.getMonth()+1,1);f.to=isYmd(y,t.getMonth()+1,new Date(y,t.getMonth()+1,0).getDate());}
   IS.page=0;isRender();
 }
+/* ===== Phase 54: dropdown ช่องพิมพ์ (datalist) เป็นกล่องสีขาวของเราเอง — ของเบราว์เซอร์เปลี่ยนสีตาม OS =====
+   shortcut: ใช้ได้กับ input[list] ทุกช่อง (ถอด list ตอนโฟกัส); ตัวเลือกกรองแบบ "มีคำนี้อยู่" สูงสุด 40 รายการ */
+let acRefresh=()=>{};
+(function(){
+  let box,cur=null,on=-1,opts=[],last=null;
+  const dlOf=i=>{const id=i.dataset.dl||i.getAttribute('list');return id?document.getElementById(id):null;};
+  const hide=()=>{if(box)box.hidden=true;cur=null;on=-1;};
+  function place(){
+    const r=cur.getBoundingClientRect(),z=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--z'))||1;
+    box.style.width=Math.max(r.width,220)/z+'px';box.style.left=Math.min(r.left,innerWidth-230)/z+'px';
+    const below=innerHeight-r.bottom,h=Math.min(260,box.scrollHeight);
+    if(below<h+10&&r.top>below)box.style.top=Math.max(4,r.top-h-4)/z+'px';else box.style.top=(r.bottom+4)/z+'px';
+  }
+  function show(i){
+    last=i;const dl=dlOf(i);if(!dl)return hide();
+    const q=i.value.trim().toLowerCase();
+    opts=[...dl.options].map(o=>({v:o.value,t:(o.label&&o.label!==o.value?o.label:o.textContent||'').trim()})).filter(o=>o.v&&o.v!==i.value&&(!q||(o.v+' '+o.t).toLowerCase().includes(q))).slice(0,40);
+    if(!opts.length)return hide();
+    if(!box){box=document.createElement('div');box.className='ac-pop';box.setAttribute('role','listbox');document.body.appendChild(box);
+      box.addEventListener('mousedown',e=>{e.preventDefault();const o=e.target.closest('.ac-o');if(o)pick(+o.dataset.i);});}
+    cur=i;on=-1;box.innerHTML=opts.map((o,k)=>`<div class="ac-o" role="option" data-i="${k}">${esc(o.v)}${o.t?`<small>${esc(o.t)}</small>`:''}</div>`).join('');
+    box.hidden=false;place();
+  }
+  function pick(k){
+    const i=cur,o=opts[k];if(!i||!o)return;i.value=o.v;hide();
+    i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+  const arm=i=>{if(i&&i.tagName==='INPUT'&&i.hasAttribute('list')){i.dataset.dl=i.getAttribute('list');i.removeAttribute('list');}};
+  document.addEventListener('focusin',e=>{arm(e.target);if(cur&&e.target!==cur)hide();},true);
+  document.addEventListener('mousedown',e=>{arm(e.target);},true);
+  document.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.dl)show(e.target);});
+  document.addEventListener('click',e=>{const t=e.target;if(t.dataset&&t.dataset.dl){if(!cur)show(t);}else if(box&&!box.contains(t))hide();});
+  document.addEventListener('keydown',e=>{
+    const t=e.target;if(!t.dataset||!t.dataset.dl)return;
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){if(!cur)show(t);if(!cur)return;e.preventDefault();on=(on+(e.key==='ArrowDown'?1:-1)+opts.length)%opts.length;[...box.children].forEach((c,k)=>{c.classList.toggle('on',k===on);if(k===on)c.scrollIntoView({block:'nearest'});});}
+    else if(e.key==='Enter'&&cur&&on>=0){e.preventDefault();pick(on);}
+    else if(e.key==='Escape'&&cur){hide();}
+  });
+  addEventListener('resize',hide);addEventListener('scroll',e=>{if(cur&&!(box&&box.contains(e.target)))hide();},true);
+  acRefresh=()=>{if(last&&last.isConnected&&document.activeElement===last)show(last);};
+})();
 /* ===== ใบส่งอุปกรณ์ F-OMA-0111 ===== */
 const DN_LOGO='data:image/jpeg;base64,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';
 const DN_TYPES=[['ส่งซ่อมภายนอก (RO)','',''],['เคลมสินค้า (CL)','Claim',''],['ซ่อมภายใน R&D (RF)','',''],['คืนลูกค้า (ครุภัณฑ์)','','ครุภัณฑ์คืนลูกค้า'],['ส่งภายใน / สำรอง','',''],['อื่น ๆ','','']];
@@ -6126,9 +6171,85 @@ async function dnSave(){
 async function dnLoad(force){
   if(DN.loaded&&!force)return;const r=await api(ACT.dnGet,{});
   if(!r||!r.ok){const h=$('#dnBody');if(h)h.innerHTML=`<div class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</div>`;return;}
-  DN.vendors=r.vendors;DN.projects=r.projects;DN.notes=r.notes;DN.next=r.next;DN.loaded=true;if(!DN.f)dnNew();dnPaint();
+  DN.vendors=r.vendors;DN.projects=r.projects;DN.notes=r.notes;DN.next=r.next;DN.loaded=true;if(!DN.f)dnNew();dnPaint();dnIssue();
 }
 function dnItemRows(){return DN.f.items.map((it,i)=>`<tr><td class="c">${i+1}</td><td><input class="tin" list="dnPartL" data-di="${i}:desc" value="${escAttr(it.desc)}" aria-label="รายการ" autocomplete="off"></td><td><input class="tin dn-q" data-di="${i}:qty" value="${escAttr(it.qty)}" inputmode="decimal" aria-label="จำนวน"></td><td><input class="tin" data-di="${i}:sn" value="${escAttr(it.sn)}" aria-label="หมายเลขเครื่อง"></td><td><input class="tin" data-di="${i}:more" value="${escAttr(it.more)}" aria-label="ข้อมูลเพิ่มเติม"></td><td><input class="tin dn-q" data-di="${i}:iv" value="${escAttr(it.iv)}" aria-label="IV No."></td><td><input class="tin dn-q" data-di="${i}:rv" value="${escAttr(it.rv)}" aria-label="RV No."></td><td><button type="button" class="btn btn-soft dn-x" data-dx="${i}" aria-label="ลบแถว ${i+1}">✕</button></td></tr>`).join('');}
+/* Phase 54: ดึง S/N + จุดติดตั้ง จากใบเบิกล่าสุดของอะไหล่ชิ้นนั้น (ข้อมูลชุดเดียวกับแท็บ อะไหล่ที่ใช้) */
+async function dnIssue(){
+  if(IS.loaded)return;
+  const c=await KV.get('issue');if(c&&c.ok&&c.rows)isApply(c);
+  if(IS.loaded)return;
+  let r;try{r=await api(ACT.getIssueData,{v:''});}catch(e){r=null;}
+  if(r&&r.ok&&r.rows){isApply(r);if(r.v)KV.set('issue',r);}
+}
+function dnLastIssue(desc){
+  const d=String(desc||'').trim();if(!d||!IS.loaded)return null;
+  const m=/\(MAT\.?\s*([^)\s]+)\)\s*$/i.exec(d),code=m&&m[1],nm=d.replace(/\s*\(MAT\.?[^)]*\)\s*$/i,'').trim().toLowerCase();
+  let best=null;
+  IS.rows.forEach(r=>{
+    if(!(code?String(r.part)===code:(String(r.pname||'').toLowerCase()===nm||String(r.name||'').toLowerCase()===nm)))return;
+    if(!best||r.d>best.d||(r.d===best.d&&String(r.iv)>String(best.iv)))best=r;
+  });
+  return best;
+}
+/* เติม S/N + ข้อมูลเพิ่มเติมเฉพาะช่องว่าง (หรือค่าที่ระบบเติมไว้เองเมื่อเปลี่ยนรายการ) — คืน true ถ้าเจอใบเบิก */
+function dnFillRow(it){
+  const r=dnLastIssue(it.desc);if(!r)return null;
+  const a=it._a||(it._a={sn:'',more:''}),pt=String(r.point||r.install||'').trim(),sn=String(r.serial||'').trim();
+  if(sn&&(!it.sn||it.sn===a.sn)){it.sn=sn;a.sn=sn;}
+  if(pt&&(!it.more||it.more===a.more)){it.more=pt;a.more=pt;}
+  if(!it.qty)it.qty='1';
+  return r;
+}
+function dnSyncRow(i){
+  const it=DN.f.items[i];['qty','sn','more'].forEach(k=>{const e=document.querySelector(`#dnItems [data-di="${i}:${k}"]`);if(e)e.value=it[k];});
+}
+/* Excel: หาแถวหัวตาราง (รายการ/Description + จำนวน/Qty + S/N) แล้วอ่านรายการ — รับไฟล์ที่ระบบนี้ดาวน์โหลดไปด้วย */
+function dnParseXls(a){
+  const sh=a.findIndex(r=>(r||[]).some(x=>/^รายการอะไหล่/.test(String(x).trim())));
+  if(sh>=0){/* รายงานมูลค่าสินค้าคงเหลือ (StockValuationReport): แถวอะไหล่ + แถวละ 1 หมายเลขเครื่อง */
+    const ix=(r,re)=>(r||[]).findIndex(x=>re.test(String(x).trim())),cc=ix(a[sh],/^รายการอะไหล่/),nc=ix(a[sh],/^ชื่ออะไหล่/),out=[];let cur=null,c=null;
+    a.forEach(r=>{
+      const T=k=>String(r[k]==null?'':r[k]).trim();
+      if(ix(r,/^เลขที่แบช/)>=0){c={b:ix(r,/^เลขที่แบช/),s:ix(r,/^หมายเลขเครื่อง/),q:ix(r,/^จำนวนคงเหลือ/)};return;}
+      if(T(cc)&&T(nc)&&!/^รายการอะไหล่/.test(T(cc))){cur={code:T(cc),name:T(nc)};c=null;return;}
+      if(cur&&c&&T(c.b)&&!/^ยอดรวม/.test(T(c.b)))out.push({desc:`${cur.name} (MAT.${cur.code})`,qty:T(c.q)||'1',sn:c.s>=0?T(c.s):'',more:'',iv:'',rv:''});
+    });
+    return out;
+  }
+  const P={desc:/รายการ|description|อะไหล่|ชื่ออุปกรณ์|^item$/i,qty:/จำนวน|qty|quantity/i,sn:/s\/?n|serial|หมายเลขเครื่อง|ซีเรียล/i,more:/ข้อมูลเพิ่มเติม|more|หมายเหตุ|remark/i,iv:/^iv/i,rv:/^rv/i};
+  const map=(row,m)=>{(row||[]).forEach((x,j)=>{const t=String(x).trim();if(!t||/ลำดับ/.test(t))return;for(const k in P)if(m[k]==null&&P[k].test(t)){m[k]=j;break;}});return m;};
+  let h=-1,m={};
+  for(let r=0;r<Math.min(a.length,40)&&h<0;r++){const x=map(a[r],{});if(x.desc!=null&&(x.qty!=null||x.sn!=null)){h=r;m=x;}}
+  if(h<0)return null;
+  let st=h+1;if((a[h+1]||[]).some(x=>/^description$/i.test(String(x).trim()))){m=map(a[h+1],{...m});st=h+2;}
+  const out=[];
+  for(let r=st;r<a.length;r++){
+    const row=a[r]||[],g=k=>m[k]==null?'':String(row[m[k]]==null?'':row[m[k]]).trim();
+    if(/^(หมายเหตุ|ผู้ส่ง|ติดต่อ)/.test(String(row.find(x=>String(x).trim())||'').trim()))break;
+    if(!g('desc'))continue;
+    out.push({desc:g('desc'),qty:g('qty'),sn:g('sn'),more:g('more'),iv:g('iv'),rv:g('rv')});
+  }
+  return out;
+}
+async function dnImportXls(file){
+  await loadLib('xlsx');const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});let rows=null;
+  for(const n of wb.SheetNames){const r=dnParseXls(XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:''}));if(r&&r.length){rows=r;break;}}
+  if(!rows){toast('ไม่พบหัวตาราง รายการ (Description) / จำนวน / S/N ในไฟล์',false);return;}
+  await dnIssue();
+  const m=cmModal({title:'เลือกรายการจาก Excel',wide:true,body:''});
+  m.body.innerHTML=`<label class="wo-rem"><input type="checkbox" id="dnPkAll"><span>เลือกทั้งหมด (${rows.length} รายการ)</span></label><div class="cm-wrap"><table class="cm-tbl"><thead><tr><th></th><th>รายการ (Description)</th><th>จำนวน</th><th>S/N</th></tr></thead><tbody>${rows.map((r,k)=>`<tr><td><input type="checkbox" data-k="${k}" aria-label="เลือก"></td><td>${esc(r.desc)}</td><td>${esc(r.qty)}</td><td>${esc(r.sn)}</td></tr>`).join('')}</tbody></table></div>`;
+  m.foot.innerHTML='<button type="button" class="btn btn-primary" id="dnPkGo">ใส่ในใบส่ง</button>';
+  m.body.addEventListener('change',e=>{if(e.target.id==='dnPkAll')m.body.querySelectorAll('[data-k]').forEach(b=>{b.checked=e.target.checked;});});
+  m.foot.querySelector('#dnPkGo').onclick=()=>{
+    const pick=[...m.body.querySelectorAll('[data-k]:checked')].map(b=>rows[+b.dataset.k]);
+    if(!pick.length){toast('ติ๊กเลือกรายการก่อน',false);return;}
+    const f=DN.f;let hit=0;pick.forEach(it=>{if(dnFillRow(it))hit++;});
+    f.items=f.items.filter(i=>i.desc||i.sn||i.more).concat(pick.map(i=>({...dnBlankItem(),...i})));
+    $('#dnItems').innerHTML=dnItemRows();m.close();
+    toast(`ใส่ ${pick.length} รายการ`+(hit?` · เติมจุดติดตั้งจากใบเบิกล่าสุด ${hit} รายการ`:''),true);
+  };
+}
 function dnPaint(){
   const h=$('#dnBody');if(!h||!DN.f)return;const f=DN.f,fv=(k,l,x='')=>`<label class="dn-f"><span>${l}</span><input class="tin" data-dn="${k}" value="${escAttr(f[k])}" ${x} autocomplete="off"></label>`;
   const q=DN.q.toLowerCase(),list=DN.notes.filter(n=>!q||[n.no,n.toName,n.remark,n.proj,n.dtype].join(' ').toLowerCase().includes(q));
@@ -6140,12 +6261,12 @@ ${fv('date','วันที่','type="date"')}
 <label class="dn-f dn-w"><span>ส่ง (ผู้รับ) — เลือกจากรายการหรือพิมพ์ใหม่</span><input class="tin" list="dnVL" data-dn="toName" value="${escAttr(f.toName)}" autocomplete="off"></label>
 ${fv('addr','ที่อยู่')}${fv('phone','โทรศัพท์')}${fv('contact','ชื่อผู้ติดต่อ')}${fv('ref','อ้างอิง (เช่น Claim, เลขใบ LN26-xxx)')}
 <label class="dn-f dn-w"><span>โครงการ</span><select class="tin" id="dnProjSel"><option value="">— เลือกโครงการ —</option>${DN.projects.map((p,i)=>`<option value="${i}"${p.name===f.proj&&p.no===f.projNo?' selected':''}>${esc(p.name)}${p.no?' — '+esc(p.no):''}</option>`).join('')}</select></label>
-${fv('proj','ชื่อโครงการ (แก้ได้)')}${fv('projNo','เลขที่โครงการ')}
+${DN.projects.some(p=>p.name===f.proj&&p.no===f.projNo)?'':fv('proj','ชื่อโครงการ (ไม่มีในรายการ — พิมพ์เอง)')+fv('projNo','เลขที่โครงการ')}
 <label class="dn-f dn-w"><span>หมายเหตุ (เลข WO เช่น RO26-00001, CL26-00001 หรือ "ครุภัณฑ์คืนลูกค้า")</span><input class="tin" data-dn="remark" value="${escAttr(f.remark)}" autocomplete="off"></label>
 </div>
 <div class="dn-wo"><label class="dn-f dn-w"><span>เพิ่มรายการจากใบสั่งงาน — พิมพ์เลข WO (RO / RF / CL …) แล้วเลือก ระบบจะเติมรายการ, S/N, อาการ, ผู้รับ และประเภทให้</span><input class="tin" id="dnWo" list="dnWoL" placeholder="เช่น RO26-001" autocomplete="off"></label></div>
 <div class="cm-wrap"><table class="cm-tbl dn-tbl"><thead><tr><th>#</th><th>รายการ (Description)</th><th>จำนวน</th><th>หมายเลขเครื่อง (S/N)</th><th>ข้อมูลเพิ่มเติม</th><th>IV No.</th><th>RV No.</th><th></th></tr></thead><tbody id="dnItems">${dnItemRows()}</tbody></table></div>
-<div class="dn-bar"><button type="button" class="btn btn-soft" id="dnAdd">+ เพิ่มแถว</button><span class="dn-sp"></span>
+<div class="dn-bar"><button type="button" class="btn btn-soft" id="dnAdd">+ เพิ่มแถว</button><label class="btn btn-soft" style="cursor:pointer">นำเข้ารายการจาก Excel<input type="file" id="dnXlsIn" accept=".xls,.xlsx,.csv" hidden></label><span class="dn-sp"></span>
 <label class="dn-f dn-s"><span>ผู้ส่งอุปกรณ์</span><input class="tin" data-dn="sender" value="${escAttr(f.sender)}"></label><label class="dn-f dn-s"><span>ผู้อนุมัติ</span><input class="tin" list="dnAL" data-dn="approver" value="${escAttr(f.approver)}"><datalist id="dnAL"><option value="นางสาวไพลิน จันทรังษี"><option value="นายธาคุณ ช่วงบุญศรี"><option value="นางสาววนิชา ทิมสุเรนทร์"><option value="นายศุภกิจ เสาวรัตน์ชัย"></datalist></label></div>
 <div class="dn-bar"><button type="button" class="btn btn-primary" id="dnSave">บันทึก (ออกเลขที่)</button><button type="button" class="btn btn-soft" id="dnPrint">พิมพ์ / PDF</button><button type="button" class="btn btn-soft" id="dnXls">ดาวน์โหลด Excel</button><button type="button" class="btn btn-soft" id="dnReset">ล้างฟอร์ม / ใบใหม่</button></div></div>
 <div class="dn-card"><div class="dn-bar"><b>ประวัติใบส่งที่ออกแล้ว (${DN.notes.length})</b><span class="dn-sp"></span><input type="search" class="tin dn-sq" id="dnQ" placeholder="ค้นหา เลขที่ / ผู้รับ / WO" value="${escAttr(DN.q)}" aria-label="ค้นหาใบส่ง"></div>
@@ -6157,13 +6278,15 @@ function dnBuildPanel(host){
     const t=e.target,f=DN.f;if(!f)return;
     if(t.dataset.dn){const k=t.dataset.dn;f[k]=t.value;if(k==='toName'&&DN.vendors.some(v=>v.name===t.value)){dnPickVendor(t.value);dnPaint();const x=$('#dnBody [data-dn="toName"]');if(x)x.focus();}}
     else if(t.dataset.di){const[i,k]=t.dataset.di.split(':');f.items[+i][k]=t.value;
-      if(k==='desc'&&t.value.length>=2){clearTimeout(tm);tm=setTimeout(async()=>{const r=await api(ACT.listCmms,{type:'parts',q:t.value,limit:10});const dl=$('#dnPartL');if(r&&r.ok&&dl)dl.innerHTML=r.rows.map(p=>`<option value="${escAttr(p.name+' (MAT.'+p.part+')')}">`).join('');},250);}}
+      if(k==='desc'&&t.value.length>=2){clearTimeout(tm);tm=setTimeout(async()=>{const r=await api(ACT.listCmms,{type:'parts',q:t.value,limit:10});const dl=$('#dnPartL');if(r&&r.ok&&dl)dl.innerHTML=r.rows.map(p=>`<option value="${escAttr(p.name+' (MAT.'+p.part+')')}">`).join('');acRefresh();},250);}}
     else if(t.id==='dnWo'){const v=t.value.trim();const m=DN.hit[v];if(m){t.value='';dnAddWo(m);return;}
-      if(v.length>=4){clearTimeout(tw);tw=setTimeout(async()=>{const r=await api(ACT.listCmms,{type:'wos',q:v,limit:12});const dl=$('#dnWoL');if(r&&r.ok&&dl){DN.hit={};r.rows.forEach(o=>{DN.hit[o.wo]=o;});dl.innerHTML=r.rows.map(o=>`<option value="${escAttr(o.wo)}">${esc(String(o.desc||'').split('\n')[0].slice(0,60))}</option>`).join('');}},250);}}
+      if(v.length>=4){clearTimeout(tw);tw=setTimeout(async()=>{const r=await api(ACT.listCmms,{type:'wos',q:v,limit:12});const dl=$('#dnWoL');if(r&&r.ok&&dl){DN.hit={};r.rows.forEach(o=>{DN.hit[o.wo]=o;});dl.innerHTML=r.rows.map(o=>`<option value="${escAttr(o.wo)}">${esc(String(o.desc||'').split('\n')[0].slice(0,60))}</option>`).join('');acRefresh();}},250);}}
     else if(t.id==='dnQ'){DN.q=t.value;clearTimeout(tm);tm=setTimeout(()=>{dnPaint();const q=$('#dnQ');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length);}},250);}
   });
   host.addEventListener('change',e=>{
     const t=e.target,f=DN.f;if(!f)return;
+    if(t.id==='dnXlsIn'){const fl=t.files&&t.files[0];t.value='';if(fl)dnImportXls(fl).catch(()=>toast('อ่านไฟล์ Excel ไม่สำเร็จ',false));return;}
+    if(t.dataset.di&&/:desc$/.test(t.dataset.di)){const i=+t.dataset.di.split(':')[0],it=f.items[i];dnIssue().then(()=>{const r=dnFillRow(it);if(r){dnSyncRow(i);toast(`ดึงจากใบเบิก ${r.iv||''}${r.wo?' · WO '+r.wo:''} (${dnFmtDate(r.d)})`,true);}});return;}
     if(t.id==='dnProjSel'){const p=DN.projects[+t.value];if(p){f.proj=p.name;f.projNo=p.no;dnPaint();}}
     else if(t.dataset.dn==='dtype'){const ty=DN_TYPES.find(x=>x[0]===t.value);f.dtype=t.value;if(ty){if(ty[1]&&!f.ref)f.ref=ty[1];if(ty[2]&&!f.remark)f.remark=ty[2];}dnPaint();}
   });
@@ -6319,6 +6442,30 @@ async function wbPhoto(file){
   try{const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=u;});const k=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.82);}
   catch(e){return '';}finally{URL.revokeObjectURL(u);}
 }
+/* Phase 54: กดพิมพ์/ดาวน์โหลดใบงาน → บันทึกเป็นรายการ (Record) ให้เลย 1 ใบงาน = 1 รายการ; ใบที่มีเลขใบงานในระบบแล้วข้าม */
+async function wbSaveRecs(L,sg){
+  const P=sel.project;if(!P||!isPlate(P)||!AUTH.token)return;
+  const who=((sg.sig&&sg.sig.op&&sg.sig.op.name)||'').trim()||(AUTH.user&&(AUTH.user.name||AUTH.user.username))||'';
+  let ok=0,dup=0;const bad=[];
+  for(const d of L){
+    const wo=String(d.woNo||'').trim();if(!wo)continue;
+    if(entries.some(x=>x.project===P&&String(x.checks||'').includes('"wo":"'+wo+'"'))){dup++;continue;}
+    const o=plFromWb(d),mt=plMatchLocEq(o.code);
+    if(!mt.loc||!mt.eq){bad.push(wo);continue;}
+    const m=ccMaster(P,mt.loc).find(x=>x.equipment===mt.eq)||{};
+    const checks=o.t==='PM'?{t:'PM',wo,fq:o.fq||'W1',d:o.d,desc:o.fix}:{t:'CM',wo,rd:o.rd,code:o.code,prob:o.prob,cause:d.cause||'',fix:o.fix,d:o.d,st:/hold|progress/i.test(d.status||'')?'In progress':'Complete',sp:o.sp};
+    const bl=await wbPng(d,sg,0).catch(()=>null);
+    const main=bl?await compressImage(new File([bl],'wo.png',{type:'image/png'}),1900,900000).catch(()=>''):'';
+    const ph=d.photos||{};
+    const rec={id:uid(),project:P,system:o.t,typeLocation:m.typeLocation||'',location:mt.loc,sublocation:m.subName||'',equipment:mt.eq,serial:'',brand:'',model:'',asset:'',inspector:who,note:'',reading:'',checks:JSON.stringify(checks),createdAt:Date.now(),pendingReview:'',newFields:''};
+    const payload={record:rec,images:{main:main||'',sticker:ph.before||'',img3:ph.after||'',img4:''}};
+    let r=navigator.onLine?await api(ACT.createRecord,payload):{ok:false,error:'NETWORK'};
+    if(r&&r.error==='NETWORK')r={ok:await oqEnqueue(payload)};
+    if(r&&r.ok)ok++;else bad.push(wo);
+  }
+  if(ok){try{await loadRecords();updateStats();}catch(e){}}
+  toast((ok?`บันทึกเป็นรายการแล้ว ${ok} ใบ`:'')+(dup?` · มีในระบบแล้ว ${dup} ใบ`:'')+(bad.length?` · บันทึกไม่ได้ (ไม่พบเครื่องใน Master หรือส่งไม่สำเร็จ): ${bad.join(', ')}`:''),!bad.length);
+}
 function wbOpen(){
   const WB={list:[],pick:{},sat:'',sat0:true};const pads={};
   const m=cmModal({title:'ใบงาน PM / CM (แบบ CMMS)',wide:true,body:''});
@@ -6354,8 +6501,8 @@ function wbOpen(){
   });
   m.foot.addEventListener('click',async e=>{
     const b=e.target.closest('button');if(!b)return;const L=sel();if(!L.length){toast('เลือกใบงานก่อน',false);return;}
-    if(b.id==='wbPrint')wbPrint(L,sgOf());
-    else if(b.id==='wbPng'){b.disabled=true;try{const sg=sgOf();for(const d of L){const n=d.type==='CM'?2:1;for(let p=0;p<n;p++){const bl=await wbPng(d,sg,p);if(!bl)continue;const a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=d.woNo+(n>1?'_p'+(p+1):'')+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}}}catch(x){toast('สร้างรูปไม่สำเร็จ ลองใช้พิมพ์/PDF แทน',false);}b.disabled=false;}
+    if(b.id==='wbPrint'){const sg=sgOf();if(wbPrint(L,sg))await wbSaveRecs(L,sg);}
+    else if(b.id==='wbPng'){b.disabled=true;try{const sg=sgOf();for(const d of L){const n=d.type==='CM'?2:1;for(let p=0;p<n;p++){const bl=await wbPng(d,sg,p);if(!bl)continue;const a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=d.woNo+(n>1?'_p'+(p+1):'')+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}}await wbSaveRecs(L,sg);}catch(x){toast('สร้างรูปไม่สำเร็จ ลองใช้พิมพ์/PDF แทน',false);}b.disabled=false;}
   });
   WB.paint=paint;window.__wb=WB;return m;
 }
