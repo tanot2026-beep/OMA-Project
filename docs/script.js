@@ -4188,7 +4188,7 @@ const CC_EQUIP='ตรวจสภาพอุปกรณ์ (PM)';
 let TPL={};const RPT_DATA={};
 const CC={loc:'',date:'',st:{},why:{},note:{}};
 /* เทมเพลตเริ่มต้นตามชื่อโครงการ (เมื่อ admin ยังไม่ได้ตั้ง): CCTV → cctv, โทรมาตร → รูปรายสถานี */
-function inferTemplate(p){const n=String(p||'');if(/cctv/i.test(n))return 'cctv';if(/โทรมาตร|telemetry/i.test(n))return 'station';if(/สายสัญญาณ/.test(n))return 'equip';if(/แผ่นป้ายทะเบียน|license[\s_-]*plate|\bl?pr\b/i.test(n))return 'plate';return '';}
+function inferTemplate(p){const n=String(p||'');if(/cctv/i.test(n))return 'cctv';if(/โทรมาตร|telemetry/i.test(n))return 'station';if(/สายสัญญาณ/.test(n))return 'equip';if(/แผ่นป้าย|ป้ายทะเบียน|plate|\bl?pr\b/i.test(n))return 'plate';return '';}
 const tplOf=p=>TPL[p]||inferTemplate(p);
 function isCctv(p){return !!p&&tplOf(p)==='cctv';}
 const ccKey=m=>m.serial?String(m.serial):(String(m.subName||'')+'|'+String(m.equipment||''));
@@ -4607,7 +4607,7 @@ function plLoad(json,system){
   plRefresh();plReqPaint();
 }
 function plReset(){
-  PLS.type='PM';PLS.sp=[];try{const pb=$('#plateField');if(pb){pb.classList.remove('pl-auto','pl-edit');pb.classList.add('pl-file');const sm=pb.querySelector('#plSum');if(sm)sm.remove();pb.querySelectorAll('.pl-got').forEach(x=>x.classList.remove('pl-got'));}}catch(e){}
+  PLS.type='PM';PLS.sp=[];PLS.who='';try{const pb=$('#plateField');if(pb){pb.classList.remove('pl-auto','pl-edit');pb.classList.add('pl-file');const sm=pb.querySelector('#plSum');if(sm)sm.remove();pb.querySelectorAll('.pl-got').forEach(x=>x.classList.remove('pl-got'));}}catch(e){}
   const b=$('#plateField');if(b&&PLS.built){b.querySelectorAll('input,textarea').forEach(i=>{if(i.type!=='file')i.value='';});plQ('#plSt').value='Complete';plQ('#plFq').value='W1';b.classList.remove('is-cm');b.querySelectorAll('.pl-tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t==='PM'));}
 }
 function plValidate(){
@@ -4678,12 +4678,12 @@ function plMatchLocEq(code){
 /* ใบงาน CMMS (Excel) → รูปแบบเดียวกับที่อ่านจาก PDF */
 function plFromWb(d){
   const iso=x=>{const m=String(x||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):'';};
-  return {wo:d.woNo,t:d.type==='PM'?'PM':'CM',d:iso(d.actualFinish)||iso(d.actualStart)||iso(d.planStart),rd:iso(d.reqDate),code:d.equipmentNo||'',prob:d.problem||'',fix:d.fix||d.detail||'',fq:plFreq((d.stepCode||'')+' '+(d.program||'')),sp:(d.used||[]).filter(r=>r&&r[0]).map(r=>({c:r[0],n:r[1]||'',u:r[2]||'',q:r[4]||''}))};
+  return {wo:d.woNo,staff:d.staff||'',t:d.type==='PM'?'PM':'CM',d:iso(d.actualFinish)||iso(d.actualStart)||iso(d.planStart),rd:iso(d.reqDate),code:d.equipmentNo||'',prob:d.problem||'',fix:d.fix||d.detail||'',fq:plFreq((d.stepCode||'')+' '+(d.program||'')),sp:(d.used||[]).filter(r=>r&&r[0]).map(r=>({c:r[0],n:r[1]||'',u:r[2]||'',q:r[4]||''}))};
 }
 function plApplyWo(o){
   if(!o)return false;
   const S=(id,v,force)=>{const e=plQ(id);if(e&&v&&(force||!e.value))e.value=v;};
-  plSetType(o.t);plQ('#plWo').value=o.wo;
+  plSetType(o.t);plQ('#plWo').value=o.wo;PLS.who=o.staff||'';
   try{const m=plMatchLocEq(o.code);if(m.loc){choose('loc',m.loc);plRefresh();if(m.eq){choose('equip',m.eq);plRefresh();}}}catch(e){}
   if(o.t==='PM'&&o.fq)plQ('#plFq').value=o.fq;
   if(o.t==='PM'){S('#plDate',o.d,1);S('#plDesc',o.fix);}
@@ -4710,7 +4710,8 @@ function plAutoCollapse(){
   const _dn=detectNewFields;detectNewFields=function(){return isPlate(sel.project)?[]:_dn();};
   const _pr=paintReadingField;paintReadingField=function(){_pr();try{paintPlate();}catch(e){}};
   const _rf=resetForm;resetForm=function(){plReset();_rf();try{paintPlate();}catch(x){}};
-  document.addEventListener('click',e=>{if(e.target&&e.target.id==='saveBtn'&&isPlate(sel.project)){sel.system=PLS.type;if(!plValidate()){const pb=$('#plateField');if(pb)pb.classList.add('pl-edit');e.stopImmediatePropagation();e.preventDefault();}}},true);
+  document.addEventListener('click',e=>{if(e.target&&e.target.id==='saveBtn'&&isPlate(sel.project)){sel.system=PLS.type;{const iv=$('#inpInspector');if(iv&&(PLS.who||!iv.value.trim()))iv.value=PLS.who||(AUTH.user&&(AUTH.user.name||AUTH.user.username))||'';}
+    if(!plValidate()){const pb=$('#plateField');if(pb)pb.classList.add('pl-edit');e.stopImmediatePropagation();e.preventDefault();}}},true);
   /* ไฟล์ใบงาน: รับ PDF (แปลงหน้าแรกเป็นรูป) และรูปความละเอียดสูงกว่าปกติ เพื่อให้ตัวหนังสือในใบงานอ่านออก */
   document.addEventListener('change',async e=>{
     const t=e.target;if(!t||t.id!=='fileMain'||!isPlate(sel.project))return;
@@ -6108,8 +6109,9 @@ function dnNorm(s){return String(s||'').replace(/บริษัท|บจก\.?
 function dnVendorFor(staff){const n=dnNorm(staff);if(n.length<4)return null;return DN.vendors.find(v=>{const m=dnNorm(v.name);return m.includes(n)||n.includes(m);})||null;}
 function dnAddWo(o){
   const f=DN.f,wo=String(o.wo||'').trim(),p=dnWoParse(o),pf=wo.slice(0,2).toUpperCase();
-  const first=f.items.findIndex(i=>!i.desc&&!i.sn);const row={desc:p.desc,qty:'1',sn:p.sn,more:p.more,iv:'',rv:''};
+  const first=f.items.findIndex(i=>!i.desc&&!i.sn);const row={desc:p.desc,qty:'1',sn:p.sn,more:p.more,iv:'',rv:'',_wo:1};
   if(first>=0)f.items[first]=row;else f.items.push(row);
+  dnIssue().then(()=>{if(dnFillRow(row)&&f.items.includes(row))dnPaint();});
   f.remark=[...new Set((f.remark?f.remark.split(/\s*,\s*/):[]).concat(wo))].filter(Boolean).join(' , ');
   if(pf in DN_PFX){f.dtype=DN_TYPES[DN_PFX[pf]][0];if(DN_TYPES[DN_PFX[pf]][1]&&!f.ref)f.ref=DN_TYPES[DN_PFX[pf]][1];}
   if(!f.toName){const v=dnVendorFor(o.staff);if(v)dnPickVendor(v.name);}
@@ -6120,26 +6122,41 @@ function dnPickVendor(name){const v=DN.vendors.find(x=>x.name===name);DN.f.toNam
 function dnFmtDate(d){const m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(d||''));return m?`${m[3]}/${m[2]}/${m[1]}`:String(d||'');}
 function dnRows(f){const rows=[];let n=0;f.items.filter(i=>i.desc||i.sn||i.more).forEach(i=>{rows.push({n:i.desc?++n:'',...i});});return rows;}
 function dnPrintHtml(f){
-  const rows=dnRows(f),pad=Math.max(0,16-rows.length);
+  const rows=dnRows(f),pad=Math.max(0,18-rows.length);
   const td=(v,c)=>`<td${c?` class="${c}"`:''}>${esc(v)}</td>`;
-  const body=rows.map(r=>`<tr>${td(r.n,'c')}${td(r.desc)}${td(r.qty,'c')}${td(r.sn)}${td(r.more)}${td(r.iv,'c')}${td(r.rv,'c')}</tr>`).join('')+'<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(pad);
-  const L=(a,b)=>`<div class="l"><b>${a}</b> ${esc(b)}</div>`;
+  const body=rows.map(r=>`<tr>${td(r.n,'c')}${td(r.desc)}${td(r.qty,'c')}${td(r.sn)}${td(r.more)}${td(r.iv,'c')}${td(r.rv,'c')}</tr>`).join('')+'<tr class="e"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(pad);
+  const L=(a,b,h)=>`<div class="fr"${h?` style="min-height:${h}px"`:''}><b>${a}</b><span>${esc(b)}</span></div>`;
+  const S=(a,b)=>`<td class="lb">${a}</td><td class="ln">${esc(b||'')}</td>`;
+  /* ตำแหน่งตามฟอร์ม F-OMA-0111: ผู้ส่ง/ผู้รับ แถวเดียวกัน, ผู้อนุมัติอยู่ใต้ผู้ส่ง, Internal Use Only กลางล่าง, เลขฟอร์มขวาล่าง */
   return `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(f.no||'ใบส่งอุปกรณ์')}</title><style>
-@page{size:A4;margin:12mm}*{box-sizing:border-box}body{font-family:Tahoma,'Cordia New',sans-serif;font-size:12.5px;color:#111;margin:0}
-.h{display:flex;align-items:center;gap:14px;border-bottom:2px solid #111;padding-bottom:6px}.h img{height:54px}.h div{font-size:15px;font-weight:700;line-height:1.35}
-h1{text-align:center;font-size:20px;margin:8px 0}.top{display:flex;gap:16px}.top>div{flex:1}.l{margin:2px 0;line-height:1.5}.l b{display:inline-block;min-width:92px}
-table{border-collapse:collapse;width:100%;margin-top:8px}th,td{border:1px solid #111;padding:3px 5px;vertical-align:top;font-size:12px}th{background:#eee;text-align:center}td.c{text-align:center}
-.rm{margin-top:8px}.ct{margin-top:6px;font-size:11.5px}.sg{display:flex;gap:10px;margin-top:20px}.sg div{flex:1;text-align:center;line-height:1.9}.sg i{display:block;border-bottom:1px dotted #111;margin:22px 8px 2px}
-.ft{margin-top:14px;font-size:10.5px;color:#444}</style></head><body>
-<div class="h"><img src="${DN_LOGO}" alt="AMR"><div>บริษัท เอเอ็มอาร์ เอเซีย จำกัด (มหาชน)<br>AMR Asia Public Company Limited</div></div><h1>ใบส่งอุปกรณ์</h1>
-<div class="top"><div>${L('ส่ง :',f.toName)}${L('ที่อยู่ :',f.addr)}${L('โทรศัพท์ :',f.phone)}${L('ชื่อผู้ติดต่อ :',f.contact)}</div><div>${L('วันที่ :',dnFmtDate(f.date))}${L('เลขที่ใบส่งอุปกรณ์ :',f.no||'(ออกเลขเมื่อบันทึก)')}${L('อ้างอิง :',f.ref)}${L('โครงการ :',f.proj)}${L('เลขที่โครงการ :',f.projNo)}</div></div>
-<table><thead><tr><th style="width:7%">ลำดับที่<br>Item</th><th>รายการ<br>Description</th><th style="width:8%">จำนวน<br>Quantity</th><th style="width:16%">หมายเลขเครื่อง<br>Serial Number</th><th style="width:18%">ข้อมูลเพิ่มเติม<br>More details</th><th style="width:9%">เลขที่ใบรับ/ใบเบิก CMMS<br>IV No.</th><th style="width:9%"><br>RV No.</th></tr></thead><tbody>${body}</tbody></table>
-<div class="rm"><b>หมายเหตุ :</b> ${esc(f.remark)}</div><div class="ct">ติดต่อส่งใบเสนอราคา 02-589-9955 ต่อ 337 , Email : ma_warehouse@amrasia.com</div>
-<div class="sg"><div>ผู้ส่งอุปกรณ์<i></i>( ${esc(f.sender)} )<br>เจ้าหน้าที่คลังสินค้า OMA<br>วันที่ ........................</div><div>ผู้รับอุปกรณ์<i></i>( ${esc(f.toName)} )<br>วันที่ ........................</div><div>ผู้อนุมัติ<i></i>( ${esc(f.approver)} )<br>วันที่ ........................</div></div>
-<div class="ft">Internal Use Only &nbsp;&nbsp;&nbsp; F-OMA-0111 Rev.00</div></body></html>`;
+@page{size:A4;margin:8mm 8mm 14mm}*{box-sizing:border-box}body{font-family:Tahoma,'Cordia New',sans-serif;font-size:12.5px;color:#000;margin:0;width:194mm}
+.h{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}.h img{height:56px}.h div{text-align:right;font-size:15px;font-weight:700;line-height:1.35}
+.box{border:1px solid #000;border-bottom:0}.tt{background:#bfbfbf;border-bottom:1px solid #000;text-align:center;font-size:22px;font-weight:700;padding:3px 0}
+.top{display:flex;gap:18px;padding:10px 14px 8px}.top>div{flex:1}.fr{display:flex;align-items:flex-end;min-height:22px;margin:0}.fr b{width:112px;text-align:right;padding-right:6px;white-space:nowrap;flex:none}.fr span{flex:1;border-bottom:1px solid #000;min-height:20px;padding:0 4px;overflow-wrap:anywhere}
+table.t{border-collapse:collapse;width:100%}table.t th,table.t td{border:1px solid #000;padding:2px 5px;vertical-align:top;font-size:12px;white-space:pre-line}table.t th{text-align:center;font-weight:700;background:#fff}table.t td.c{text-align:center}table.t tr.e td{height:19px}
+.rm{display:flex;align-items:flex-end;margin-top:12px}.rm b{width:80px;flex:none}.rm span{flex:1;border-bottom:1px solid #000;min-height:20px;padding:0 4px}.rl{margin-left:80px;border-bottom:1px solid #000;height:20px}
+.ct{margin:6px 0 0 80px;font-weight:700}
+table.sg{width:100%;border-collapse:collapse;margin-top:18px}table.sg td{padding:0;vertical-align:bottom;height:25px}table.sg td.lb{text-align:right;font-weight:700;white-space:nowrap;padding-right:6px}table.sg td.ln{border-bottom:1px solid #000;text-align:center}table.sg td.mid{font-weight:700;padding-left:8px;white-space:nowrap}table.sg td.nm{text-align:center;vertical-align:top}table.sg tr.sp td{height:16px}
+.ft{position:fixed;left:0;right:0;bottom:0;display:flex;font-size:11px}.ft span{flex:1}.ft span:nth-child(2){text-align:center}.ft span:nth-child(3){text-align:right}</style></head><body>
+<div id="pg"><div class="h"><img src="${DN_LOGO}" alt="AMR"><div>บริษัท เอเอ็มอาร์ เอเซีย จำกัด (มหาชน)<br>AMR Asia Public Company Limited</div></div>
+<div class="box"><div class="tt">ใบส่งอุปกรณ์</div>
+<div class="top"><div>${L('ส่ง :',f.toName)}${L('ที่อยู่ :',f.addr,44)}${L('โทรศัพท์ :',f.phone)}${L('ชื่อผู้ติดต่อ :',f.contact)}</div><div>${L('วันที่ :',dnFmtDate(f.date))}${L('เลขที่ใบส่งอุปกรณ์ :',f.no||'(ออกเลขเมื่อบันทึก)')}${L('อ้างอิง :',f.ref)}${L('โครงการ :',f.proj)}${L('เลขที่โครงการ :',f.projNo)}</div></div></div>
+<table class="t"><thead><tr><th rowspan="1" style="width:8%">ลำดับที่</th><th>รายการ</th><th style="width:9%">จำนวน</th><th style="width:16%">หมายเลขเครื่อง</th><th style="width:19%">ข้อมูลเพิ่มเติม</th><th colspan="2" style="width:18%">เลขที่ใบรับ/ใบเบิก CMMS</th></tr><tr><th>Item</th><th>Description</th><th>Quantity</th><th>Serial Number</th><th>More details</th><th>IV No.</th><th>RV No.</th></tr></thead><tbody>${body}</tbody></table>
+<div class="rm"><b>หมายเหตุ :</b><span>${esc(f.remark)}</span></div><div class="rl"></div><div class="rl"></div>
+<div class="ct">ติดต่อส่งใบเสนอราคา 02-589-9955 ต่อ 337 , Email : ma_warehouse@amrasia.com</div>
+<table class="sg"><colgroup><col style="width:17%"><col style="width:22%"><col style="width:22%"><col style="width:17%"><col style="width:22%"></colgroup>
+<tr>${S('ผู้ส่งอุปกรณ์','')}<td class="mid">เจ้าหน้าที่คลังสินค้า OMA</td>${S('ผู้รับอุปกรณ์','')}</tr>
+<tr><td></td><td class="nm">( ${esc(f.sender)} )</td><td></td><td></td><td class="nm">( ${esc(f.toName)} )</td></tr>
+<tr>${S('วันที่','')}<td></td>${S('วันที่','')}</tr>
+<tr class="sp"><td colspan="5"></td></tr>
+<tr>${S('ผู้อนุมัติ','')}<td></td><td colspan="2"></td></tr>
+<tr><td></td><td class="nm">( ${esc(f.approver)} )</td><td colspan="3"></td></tr>
+<tr>${S('วันที่','')}<td></td><td colspan="2"></td></tr></table></div>
+<div class="ft"><span></span><span>Internal Use Only</span><span>F-OMA-0111 Rev.00</span></div>
+<script>addEventListener("load",function(){var g=document.getElementById("pg"),a=1030,z=1;for(;z>.55;z-=.03){g.style.zoom=z;if(Math.min(g.getBoundingClientRect().height,g.scrollHeight*z)<=a)break;}});<\/script></body></html>`;
 }
 function dnPrint(){
-  if(!dnValid())return;const fr=document.createElement('iframe');fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';document.body.appendChild(fr);
+  if(!dnValid())return;const fr=document.createElement('iframe');fr.style.cssText='position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:0';document.body.appendChild(fr);
   fr.srcdoc=dnPrintHtml(DN.f);fr.onload=()=>{try{fr.contentWindow.focus();fr.contentWindow.print();}catch(e){toast('พิมพ์ไม่สำเร็จ',false);}setTimeout(()=>fr.remove(),60000);};
 }
 async function dnExcel(){
@@ -6148,7 +6165,7 @@ async function dnExcel(){
     ['ส่ง :',f.toName,'','','วันที่ :',dnFmtDate(f.date)],['ที่อยู่ :',f.addr,'','','เลขที่ใบส่งอุปกรณ์ :',f.no],['โทรศัพท์ :',f.phone,'','','อ้างอิง :',f.ref],['ชื่อผู้ติดต่อ :',f.contact,'','','โครงการ :',f.proj],['','','','','เลขที่โครงการ :',f.projNo],[],
     ['ลำดับที่','รายการ','','จำนวน','หมายเลขเครื่อง','ข้อมูลเพิ่มเติม','เลขที่ใบรับ/ใบเบิก CMMS'],['Item','Description','','Quantity','Serial Number','More details','IV No.','RV No.']]
     .concat(rows.map(r=>[r.n,r.desc,'',r.qty===''?'':(isNaN(Number(r.qty))?r.qty:Number(r.qty)),r.sn,r.more,r.iv,r.rv]));
-  A.push([],['หมายเหตุ :',f.remark],['ติดต่อส่งใบเสนอราคา 02-589-9955 ต่อ 337 , Email : ma_warehouse@amrasia.com'],[],['ผู้ส่งอุปกรณ์','','เจ้าหน้าที่คลังสินค้า OMA','','ผู้รับอุปกรณ์','','ผู้อนุมัติ'],['( '+f.sender+' )','','','','( '+f.toName+' )','','( '+f.approver+' )'],['วันที่','','','','วันที่','','วันที่'],[],['Internal Use Only      F-OMA-0111 Rev.00']);
+  A.push([],['หมายเหตุ :',f.remark],['ติดต่อส่งใบเสนอราคา 02-589-9955 ต่อ 337 , Email : ma_warehouse@amrasia.com'],[],['ผู้ส่งอุปกรณ์','','เจ้าหน้าที่คลังสินค้า OMA','','ผู้รับอุปกรณ์'],['( '+f.sender+' )','','','','( '+f.toName+' )'],['วันที่','','','','วันที่'],[],['ผู้อนุมัติ'],['( '+f.approver+' )'],['วันที่'],[],['','','Internal Use Only','','','','F-OMA-0111 Rev.00']);
   const ws=XLSX.utils.aoa_to_sheet(A);ws['!cols']=[{wch:10},{wch:44},{wch:4},{wch:10},{wch:22},{wch:30},{wch:16},{wch:12}];
   ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:7}},{s:{r:1,c:0},e:{r:1,c:7}},{s:{r:9,c:1},e:{r:9,c:2}},{s:{r:10,c:1},e:{r:10,c:2}}].concat(rows.map((_,i)=>({s:{r:11+i,c:1},e:{r:11+i,c:2}})));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'F-OMA-0111');
@@ -6173,7 +6190,7 @@ async function dnLoad(force){
   if(!r||!r.ok){const h=$('#dnBody');if(h)h.innerHTML=`<div class="cm-msg">${esc((r&&r.message)||'โหลดข้อมูลไม่สำเร็จ')}</div>`;return;}
   DN.vendors=r.vendors;DN.projects=r.projects;DN.notes=r.notes;DN.next=r.next;DN.loaded=true;if(!DN.f)dnNew();dnPaint();dnIssue();
 }
-function dnItemRows(){return DN.f.items.map((it,i)=>`<tr><td class="c">${i+1}</td><td><input class="tin" list="dnPartL" data-di="${i}:desc" value="${escAttr(it.desc)}" aria-label="รายการ" autocomplete="off"></td><td><input class="tin dn-q" data-di="${i}:qty" value="${escAttr(it.qty)}" inputmode="decimal" aria-label="จำนวน"></td><td><input class="tin" data-di="${i}:sn" value="${escAttr(it.sn)}" aria-label="หมายเลขเครื่อง"></td><td><input class="tin" data-di="${i}:more" value="${escAttr(it.more)}" aria-label="ข้อมูลเพิ่มเติม"></td><td><input class="tin dn-q" data-di="${i}:iv" value="${escAttr(it.iv)}" aria-label="IV No."></td><td><input class="tin dn-q" data-di="${i}:rv" value="${escAttr(it.rv)}" aria-label="RV No."></td><td><button type="button" class="btn btn-soft dn-x" data-dx="${i}" aria-label="ลบแถว ${i+1}">✕</button></td></tr>`).join('');}
+function dnItemRows(){return DN.f.items.map((it,i)=>`<tr><td class="c">${i+1}</td><td><input class="tin" list="dnPartL" data-di="${i}:desc" value="${escAttr(it.desc)}" aria-label="รายการ" autocomplete="off"></td><td><input class="tin dn-q" data-di="${i}:qty" value="${escAttr(it.qty)}" inputmode="decimal" aria-label="จำนวน"></td><td><input class="tin" data-di="${i}:sn" value="${escAttr(it.sn)}" aria-label="หมายเลขเครื่อง"></td><td><textarea class="tin" rows="2" data-di="${i}:more" aria-label="ข้อมูลเพิ่มเติม">${esc(it.more)}</textarea></td><td><input class="tin dn-q" data-di="${i}:iv" value="${escAttr(it.iv)}" aria-label="IV No."></td><td><input class="tin dn-q" data-di="${i}:rv" value="${escAttr(it.rv)}" aria-label="RV No."></td><td><button type="button" class="btn btn-soft dn-x" data-dx="${i}" aria-label="ลบแถว ${i+1}">✕</button></td></tr>`).join('');}
 /* Phase 54: ดึง S/N + จุดติดตั้ง จากใบเบิกล่าสุดของอะไหล่ชิ้นนั้น (ข้อมูลชุดเดียวกับแท็บ อะไหล่ที่ใช้) */
 async function dnIssue(){
   if(IS.loaded)return;
@@ -6195,16 +6212,18 @@ function dnLastIssue(desc){
 /* เติม S/N + ข้อมูลเพิ่มเติมเฉพาะช่องว่าง (หรือค่าที่ระบบเติมไว้เองเมื่อเปลี่ยนรายการ) — คืน true ถ้าเจอใบเบิก */
 function dnFillRow(it){
   const r=dnLastIssue(it.desc);if(!r)return null;
-  const a=it._a||(it._a={sn:'',more:''}),pt=String(r.point||r.install||'').trim(),sn=String(r.serial||'').trim();
+  const a=it._a||(it._a={sn:'',more:''}),pt=[...new Set([r.install,r.point].map(x=>String(x||'').trim()).filter(Boolean))].join('\n'),sn=String(r.serial||'').trim();
   if(sn&&(!it.sn||it.sn===a.sn)){it.sn=sn;a.sn=sn;}
-  if(pt&&(!it.more||it.more===a.more)){it.more=pt;a.more=pt;}
+  if(it._wo){if(r.iv&&!it.iv)it.iv=String(r.iv);}/* ใบ RO/CL: ข้อมูลเพิ่มเติม = อาการเสีย + ใส่เลข IV */
+  else if(pt&&(!it.more||it.more===a.more)){it.more=pt;a.more=pt;}
   if(!it.qty)it.qty='1';
   return r;
 }
 function dnSyncRow(i){
-  const it=DN.f.items[i];['qty','sn','more'].forEach(k=>{const e=document.querySelector(`#dnItems [data-di="${i}:${k}"]`);if(e)e.value=it[k];});
+  const it=DN.f.items[i];['qty','sn','more','iv'].forEach(k=>{const e=document.querySelector(`#dnItems [data-di="${i}:${k}"]`);if(e)e.value=it[k];});
 }
 /* Excel: หาแถวหัวตาราง (รายการ/Description + จำนวน/Qty + S/N) แล้วอ่านรายการ — รับไฟล์ที่ระบบนี้ดาวน์โหลดไปด้วย */
+const dnQty=v=>{const n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,''));return isNaN(n)?'':String(n);};
 function dnParseXls(a){
   const sh=a.findIndex(r=>(r||[]).some(x=>/^รายการอะไหล่/.test(String(x).trim())));
   if(sh>=0){/* รายงานมูลค่าสินค้าคงเหลือ (StockValuationReport): แถวอะไหล่ + แถวละ 1 หมายเลขเครื่อง */
@@ -6213,7 +6232,7 @@ function dnParseXls(a){
       const T=k=>String(r[k]==null?'':r[k]).trim();
       if(ix(r,/^เลขที่แบช/)>=0){c={b:ix(r,/^เลขที่แบช/),s:ix(r,/^หมายเลขเครื่อง/),q:ix(r,/^จำนวนคงเหลือ/)};return;}
       if(T(cc)&&T(nc)&&!/^รายการอะไหล่/.test(T(cc))){cur={code:T(cc),name:T(nc)};c=null;return;}
-      if(cur&&c&&T(c.b)&&!/^ยอดรวม/.test(T(c.b)))out.push({desc:`${cur.name} (MAT.${cur.code})`,qty:T(c.q)||'1',sn:c.s>=0?T(c.s):'',more:'',iv:'',rv:''});
+      if(cur&&c&&T(c.b)&&!/^ยอดรวม/.test(T(c.b)))out.push({desc:`${cur.name} (MAT.${cur.code})`,qty:dnQty(T(c.q))||'1',sn:c.s>=0?T(c.s):'',more:'',iv:'',rv:''});
     });
     return out;
   }
@@ -6228,7 +6247,7 @@ function dnParseXls(a){
     const row=a[r]||[],g=k=>m[k]==null?'':String(row[m[k]]==null?'':row[m[k]]).trim();
     if(/^(หมายเหตุ|ผู้ส่ง|ติดต่อ)/.test(String(row.find(x=>String(x).trim())||'').trim()))break;
     if(!g('desc'))continue;
-    out.push({desc:g('desc'),qty:g('qty'),sn:g('sn'),more:g('more'),iv:g('iv'),rv:g('rv')});
+    out.push({desc:g('desc'),qty:dnQty(g('qty')),sn:g('sn'),more:g('more'),iv:g('iv'),rv:g('rv')});
   }
   return out;
 }
@@ -6320,6 +6339,7 @@ function wbParse(aoa){
     const t=txt(r),f=t[0]||'';if(!t.length)return;
     if(/ใบงานบำรุงรักษาเชิงป้องกัน/.test(f))d.type='PM';else if(/ใบงานบำรุงรักษาเชิงแก้ไข/.test(f))d.type='CM';
     const wm=f.match(/^\*?([A-Z]{2}\d{2}-\d+)\*?$/);if(wm&&!d.woNo)d.woNo=wm[1];
+    if(/^พนักงาน/.test(f)&&!d.staff)d.staff=(t[1]||'').trim();
     if(!d.status){const s=t.find(x=>/^(Complete|Hold|Closed|Cancel(?:led)?|Active|Open|In ?Progress|Planned|Released)$/i.test(x));if(s)d.status=s;}
     if(/^Activity Description/.test(f)){mode='act';return;}
     if(/^หัวข้อการปฏิบัติงาน/.test(f)){mode='tasks';hdr=null;return;}
@@ -6445,7 +6465,6 @@ async function wbPhoto(file){
 /* Phase 54: กดพิมพ์/ดาวน์โหลดใบงาน → บันทึกเป็นรายการ (Record) ให้เลย 1 ใบงาน = 1 รายการ; ใบที่มีเลขใบงานในระบบแล้วข้าม */
 async function wbSaveRecs(L,sg){
   const P=sel.project;if(!P||!isPlate(P)||!AUTH.token)return;
-  const who=((sg.sig&&sg.sig.op&&sg.sig.op.name)||'').trim()||(AUTH.user&&(AUTH.user.name||AUTH.user.username))||'';
   let ok=0,dup=0;const bad=[];
   for(const d of L){
     const wo=String(d.woNo||'').trim();if(!wo)continue;
@@ -6457,7 +6476,7 @@ async function wbSaveRecs(L,sg){
     const bl=await wbPng(d,sg,0).catch(()=>null);
     const main=bl?await compressImage(new File([bl],'wo.png',{type:'image/png'}),1900,900000).catch(()=>''):'';
     const ph=d.photos||{};
-    const rec={id:uid(),project:P,system:o.t,typeLocation:m.typeLocation||'',location:mt.loc,sublocation:m.subName||'',equipment:mt.eq,serial:'',brand:'',model:'',asset:'',inspector:who,note:'',reading:'',checks:JSON.stringify(checks),createdAt:Date.now(),pendingReview:'',newFields:''};
+    const rec={id:uid(),project:P,system:o.t,typeLocation:m.typeLocation||'',location:mt.loc,sublocation:m.subName||'',equipment:mt.eq,serial:'',brand:'',model:'',asset:'',inspector:String(d.staff||'').trim()||(AUTH.user&&(AUTH.user.name||AUTH.user.username))||'',note:'',reading:'',checks:JSON.stringify(checks),createdAt:Date.now(),pendingReview:'',newFields:''};
     const payload={record:rec,images:{main:main||'',sticker:ph.before||'',img3:ph.after||'',img4:''}};
     let r=navigator.onLine?await api(ACT.createRecord,payload):{ok:false,error:'NETWORK'};
     if(r&&r.error==='NETWORK')r={ok:await oqEnqueue(payload)};
@@ -6478,7 +6497,10 @@ function wbOpen(){
 <label class="wo-rem"><input type="checkbox" id="wbDate" checked><span>วันที่ใต้ลายเซ็น = วันที่ปฏิบัติงานของแต่ละใบ (ไม่ติ๊ก = วันนี้)</span></label>`;
   m.foot.innerHTML='<button type="button" class="btn btn-soft" id="wbPng">ดาวน์โหลดเป็นรูป (ต่อหน้า)</button><button type="button" class="btn btn-primary" id="wbPrint">'+cmI('doc')+'<span>พิมพ์ / PDF ทั้งหมด</span></button>';
   WO_SIGS.forEach(g=>{pads[g[0]]=woPad(m.body.querySelector(`.wo-sig[data-g="${g[0]}"] canvas`));});
-  const paint=()=>{m.body.querySelector('#wbList').innerHTML=WB.list.length?`<div class="cm-wrap"><table class="cm-tbl"><thead><tr><th></th><th>เลขที่ใบงาน</th><th>ประเภท</th><th>เครื่อง</th><th>วันที่</th><th>สถานะ</th><th>รูปก่อน / หลังซ่อม (CM)</th><th></th></tr></thead><tbody>${WB.list.map((d,i)=>`<tr><td><input type="checkbox" data-on="${i}" ${d.on!==false?'checked':''} aria-label="เลือก ${escAttr(d.woNo)}"></td><td><b>${esc(d.woNo)}</b></td><td>${d.type}</td><td>${esc(d.equipmentNo)}</td><td>${esc((d.actualFinish||d.actualStart||d.planStart||d.reqDate||'').slice(0,10))}</td><td>${stPill(d.status)}</td><td>${d.type==='CM'?['before','after'].map(k=>`<label class="btn btn-soft wb-ph"><input type="file" accept="image/*" hidden data-ph="${i}:${k}"><span>${d.photos[k]?'✓ ':''}${k==='before'?'ก่อนซ่อม':'หลังซ่อม'}</span></label>`).join(''):'—'}</td><td><button type="button" class="btn btn-soft" data-edit="${i}" aria-expanded="${!!d.ed}">${d.ed?'ซ่อนข้อมูล':'กรอก / แก้ข้อมูล'}</button></td></tr>${d.ed?wbEditor(d,i):''}`).join('')}</tbody></table></div><datalist id="wbStL"><option>Complete</option><option>Hold</option><option>Active</option><option>Closed</option></datalist>`:'<div class="cm-msg">ยังไม่ได้เลือกไฟล์</div>';};
+  let paint=()=>{m.body.querySelector('#wbList').innerHTML=WB.list.length?`<div class="cm-wrap"><table class="cm-tbl"><thead><tr><th></th><th>เลขที่ใบงาน</th><th>ประเภท</th><th>เครื่อง</th><th>วันที่</th><th>สถานะ</th><th>รูปก่อน / หลังซ่อม (CM)</th><th></th></tr></thead><tbody>${WB.list.map((d,i)=>`<tr><td><input type="checkbox" data-on="${i}" ${d.on!==false?'checked':''} aria-label="เลือก ${escAttr(d.woNo)}"></td><td><b>${esc(d.woNo)}</b></td><td>${d.type}</td><td>${esc(d.equipmentNo)}</td><td>${esc((d.actualFinish||d.actualStart||d.planStart||d.reqDate||'').slice(0,10))}</td><td>${stPill(d.status)}</td><td>${d.type==='CM'?['before','after'].map(k=>`<label class="btn btn-soft wb-ph"><input type="file" accept="image/*" hidden data-ph="${i}:${k}"><span>${d.photos[k]?'✓ ':''}${k==='before'?'ก่อนซ่อม':'หลังซ่อม'}</span></label>`).join(''):'—'}</td><td><button type="button" class="btn btn-soft" data-edit="${i}" aria-expanded="${!!d.ed}">${d.ed?'ซ่อนข้อมูล':'กรอก / แก้ข้อมูล'}</button></td></tr>${d.ed?wbEditor(d,i):''}`).join('')}</tbody></table></div><datalist id="wbStL"><option>Complete</option><option>Hold</option><option>Active</option><option>Closed</option></datalist>`:'<div class="cm-msg">ยังไม่ได้เลือกไฟล์</div>';};
+  const chk=()=>{const cms=WB.list.filter(d=>d.type==='CM'&&d.on!==false),miss=cms.filter(d=>!d.photos.before||!d.photos.after);let c=m.body.querySelector('#wbChk');if(!c){c=document.createElement('div');c.id='wbChk';c.className='wo-rem';m.body.querySelector('#wbList').before(c);}
+    c.innerHTML=cms.length?`<b>รูปก่อน/หลังซ่อม (CM): ครบ ${cms.length-miss.length}/${cms.length} ใบ</b>${miss.length?' · ยังขาด: '+miss.map(d=>esc(d.woNo)).join(', '):' ✓'} <label class="btn btn-soft" style="cursor:pointer">แนบรูปหลายรูปพร้อมกัน<input type="file" id="wbBulk" accept="image/*" multiple hidden></label><small>ตั้งชื่อไฟล์ให้มีเลขใบงาน + before/after หรือ ก่อน/หลัง ระบบจัดให้เอง; รูปที่เหลือจัดตามลำดับชื่อไฟล์ (ก่อน, หลัง) ตามเลขใบงาน</small>`:'';};
+  const paint0=paint;paint=()=>{paint0();chk();};WB.paint=()=>paint();
   paint();
   const sgOf=()=>{const sig={};m.body.querySelectorAll('.wo-sig').forEach(e=>{const g=e.dataset.g,img=pads[g].toData(),name=e.querySelector('[data-n]').value.trim();sig[g]={img,name};});return {sig,today:woToday(),useWoDate:m.body.querySelector('#wbDate').checked,fill:m.body.querySelector('#wbFill').checked};};
   const sel=()=>{const s=+WB.sat||0;return WB.list.filter(d=>d.on!==false).map(d=>Object.assign(d,{satisfaction:s}));};
@@ -6489,6 +6511,15 @@ function wbOpen(){
       out.forEach(d=>{if(!WB.list.some(x=>x.woNo===d.woNo))WB.list.push(d);});WB.list.sort((a,b)=>a.type.localeCompare(b.type)||a.woNo.localeCompare(b.woNo));paint();return;}
     if(t.dataset.on!=null){WB.list[+t.dataset.on].on=t.checked;return;}
     if(t.dataset.ed){const [i,k]=t.dataset.ed.split(':'),d=WB.list[+i];if(k==='used')d.used=wbUsedParse(t.value);else if(k==='actualStart'||k==='actualFinish')d[k]=wbUnloc(t.value);else d[k]=t.value.trim();if(k==='actualFinish'||k==='actualStart'||k==='status')paint();return;}
+    if(t.id==='wbBulk'){
+      const fs=[...t.files].sort((a,b)=>a.name.localeCompare(b.name,'th',{numeric:true}));t.value='';
+      const cms=WB.list.filter(d=>d.type==='CM'),rest=[];let byName=0,byOrder=0;
+      for(const f of fs){
+        const n=f.name.toLowerCase(),d=cms.find(x=>n.includes(String(x.woNo).toLowerCase())),k=/before|ก่อน/.test(n)?'before':/after|หลัง/.test(n)?'after':'';
+        if(d&&k){const u=await wbPhoto(f);if(u){d.photos[k]=u;byName++;}}else rest.push(f);
+      }
+      for(const f of rest){const d=cms.find(x=>!x.photos.before||!x.photos.after);if(!d)break;const u=await wbPhoto(f);if(u){d.photos[d.photos.before?'after':'before']=u;byOrder++;}}
+      paint();toast(`แนบรูปแล้ว ${byName+byOrder} รูป (ตามชื่อไฟล์ ${byName} · ตามลำดับ ${byOrder})`+(rest.length>byOrder?` · เกิน ${rest.length-byOrder} รูป`:''),true);return;}
     if(t.dataset.ph){const [i,k]=t.dataset.ph.split(':');const u=await wbPhoto(t.files[0]);t.value='';if(u){WB.list[+i].photos[k]=u;paint();}else toast('แนบรูปไม่ได้ — ใช้ไฟล์รูป JPG/PNG',false);return;}
     if(t.type==='file'&&t.closest('.wo-sig')){const g=t.closest('.wo-sig'),f=t.files[0];t.value='';if(f&&!(await pads[g.dataset.g].fromFile(f)))toast('แนบรูปไม่ได้ — ใช้ไฟล์รูปไม่เกิน 8 MB',false);}
   });
