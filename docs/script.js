@@ -5852,6 +5852,27 @@ function txParse(aoa){
   });
   return {ok:true,rows};
 }
+/* ReportTransactionHistory (รายงานการเคลื่อนไหวสินค้า): เฉพาะแถว ISSUE ที่อ้างเลขใบงาน (CM/IN/OS/PM/RF…) — ได้ใบงาน + S/N + โครงการ; "ผู้ใช้" คือคนตัดเบิกที่คลัง ไม่ใช่ผู้ใช้งานจริง */
+function thParse(aoa){
+  const cl=x=>String(x==null?'':x).trim();
+  const h=aoa.findIndex(r=>r.some(v=>cl(v)==='รายการอะไหล่')&&r.some(v=>cl(v)==='การเคลื่อนไหว')&&r.some(v=>/^เอกสาร/.test(cl(v))));
+  if(h<0)return {ok:false,message:'ไม่พบหัวตาราง — ใช้ไฟล์ ReportTransactionHistory (รายงานการเคลื่อนไหวสินค้า)'};
+  const f=re=>aoa[h].findIndex(v=>re.test(cl(v)));
+  const ix={d:f(/^วันที่จดบันทึก/),p:f(/^รายการอะไหล่/),n:f(/^ชื่ออะไหล่/),m:f(/^การเคลื่อนไหว/),b:f(/^เลขที่แบช/),q:f(/^จำนวน/),u:f(/^หน่วย/),sn:f(/^หมายเลขเครื่อง/),wh:f(/^คลังสินค้า/),doc:f(/^เอกสาร/),ord:f(/^รายละเอียดการพัก/),us:f(/^ผู้ใช้/)};
+  const cnt={},rows=[];let skip=0;
+  aoa.slice(h+1).forEach(r=>{
+    if(cl(r[ix.m]).toUpperCase()!=='ISSUE')return;
+    const doc=cl(r[ix.doc]).toUpperCase();if(!/^[A-Z]{2}\d{2}-\d+$/.test(doc)){skip++;return;}
+    let part=r[ix.p];if(typeof part==='number')part=String(part).padStart(6,'0');part=cl(part);if(!part)return;
+    const v=r[ix.d];let ts='';
+    if(v instanceof Date){if(isNaN(v))return;ts=isYmd(v.getFullYear(),v.getMonth()+1,v.getDate())+' '+isPad(v.getHours())+':'+isPad(v.getMinutes());}
+    else{const m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/.exec(cl(v));if(!m)return;ts=isYmd(+m[3],+m[1],+m[2])+' '+isPad(+(m[4]||0))+':'+isPad(+(m[5]||0));}/* รายงานนี้ใช้ เดือน/วัน/ปี */
+    const q=Number(r[ix.q]),sn=cl(r[ix.sn]),k=cl(r[ix.b])+'|'+part+'|'+ts+'|'+sn;cnt[k]=(cnt[k]||0)+1;
+    rows.push({txKey:'TH|'+k+'|'+cnt[k],date:ts,part,name:cl(r[ix.n]),unit:cl(r[ix.u]),qty:isNaN(q)?0:q,wh:cl(r[ix.wh]),wo:doc,order:cl(r[ix.ord]),issuer:cl(r[ix.us]),serial:sn});
+  });
+  if(!rows.length)return {ok:false,message:'ไม่พบแถวเบิก (ISSUE) ที่อ้างเลขใบงาน'};
+  return {ok:true,rows,info:'ข้ามแถวโอนย้าย/ไม่มีใบงาน '+skip.toLocaleString('en-US')+' แถว'};
+}
 async function isParseFile(file,src){
   await loadLib('xlsx');
   const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
@@ -5860,12 +5881,13 @@ async function isParseFile(file,src){
     if(!vs.length)return {ok:false,message:'ไม่พบใบเบิก — ใช้ไฟล์ IssuedVoucherReport จาก CMMS'};
     return {ok:true,rows:ivBuildRows(vs),info:vs.length.toLocaleString('en-US')+' ใบเบิก'};
   }
+  if(src==='th')return thParse(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}));
   const ws=wb.Sheets.Issue||wb.Sheets[wb.SheetNames[0]];
   const p=txParse(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''}));
   return p.ok?{ok:true,rows:p.rows}:p;
 }
 function isImportOpen(){
-  cmImportModal({title:'นำเข้าอะไหล่ที่ใช้',kinds:[['iv','ใบเบิก (IssuedVoucherReport)'],['tx','Consumable (Transaction Excel)']],
+  cmImportModal({title:'นำเข้าอะไหล่ที่ใช้',kinds:[['iv','ใบเบิก (IssuedVoucherReport)'],['tx','Consumable (Transaction Excel)'],['th','ประวัติการเคลื่อนไหว (ReportTransactionHistory)']],
     parse:isParseFile,
     run:async(rows,mode,src,prog)=>{
       const N=500;let a=0,u=0,m=0;
@@ -6289,6 +6311,23 @@ function dnParseXls(a){
   }
   return out;
 }
+/* Description จาก Excel ที่มีข้อความเกินชื่อในรายการอะไหล่ → ตัดให้เหลือชื่ออะไหล่ (MAT.รหัส) เทียบกับชื่อที่ยาวที่สุดที่อยู่ในข้อความ; ไม่เจอในรายการอะไหล่คงข้อความเดิม */
+const dnPartNorm=x=>String(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+async function dnTrimDescs(items){
+  const memo={},look=q=>memo[q]||(memo[q]=api(ACT.listCmms,{type:'parts',q,limit:100}).then(r=>(r&&r.ok&&r.rows)||[]).catch(()=>[]));
+  let n=0;
+  await Promise.all(items.map(async it=>{
+    const raw=String(it.desc||'').trim();if(!raw||/\(MAT\./i.test(raw))return;
+    const D=dnPartNorm(raw),w=raw.split(/\s+/);let best=null;
+    for(const q of [w.slice(0,2).join(' '),w[0]]){
+      (await look(q)).forEach(p=>{const nm=dnPartNorm(p.name);if(nm.length>=5&&D.includes(nm)&&(!best||nm.length>dnPartNorm(best.name).length))best=p;});
+      if(best)break;
+    }
+    if(!best)return;
+    const nd=`${best.name} (MAT.${best.part})`;if(dnPartNorm(raw)!==dnPartNorm(best.name))n++;it.desc=nd;
+  }));
+  return n;
+}
 async function dnImportXls(file){
   await loadLib('xlsx');const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});let rows=null;
   for(const n of wb.SheetNames){const r=dnParseXls(XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:''}));if(r&&r.length){rows=r;break;}}
@@ -6298,13 +6337,14 @@ async function dnImportXls(file){
   m.body.innerHTML=`<label class="wo-rem"><input type="checkbox" id="dnPkAll"><span>เลือกทั้งหมด (${rows.length} รายการ)</span></label><div class="cm-wrap"><table class="cm-tbl"><thead><tr><th></th><th>รายการ (Description)</th><th>จำนวน</th><th>S/N</th></tr></thead><tbody>${rows.map((r,k)=>`<tr><td><input type="checkbox" data-k="${k}" aria-label="เลือก"></td><td>${esc(r.desc)}</td><td>${esc(r.qty)}</td><td>${esc(r.sn)}</td></tr>`).join('')}</tbody></table></div>`;
   m.foot.innerHTML='<button type="button" class="btn btn-primary" id="dnPkGo">ใส่ในใบส่ง</button>';
   m.body.addEventListener('change',e=>{if(e.target.id==='dnPkAll')m.body.querySelectorAll('[data-k]').forEach(b=>{b.checked=e.target.checked;});});
-  m.foot.querySelector('#dnPkGo').onclick=()=>{
+  m.foot.querySelector('#dnPkGo').onclick=async()=>{
     const pick=[...m.body.querySelectorAll('[data-k]:checked')].map(b=>rows[+b.dataset.k]);
     if(!pick.length){toast('ติ๊กเลือกรายการก่อน',false);return;}
+    m.foot.querySelector('#dnPkGo').disabled=true;const cut=await dnTrimDescs(pick);if(m.closed)return;
     const f=DN.f;let hit=0;pick.forEach(it=>{if(dnFillRow(it))hit++;});
     f.items=f.items.filter(i=>i.desc||i.sn||i.more).concat(pick.map(i=>({...dnBlankItem(),...i})));
     $('#dnItems').innerHTML=dnItemRows();m.close();
-    toast(`ใส่ ${pick.length} รายการ`+(hit?` · เติมจุดติดตั้งจากใบเบิกล่าสุด ${hit} รายการ`:''),true);
+    toast(`ใส่ ${pick.length} รายการ`+(cut?` · ตัดข้อความเกินชื่ออะไหล่ ${cut} รายการ`:'')+(hit?` · เติมจุดติดตั้งจากใบเบิกล่าสุด ${hit} รายการ`:''),true);
   };
 }
 function dnPaint(){
