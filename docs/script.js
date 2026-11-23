@@ -6311,20 +6311,24 @@ function dnParseXls(a){
   }
   return out;
 }
-/* Description จาก Excel ที่มีข้อความเกินชื่อในรายการอะไหล่ → ตัดให้เหลือชื่ออะไหล่ (MAT.รหัส) เทียบกับชื่อที่ยาวที่สุดที่อยู่ในข้อความ; ไม่เจอในรายการอะไหล่คงข้อความเดิม */
+/* Description จาก Excel ที่มีข้อความเกินชื่อในรายการอะไหล่ → ตัดให้เหลือ "ชื่ออะไหล่ (MAT.รหัส)": มี (MAT.รหัส) ในข้อความ → ใช้รหัสค้นชื่อ; ไม่มี → เทียบชื่อที่ยาวที่สุดที่อยู่ในข้อความ; ไม่เจอในรายการอะไหล่คงข้อความเดิม */
 const dnPartNorm=x=>String(x||'').toLowerCase().replace(/\s+/g,' ').trim();
 async function dnTrimDescs(items){
   const memo={},look=q=>memo[q]||(memo[q]=api(ACT.listCmms,{type:'parts',q,limit:100}).then(r=>(r&&r.ok&&r.rows)||[]).catch(()=>[]));
   let n=0;
   await Promise.all(items.map(async it=>{
-    const raw=String(it.desc||'').trim();if(!raw||/\(MAT\./i.test(raw))return;
-    const D=dnPartNorm(raw),w=raw.split(/\s+/);let best=null;
-    for(const q of [w.slice(0,2).join(' '),w[0]]){
-      (await look(q)).forEach(p=>{const nm=dnPartNorm(p.name);if(nm.length>=5&&D.includes(nm)&&(!best||nm.length>dnPartNorm(best.name).length))best=p;});
-      if(best)break;
+    const raw=String(it.desc||'').trim();if(!raw)return;
+    let best=null;const mc=/\(MAT\.?\s*([^)\s]+)\)/i.exec(raw);
+    if(mc)best=(await look(mc[1])).find(p=>String(p.part)===mc[1])||null;
+    if(!best){
+      const txt=raw.replace(/\(MAT\.?[^)]*\)/ig,' ').replace(/\s+/g,' ').trim(),D=dnPartNorm(txt),w=txt.split(' ');
+      for(const q of [w.slice(0,2).join(' '),w[0]]){
+        (await look(q)).forEach(p=>{const nm=dnPartNorm(p.name);if(nm.length>=5&&D.includes(nm)&&(!best||nm.length>dnPartNorm(best.name).length))best=p;});
+        if(best)break;
+      }
     }
     if(!best)return;
-    const nd=`${best.name} (MAT.${best.part})`;if(dnPartNorm(raw)!==dnPartNorm(best.name))n++;it.desc=nd;
+    const nd=`${best.name} (MAT.${best.part})`;if(dnPartNorm(raw)!==dnPartNorm(nd)){n++;it.desc=nd;}
   }));
   return n;
 }
@@ -6673,7 +6677,7 @@ async function tmLoad(month){
 })();
 
 /* เลขรุ่นเล็ก ๆ ท้ายหน้า — ใช้เช็กว่าอัปโหลดไฟล์ชุดล่าสุดขึ้นจริงหรือยัง (ทุกครั้งที่ส่งงานใหม่เลขนี้จะเปลี่ยน) */
-const APP_BUILD='Phase 48';
+const APP_BUILD='Phase 62b · 23 Nov 2026';
 (function(){const m=document.querySelector('main');if(!m||document.getElementById('buildTag'))return;const d=document.createElement('div');d.id='buildTag';d.textContent='Build: '+APP_BUILD;m.parentNode.insertBefore(d,m.nextSibling);try{console.info('OMA build',APP_BUILD);}catch(e){}})();
 
 /* ── Phase 40: each project gets its own planet in the report-loading animation ── */
