@@ -5272,7 +5272,7 @@ const CM_TABS=['กำหนดค่าเครื่องจักรอุ�
 const CM_SUBS=[{k:'equip',n:'รายการอุปกรณ์',t:0},{k:'parts',n:'รายการอะไหล่',t:1},{k:'plan',n:'ตารางงาน PM',t:2},{k:'req',n:'ใบแจ้งซ่อม',t:4},{k:'wos',n:'ใบสั่งงาน',t:4}];
 const CM_COLS={
   wos:[['wo','เลขที่ใบสั่งงาน',/^ใบสั่งงาน$/],['reqDate','วันที่แจ้ง',/^วันที่แจ้ง$/],['reqNo','เลขที่คำร้อง',/^เลขที่คำร้อง/],['wtype','ประเภทงาน',/^ประเภท/],['equip','เครื่องจักรอุปกรณ์',/^เครื่องจักรอุปกรณ์/],['desc','ลักษณะ',/^ลักษณะ/],['detail','รายละเอียดการแจ้งซ่อม',/^รายละเอียดการแจ้งซ่อม/],['cause','สาเหตุ',/^สาเหตุ/],['fix','การแก้ไขปัญหา',/^การแก้ไขปัญหา/],['status','สถานะ',/^สถานะ$/],['hold','รายละเอียดการพัก/อื่นๆ',/^รายละเอียดการพัก/],['finishDate','วันที่เสร็จสิ้น',/^วันที่ปฏิบัติงานเสร็จสิ้น/],['staff','พนักงาน',/^พนักงาน/]],
-  req:[['reqNo','เลขที่คำร้อง',/^เลขที่คำร้อง/],['reqDate','วันที่แจ้ง',/^วันที่แจ้ง$/],['status','สถานะ',/^สถานะใบแจ้งซ่อม/],['priority','ความสำคัญ',/^ความสำคัญ/],['by','ผู้แจ้งซ่อม',/^ผู้แจ้งซ่อม/],['area','พื้นที่',/^พื้นที่/],['install','การติดตั้ง',/^การติดตั้ง/],['recvDate','วันที่รับแจ้ง',/^วันที่รับแจ้งซ่อม/],['recvBy','รับแจ้งโดย',/^รับแจ้งซ่อมโดย/],['detail','รายละเอียดการแจ้งซ่อม',/^รายละเอียดการแจ้งซ่อม/],['wo','เลขที่ใบสั่งงาน',/^เลขที่ใบสั่งงาน/],['startDate','วันเริ่ม',/^วันเริ่ม/],['cause','สาเหตุ',/^สาเหตุ/]],
+  req:[['reqNo','เลขที่คำร้อง',/^เลขที่คำร้อง/],['reqDate','วันที่แจ้ง',/^วันที่แจ้ง$/],['status','สถานะ',/^สถานะใบแจ้งซ่อม/],['priority','ความสำคัญ',/^ความสำคัญ/],['by','ผู้แจ้งซ่อม',/^ผู้แจ้งซ่อม/],['area','พื้นที่',/^พื้นที่/],['install','การติดตั้ง',/^การติดตั้ง/],['recvDate','วันที่รับแจ้ง',/^วันที่รับแจ้งซ่อม/],['recvBy','รับแจ้งโดย',/^รับแจ้งซ่อมโดย/],['detail','รายละเอียดการแจ้งซ่อม',/^รายละเอียดการแจ้งซ่อม/],['wo','เลขที่ใบสั่งงาน',/^เลขที่ใบสั่งงาน/],['startDate','วันเริ่ม',/^วันเริ่ม/],['cause','สาเหตุ',/^สาเหตุ/],['proj','โครงการ',null],['grp','กลุ่มอุปกรณ์',null],['dept','หน่วยงาน',null],['sect','ส่วนงาน',null],['reason','เหตุผลยกเลิก',null]],
   plan:[['wo','เลขที่ใบสั่งงาน',/^เลขที่ใบสั่งงาน/],['grp','กลุ่มงาน',null],['start','วันที่ควรเริ่มงาน',/^วันที่ควรเริ่มงาน/],['end','วันสิ้นสุด',/^วันสิ้นสุด/],['hours','ชั่วโมง',/^ชั่วโมง/],['priority','ความสำคัญ',/^ความสำคัญ/],['wtype','ประเภทงาน',/^ประเภท/],['equip','เครื่องจักรอุปกรณ์',/^เครื่องจักรอุปกรณ์/],['desc','ลักษณะ',/^ลักษณะ/],['status','สถานะ',/^สถานะ/]],
   equip:[['code','เครื่องจักรอุปกรณ์',/^เครื่องจักรอุปกรณ์$/],['desc','ลักษณะ',/^ลักษณะ/],['type','ประเภท',/^ประเภท/],['model','แบบหรือรุ่น',/^แบบหรือรุ่น/],['serial','หมายเลขเครื่อง',/^หมายเลขเครื่อง/],['regNo','เลขทะเบียน',/^เลขทะเบียน/],['regDate','วันที่ลงทะเบียน',/^วันที่ลงทะเบียน/],['maker','ผู้ผลิต',/^ชื่อผู้ผลิต/],['dept','ฝ่าย',/^ฝ่าย/],['project','โครงการ',/^โครงการ/],['owner','Owner',/^owner/i],['active','ดำเนินงาน',/^ดำเนินงาน/],['endDate','สิ้นสุดอายุใช้งาน',/^วันสิ้นสุด/]],
   parts:[['part','รายการอะไหล่',/^รายการอะไหล่/],['name','ชื่ออะไหล่',/^ชื่ออะไหล่/],['grp','กลุ่ม',/^กลุ่ม$/],['wh','คลังสินค้า',/^คลังสินค้า/],['loc','ที่จัดเก็บ',/^ที่จัดเก็บ/],['move','การเคลื่อนไหว',/^การเคลื่อนไหว/],['acct','รหัสบัญชี',/^รหัสบัญชี/],['cls','จำแนกกลุ่ม',/^จำแนกกลุ่ม/],['price','ราคา/หน่วย',/^ราคาต่อหน่วย/,1],['unit','หน่วย',/^หน่วย$/],['qty','คงเหลือ',/^จำนวนคงเหลือ/,1],['backorder','ค้างส่ง',/^จำนวนที่ค้างส่ง/,1],['max','MAX',/^max$/i,1],['rop','ROP',/^rop$/i,1],['min','MIN',/^min$/i,1],['roq','ROQ',/^roq$/i,1]]
@@ -5419,11 +5419,41 @@ async function cmLoad(k,keepDash){
   fresh=true;if(Object.keys(CMC).length>60)CMC={};CMC[key]=r;if(!s.q)KV.set('cm:'+key,r);
   paint(r);
 }
+// อ่าน CSV (RFC4180: เครื่องหมายคำพูด, "" และขึ้นบรรทัดใหม่ในช่อง) — ไม่พึ่ง SheetJS จึงไม่แปลงวันที่ dd/mm ผิดเป็น mm/dd
+function cmCsv(t){
+  const a=[];let r=[],f='',q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
+    else if(c==='"')q=true;
+    else if(c===','){r.push(f);f='';}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;r.push(f);a.push(r);r=[];f='';}
+    else f+=c;}
+  if(f!==''||r.length){r.push(f);a.push(r);}
+  return a;
+}
+// ไฟล์ "ReportRequestOrder" (CSV หัวคอลัมน์ Textbox…) → คอลัมน์ของแท็บใบแจ้งซ่อม; ไม่มีเลขใบสั่งงาน/วันรับแจ้ง (คงค่าเดิมในชีต)
+function cmParseReqCsv(aoa,h){
+  const H=aoa[h].map(x=>String(x).trim()),ix=n=>H.indexOf(n);
+  const M={reqDate:'Textbox150',by:'Textbox151',reqNo:'RequestNo',install:'EquipmentNo',area:'Textbox85',priority:'Textbox100',grp:'Textbox106',proj:'Textbox97',dept:'Textbox91',sect:'Textbox108',detail:'Textbox109',status:'RequestStatus',reason:'Reason2'};
+  const col={};for(const k in M)col[k]=ix(M[k]);
+  const dt=v=>{const m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/.exec(String(v).trim());if(!m)return String(v).trim();const y=+m[3]>2400?+m[3]-543:+m[3],p=n=>String(n).padStart(2,'0');return y+'-'+p(m[2])+'-'+p(m[1])+' '+p(m[4]||0)+':'+p(m[5]||0);};
+  const seen={},rows=[];
+  aoa.slice(h+1).forEach(r=>{
+    const no=String(r[col.reqNo]==null?'':r[col.reqNo]).trim();
+    if(!/^[A-Za-z]{1,4}\d/.test(no)||seen[no])return;seen[no]=1;
+    const o={};for(const k in col){const v=col[k]>=0&&r[col[k]]!=null?r[col[k]]:'';o[k]=k==='reqDate'?dt(v):String(v).replace(/\r\n?/g,'\n').trim();}
+    rows.push(o);
+  });
+  return {ok:true,rows};
+}
 async function cmParse(k,file){
-  await loadLib('xlsx');
-  const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+  let aoa;
+  if(/\.csv$/i.test(file.name||'')||file.type==='text/csv')aoa=cmCsv((await file.text()).replace(/^\uFEFF/,''));
+  else{
+    await loadLib('xlsx');
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+    aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''});
+  }
   const spec=CM_COLS[k];const norm=x=>String(x==null?'':x).replace(/[\s.]+$/g,'').replace(/\s+/g,' ').trim();
   if(k==='plan')return cmParsePlan(aoa,norm);
   if(k==='req')return cmParseReq(aoa,norm);
@@ -5502,9 +5532,11 @@ function cmParsePlan(aoa,norm){
 }
 function cmParseReq(aoa,norm){
   const spec=CM_COLS.req;
+  const hc=aoa.findIndex(r=>r.includes('RequestNo')&&r.includes('EquipmentNo'));
+  if(hc>=0)return cmParseReqCsv(aoa,hc);
   const h=aoa.findIndex(r=>r.some(v=>/^เลขที่คำร้อง/.test(norm(v)))&&r.some(v=>/^วันที่แจ้ง$/.test(norm(v))));
   if(h<0)return {ok:false,message:'ไม่พบหัวตาราง — ใช้ไฟล์ "รายงานสถานะใบแจ้งซ่อม" (ReportRequestOrderStatus) จาก CMMS'};
-  const hd=aoa[h].map(norm);const idx={};spec.forEach(c=>{idx[c[0]]=hd.findIndex(x=>c[2].test(x));});
+  const hd=aoa[h].map(norm);const idx={};spec.forEach(c=>{idx[c[0]]=c[2]?hd.findIndex(x=>c[2].test(x)):-1;});
   const seen={},rows=[];
   aoa.slice(h+1).forEach(r=>{
     const no=String(r[idx.reqNo]==null?'':r[idx.reqNo]).trim();
@@ -6203,20 +6235,22 @@ async function dnIssue(){
   let r;try{r=await api(ACT.getIssueData,{v:''});}catch(e){r=null;}
   if(r&&r.ok&&r.rows){isApply(r);if(r.v)KV.set('issue',r);}
 }
-function dnLastIssue(desc){
+function dnLastIssue(desc,sn){
   const d=String(desc||'').trim();if(!d||!IS.loaded)return null;
   const m=/\(MAT\.?\s*([^)\s]+)\)\s*$/i.exec(d),code=m&&m[1],nm=d.replace(/\s*\(MAT\.?[^)]*\)\s*$/i,'').trim().toLowerCase();
-  let best=null;
+  const S=String(sn||'').trim().toUpperCase(),later=(x,y)=>!y||x.d>y.d||(x.d===y.d&&String(x.iv)>String(y.iv));
+  let best=null,bySn=null;
   IS.rows.forEach(r=>{
     if(!(code?String(r.part)===code:(String(r.pname||'').toLowerCase()===nm||String(r.name||'').toLowerCase()===nm)))return;
-    if(!best||r.d>best.d||(r.d===best.d&&String(r.iv)>String(best.iv)))best=r;
+    if(later(r,best))best=r;
+    if(S&&String(r.serial||'').trim().toUpperCase()===S&&later(r,bySn))bySn=r;/* หลาย S/N ต่อรายการ: จับคู่จุดติดตั้งตาม S/N ก่อน */
   });
-  return best;
+  return bySn||best;
 }
 /* เติม S/N + ข้อมูลเพิ่มเติมเฉพาะช่องว่าง (หรือค่าที่ระบบเติมไว้เองเมื่อเปลี่ยนรายการ) — คืน true ถ้าเจอใบเบิก */
 function dnFillRow(it){
-  const r=dnLastIssue(it.desc);if(!r)return null;
-  const a=it._a||(it._a={sn:'',more:''}),pt=[...new Set([r.install,r.point].map(x=>String(x||'').trim()).filter(Boolean))].join('\n'),sn=String(r.serial||'').trim();
+  const a=it._a||(it._a={sn:'',more:''}),r=dnLastIssue(it.desc,it.sn&&it.sn!==a.sn?it.sn:'');if(!r)return null;
+  const pt=[...new Set([r.install,r.point].map(x=>String(x||'').trim()).filter(Boolean))].join('\n'),sn=String(r.serial||'').trim();
   if(sn&&(!it.sn||it.sn===a.sn)){it.sn=sn;a.sn=sn;}
   if(it._wo){if(r.iv&&!it.iv)it.iv=String(r.iv);}/* ใบ RO/CL: ข้อมูลเพิ่มเติม = อาการเสีย + ใส่เลข IV */
   else if(pt&&(!it.more||it.more===a.more)){it.more=pt;a.more=pt;}
@@ -6310,6 +6344,7 @@ function dnBuildPanel(host){
     const t=e.target,f=DN.f;if(!f)return;
     if(t.id==='dnXlsIn'){const fl=t.files&&t.files[0];t.value='';if(fl)dnImportXls(fl).catch(()=>toast('อ่านไฟล์ Excel ไม่สำเร็จ',false));return;}
     if(t.dataset.di&&/:desc$/.test(t.dataset.di)){const i=+t.dataset.di.split(':')[0],it=f.items[i];dnIssue().then(()=>{const r=dnFillRow(it);if(r){dnSyncRow(i);toast(`ดึงจากใบเบิก ${r.iv||''}${r.wo?' · WO '+r.wo:''} (${dnFmtDate(r.d)})`,true);}});return;}
+    if(t.dataset.di&&/:sn$/.test(t.dataset.di)){const i=+t.dataset.di.split(':')[0],it=f.items[i];if(it.sn)dnIssue().then(()=>{const r=dnFillRow(it);if(r&&String(r.serial||'').trim().toUpperCase()===String(it.sn).trim().toUpperCase()){dnSyncRow(i);toast(`จุดติดตั้งตาม S/N จากใบเบิก ${r.iv||''}`,true);}});return;}
     if(t.id==='dnProjSel'){const p=DN.projects[+t.value];if(p){f.proj=p.name;f.projNo=p.no;dnPaint();}}
     else if(t.dataset.dn==='dtype'){const ty=DN_TYPES.find(x=>x[0]===t.value);f.dtype=t.value;if(ty){if(ty[1]&&!f.ref)f.ref=ty[1];if(ty[2]&&!f.remark)f.remark=ty[2];}dnPaint();}
   });
