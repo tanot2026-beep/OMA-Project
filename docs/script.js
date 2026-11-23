@@ -6175,7 +6175,7 @@ function dnAddWo(o){
 }
 function dnPickVendor(name){const v=DN.vendors.find(x=>x.name===name);DN.f.toName=name;if(v){DN.f.addr=v.addr;DN.f.phone=v.phone;DN.f.contact=v.contact;}}
 function dnFmtDate(d){const m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(d||''));return m?`${m[3]}/${m[2]}/${m[1]}`:String(d||'');}
-function dnRows(f){const rows=[];let n=0;f.items.filter(i=>i.desc||i.sn||i.more).forEach(i=>{rows.push({n:i.desc?++n:'',...i});});return rows;}
+function dnRows(f){const rows=[];let n=0;f.items.filter(i=>i.desc||i.sn||i.more).forEach(i=>{rows.push({n:i.desc?++n:'',...i,desc:dnClean(i.desc).replace(/\s*\(MAT\.?[^)]*\)/ig,'').trim()});});return rows;}/* รายงาน (พิมพ์/Excel) ไม่แสดง (MAT.รหัส) และหมายเหตุทดแทน — ในฟอร์มเก็บไว้ใช้เติม S/N+จุดติดตั้ง */
 function dnPrintHtml(f){
   const rows=dnRows(f),pad=Math.max(0,13-rows.length);
   const td=(v,c)=>`<td${c?` class="${c}"`:''}>${esc(v)}</td>`;
@@ -6313,22 +6313,24 @@ function dnParseXls(a){
 }
 /* Description จาก Excel ที่มีข้อความเกินชื่อในรายการอะไหล่ → ตัดให้เหลือ "ชื่ออะไหล่ (MAT.รหัส)": มี (MAT.รหัส) ในข้อความ → ใช้รหัสค้นชื่อ; ไม่มี → เทียบชื่อที่ยาวที่สุดที่อยู่ในข้อความ; ไม่เจอในรายการอะไหล่คงข้อความเดิม */
 const dnPartNorm=x=>String(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+/* ตัดวงเล็บหมายเหตุทดแทน เช่น (ทดแทนMat.210087) (ใช้ Mat.160232 ทดแทน) — (MAT.รหัส) ของอะไหล่เองคงไว้ */
+const dnClean=x=>String(x||'').replace(/\s*\([^()]*ทดแทน[^()]*\)/g,'').replace(/\s+/g,' ').trim();
 async function dnTrimDescs(items){
   const memo={},look=q=>memo[q]||(memo[q]=api(ACT.listCmms,{type:'parts',q,limit:100}).then(r=>(r&&r.ok&&r.rows)||[]).catch(()=>[]));
   let n=0;
   await Promise.all(items.map(async it=>{
-    const raw=String(it.desc||'').trim();if(!raw)return;
+    const raw0=String(it.desc||'').trim();if(!raw0)return;const raw=dnClean(raw0);if(raw!==raw0){it.desc=raw;n++;}
     let best=null;const mc=/\(MAT\.?\s*([^)\s]+)\)/i.exec(raw);
     if(mc)best=(await look(mc[1])).find(p=>String(p.part)===mc[1])||null;
     if(!best){
       const txt=raw.replace(/\(MAT\.?[^)]*\)/ig,' ').replace(/\s+/g,' ').trim(),D=dnPartNorm(txt),w=txt.split(' ');
       for(const q of [w.slice(0,2).join(' '),w[0]]){
-        (await look(q)).forEach(p=>{const nm=dnPartNorm(p.name);if(nm.length>=5&&D.includes(nm)&&(!best||nm.length>dnPartNorm(best.name).length))best=p;});
+        (await look(q)).forEach(p=>{const nm=dnPartNorm(dnClean(p.name));if(nm.length>=5&&D.includes(nm)&&(!best||nm.length>dnPartNorm(dnClean(best.name)).length))best=p;});
         if(best)break;
       }
     }
     if(!best)return;
-    const nd=`${best.name} (MAT.${best.part})`;if(dnPartNorm(raw)!==dnPartNorm(nd)){n++;it.desc=nd;}
+    const nd=`${dnClean(best.name)} (MAT.${best.part})`;if(dnPartNorm(raw)!==dnPartNorm(nd)){if(raw===raw0)n++;it.desc=nd;}
   }));
   return n;
 }
@@ -6379,7 +6381,7 @@ function dnBuildPanel(host){
     const t=e.target,f=DN.f;if(!f)return;
     if(t.dataset.dn){const k=t.dataset.dn;f[k]=t.value;if(k==='toName'&&DN.vendors.some(v=>v.name===t.value)){dnPickVendor(t.value);dnPaint();const x=$('#dnBody [data-dn="toName"]');if(x)x.focus();}}
     else if(t.dataset.di){const[i,k]=t.dataset.di.split(':');f.items[+i][k]=t.value;
-      if(k==='desc'&&t.value.length>=2){clearTimeout(tm);tm=setTimeout(async()=>{const r=await api(ACT.listCmms,{type:'parts',q:t.value,limit:10});const dl=$('#dnPartL');if(r&&r.ok&&dl)dl.innerHTML=r.rows.map(p=>`<option value="${escAttr(p.name+' (MAT.'+p.part+')')}">`).join('');acRefresh();},250);}}
+      if(k==='desc'&&t.value.length>=2){clearTimeout(tm);tm=setTimeout(async()=>{const r=await api(ACT.listCmms,{type:'parts',q:t.value,limit:10});const dl=$('#dnPartL');if(r&&r.ok&&dl)dl.innerHTML=r.rows.map(p=>`<option value="${escAttr(dnClean(p.name)+' (MAT.'+p.part+')')}">`).join('');acRefresh();},250);}}
     else if(t.id==='dnWo'){const v=t.value.trim();const m=DN.hit[v];if(m){t.value='';dnAddWo(m);return;}
       if(v.length>=4){clearTimeout(tw);tw=setTimeout(async()=>{const r=await api(ACT.listCmms,{type:'wos',q:v,limit:12});const dl=$('#dnWoL');if(r&&r.ok&&dl){DN.hit={};r.rows.forEach(o=>{DN.hit[o.wo]=o;});dl.innerHTML=r.rows.map(o=>`<option value="${escAttr(o.wo)}">${esc(String(o.desc||'').split('\n')[0].slice(0,60))}</option>`).join('');acRefresh();}},250);}}
     else if(t.id==='dnQ'){DN.q=t.value;clearTimeout(tm);tm=setTimeout(()=>{dnPaint();const q=$('#dnQ');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length);}},250);}
@@ -6677,7 +6679,7 @@ async function tmLoad(month){
 })();
 
 /* เลขรุ่นเล็ก ๆ ท้ายหน้า — ใช้เช็กว่าอัปโหลดไฟล์ชุดล่าสุดขึ้นจริงหรือยัง (ทุกครั้งที่ส่งงานใหม่เลขนี้จะเปลี่ยน) */
-const APP_BUILD='Phase 62b · 23 Nov 2026';
+const APP_BUILD='Phase 62d · 23 Nov 2026';
 (function(){const m=document.querySelector('main');if(!m||document.getElementById('buildTag'))return;const d=document.createElement('div');d.id='buildTag';d.textContent='Build: '+APP_BUILD;m.parentNode.insertBefore(d,m.nextSibling);try{console.info('OMA build',APP_BUILD);}catch(e){}})();
 
 /* ── Phase 40: each project gets its own planet in the report-loading animation ── */
