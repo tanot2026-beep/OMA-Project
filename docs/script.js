@@ -5304,7 +5304,7 @@ function cmModal(o){
 }
 /* ── ป๊อปอัปนำเข้าไฟล์: เลือกไฟล์ → สรุปที่อ่านได้ → (อัปเดต/แทนที่) → นำเข้า ── */
 function cmImportModal(o){
-  let kind=o.kinds&&o.kinds.length===1?o.kinds[0][0]:'',rows=null,info='',mode='update',busy=false;
+  let kind=o.kinds?(o.kinds.length===1?o.kinds[0][0]:''):'-',rows=null,info='',mode='update',busy=false;
   const m=cmModal({title:o.title,body:'',foot:''});
   const file=document.createElement('input');file.type='file';file.accept=o.accept||'.xls,.xlsx,.csv';file.hidden=true;m.el.appendChild(file);
   const st=(t,bad)=>{const e=m.body.querySelector('.cmi-st');if(e){e.textContent=t||'';e.classList.toggle('bad',!!bad);}};
