@@ -5886,6 +5886,25 @@ async function isParseFile(file,src){
   const p=txParse(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''}));
   return p.ok?{ok:true,rows:p.rows}:p;
 }
+function isCheckOpen(){
+  const R=IS.rows,tot=R.length,ok=R.filter(r=>String(r.install||'').trim()||String(r.point||'').trim()).length,miss=R.filter(r=>r.why);
+  const adv={no_wo:['ไม่มีเลขใบสั่งงาน','นำเข้า ReportTransactionHistory'],wo_missing:['ไม่พบใบสั่งงานในระบบ','นำเข้า ReportWorkOrderStatus (ระบบควบคุมใบสั่งงาน)'],no_req:['ใบสั่งงานไม่มีเลขใบแจ้งซ่อม','งาน PM หรือไม่ได้เปิดจากใบแจ้ง — กรอกเองถ้าจำเป็น'],req_missing:['ไม่พบใบแจ้งซ่อม','นำเข้า ReportRequestOrder'],req_empty:['ใบแจ้งซ่อมไม่มีรหัสติดตั้ง/จุดติดตั้ง','แก้ที่ต้นทางหรือกรอกเอง']};
+  const cnt={};miss.forEach(r=>{cnt[r.why]=(cnt[r.why]||0)+1;});
+  const pc=tot?Math.round(ok*1000/tot)/10:0,mt=IS.meta||{};
+  let h=`<div id="isChkB"><p><b>${ok.toLocaleString('en-US')}</b> / ${tot.toLocaleString('en-US')} รายการมีจุดติดตั้ง (${pc}%)</p>`;
+  if(mt.req===0||mt.wos===0)h+=`<p class="bad">ยังไม่มีข้อมูล${mt.req===0?' ใบแจ้งซ่อม':''}${mt.wos===0?' ใบสั่งงาน':''} — นำเข้าก่อนจะได้จุดติดตั้งเพิ่ม</p>`;
+  const ks=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
+  h+=ks.length?`<table class="cm-t" style="width:100%"><thead><tr><th>สาเหตุที่ขาด</th><th>จำนวน</th><th>วิธีแก้</th></tr></thead><tbody>${ks.map(x=>`<tr><td>${esc(adv[x][0])}</td><td>${cnt[x].toLocaleString('en-US')}</td><td>${esc(adv[x][1])}</td></tr>`).join('')}</tbody></table>`:'<p>ครบทุกรายการ</p>';
+  h+='</div>';
+  const m=cmModal({title:'ตรวจความครบของข้อมูล',body:h,foot:miss.length?'<button type="button" class="btn btn-primary" id="isChkCsv">ดาวน์โหลดรายการที่ขาด (CSV)</button>':'',wide:true});
+  const b=m.foot.querySelector('#isChkCsv');
+  if(b)b.addEventListener('click',()=>{
+    const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+    const L=[['เลขใบเบิก','วันที่','รหัสอะไหล่','ชื่ออะไหล่','S/N','ใบสั่งงาน','สาเหตุ'].map(q).join(',')];
+    miss.forEach(r=>L.push([r.iv,r.d,r.part,r.pname,r.serial,r.wo,adv[r.why][0]].map(q).join(',')));
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}));a.download='issue-missing-point.csv';document.body.appendChild(a);a.click();a.remove();
+  });
+}
 function isImportOpen(){
   cmImportModal({title:'นำเข้าอะไหล่ที่ใช้',kinds:[['iv','ใบเบิก (IssuedVoucherReport)'],['tx','Consumable (Transaction Excel)'],['th','ประวัติการเคลื่อนไหว (ReportTransactionHistory)']],
     parse:isParseFile,
@@ -5907,7 +5926,7 @@ const KV={_p:null,open(){return this._p=this._p||new Promise(res=>{try{const q=i
   async set(k,v){const d=await this.open();if(!d)return;try{d.transaction('kv','readwrite').objectStore('kv').put(v,k);}catch(e){}},
   async clear(){const d=await this.open();if(!d)return;try{d.transaction('kv','readwrite').objectStore('kv').clear();}catch(e){}}};
 function isApply(r){
-  IS.parts=r.parts||{};const sf=r.staff||{};IS.v=r.v||'';
+  IS.parts=r.parts||{};const sf=r.staff||{};IS.v=r.v||'';IS.meta=r.meta||null;
   const tc=x=>{const m=String(x||'').match(/\bT0*(\d+)\b/i);return m?'T'+m[1]:'';};
   IS.rows=(r.rows||[]).map(o=>{const p=IS.parts[o.part]||{};const price=Number(p.price);const d=String(o.date||'').slice(0,10);
     const ord=String(o.order||'').trim(),nm=sf[tc(ord)]||sf[tc(o.requester)]||o.requester||'',pj=o.project||(/^20\d{5}$/.test(ord)?'MA'+ord:'');
@@ -5930,7 +5949,7 @@ async function isLoad(){
 }
 function isFiltered(skip){
   const f=IS.f,q=f.q.toLowerCase();
-  return IS.rows.filter(r=>(!f.from||r.d>=f.from)&&(!f.to||r.d<=f.to)&&(skip==='type'||!f.type||r.type===f.type)&&(skip==='part'||!f.part||r.part===f.part)&&(!f.req||r.req===f.req)&&(!f.proj||r.prj===f.proj)&&(!q||(r.pname+' '+r.part+' '+r.req+' '+r.iv+' '+r.wo).toLowerCase().includes(q)));
+  return IS.rows.filter(r=>(!f.from||r.d>=f.from)&&(!f.to||r.d<=f.to)&&(skip==='type'||!f.type||r.type===f.type)&&(skip==='part'||!f.part||r.part===f.part)&&(!f.req||r.req===f.req)&&(!f.proj||r.prj===f.proj)&&(!q||(r.pname+' '+r.part+' '+r.req+' '+r.iv+' '+r.wo+' '+(r.serial||'')+' '+(r.install||'')+' '+(r.point||'')).toLowerCase().includes(q)));
 }
 const isGroup=(rows,kf,top)=>{const m={};rows.forEach(r=>{const k=kf(r);m[k]=(m[k]||0)+r.qty;});const a=Object.entries(m).map(([k,v])=>({k,v})).sort((x,y)=>y.v-x.v);return top?a.slice(0,top):a;};
 function isBuckets(rows){
@@ -6018,11 +6037,11 @@ function isRender(){
  <label>ชื่ออะไหล่<select class="tin" data-isf="part"><option value="">ทั้งหมด</option>${partList.map(([c,n])=>`<option value="${escAttr(c)}"${f.part===c?' selected':''}>${esc(n)}</option>`).join('')}</select></label>
  <label>ผู้เบิก<select class="tin" data-isf="req">${isOpts(reqs,f.req,'ทั้งหมด')}</select></label>
  <label>โครงการ<select class="tin" data-isf="proj">${isOpts(prjs,f.proj,'ทั้งหมด')}</select></label>
- <label class="is-q">ค้นหา<input type="search" class="tin" data-isf="q" value="${escAttr(f.q)}" placeholder="ชื่อ / รหัส / ใบเบิก / ใบสั่งงาน"></label>
+ <label class="is-q">ค้นหา<input type="search" class="tin" data-isf="q" value="${escAttr(f.q)}" placeholder="ชื่อ / รหัส / S/N / ใบเบิก / ใบสั่งงาน / จุดติดตั้ง"></label>
 </div>
 <div class="is-quick"><button type="button" class="btn btn-soft" data-isq="all">ทั้งหมด</button><button type="button" class="btn btn-soft" data-isq="y">ปีนี้</button><button type="button" class="btn btn-soft" data-isq="12m">12 เดือนล่าสุด</button><button type="button" class="btn btn-soft" data-isq="m">เดือนนี้</button><button type="button" class="btn btn-soft" data-isq="clear">ล้างตัวกรอง</button><span class="is-sp"></span><button type="button" class="btn btn-soft" id="isDl">ดาวน์โหลด</button>${['admin','manager'].includes(AUTH.user&&AUTH.user.role)?'<button type="button" class="btn btn-soft" id="isRefresh" title="ดึงข้อมูลล่าสุดจากชีต">รีเฟรชข้อมูล</button>':''}<button type="button" class="btn btn-primary" id="isSend">ส่งสรุปให้หัวหน้า</button></div>
 ${isDashHtml(rows,st,bk)}
-<div class="is-tablewrap"><div class="cm-wrap"><table class="cm-tbl"><thead><tr><th><button type="button" class="is-sort" id="isSort">วันที่ ${IS.asc?'▲':'▼'}</button></th><th>ใบเบิก</th><th>รหัส</th><th>ชื่ออะไหล่</th><th>ประเภท</th><th>จำนวน</th><th>หน่วย</th><th>ผู้เบิก</th><th>โครงการ</th><th>ใบสั่งงาน</th><th>มูลค่า</th></tr></thead><tbody>${sorted.slice(IS.page*PS,IS.page*PS+PS).map(r=>`<tr><td>${esc(r.d)}</td><td>${esc(r.iv)}</td><td>${esc(r.part)}</td><td>${esc(r.pname)}</td><td>${esc(r.type)}</td><td class="n">${isNf(r.qty)}</td><td>${esc(r.unit)}</td><td>${esc(r.req==='ไม่ระบุ'?'':r.req)}</td><td>${esc(r.prj==='ไม่ระบุ'?'':r.prj)}</td><td>${esc(r.wo)}</td><td class="n">${r.value==null?'':isNf(r.value)}</td></tr>`).join('')||'<tr><td colspan="11" class="cm-msg">ไม่มีรายการ</td></tr>'}</tbody></table></div>
+<div class="is-tablewrap"><div class="cm-wrap"><table class="cm-tbl"><thead><tr><th><button type="button" class="is-sort" id="isSort">วันที่ ${IS.asc?'▲':'▼'}</button></th><th>ใบเบิก</th><th>รหัส</th><th>ชื่ออะไหล่</th><th>ประเภท</th><th>จำนวน</th><th>หน่วย</th><th>ผู้เบิก</th><th>โครงการ</th><th>S/N</th><th>ใบสั่งงาน</th><th>มูลค่า</th></tr></thead><tbody>${sorted.slice(IS.page*PS,IS.page*PS+PS).map(r=>`<tr><td>${esc(r.d)}</td><td>${esc(r.iv)}</td><td>${esc(r.part)}</td><td>${esc(r.pname)}</td><td>${esc(r.type)}</td><td class="n">${isNf(r.qty)}</td><td>${esc(r.unit)}</td><td>${esc(r.req==='ไม่ระบุ'?'':r.req)}</td><td>${esc(r.prj==='ไม่ระบุ'?'':r.prj)}</td><td>${esc(r.serial||'')}</td><td>${esc(r.wo)}</td><td class="n">${r.value==null?'':isNf(r.value)}</td></tr>`).join('')||'<tr><td colspan="12" class="cm-msg">ไม่มีรายการ</td></tr>'}</tbody></table></div>
 <div class="cm-pg"><button type="button" class="btn btn-soft" id="isPrev" ${IS.page<=0?'disabled':''}>ก่อนหน้า</button><span>หน้า ${IS.page+1} / ${pages} · ${isNf(sorted.length)} รายการ</span><button type="button" class="btn btn-soft" id="isNext" ${IS.page+1>=pages?'disabled':''}>ถัดไป</button></div></div>`;
 }
 function isMonths(rows){return [...new Set(rows.map(r=>String(r.d).slice(0,7)))].filter(Boolean).sort();}
@@ -6269,13 +6288,14 @@ function dnLastIssue(desc,sn){
   const d=String(desc||'').trim();if(!d||!IS.loaded)return null;
   const m=/\(MAT\.?\s*([^)\s]+)\)\s*$/i.exec(d),code=m&&m[1],nm=d.replace(/\s*\(MAT\.?[^)]*\)\s*$/i,'').trim().toLowerCase();
   const S=String(sn||'').trim().toUpperCase(),later=(x,y)=>!y||x.d>y.d||(x.d===y.d&&String(x.iv)>String(y.iv));
-  let best=null,bySn=null;
+  let best=null,bySn=null,byPt=null;
   IS.rows.forEach(r=>{
     if(!(code?String(r.part)===code:(String(r.pname||'').toLowerCase()===nm||String(r.name||'').toLowerCase()===nm)))return;
     if(later(r,best))best=r;
+    if((String(r.install||'').trim()||String(r.point||'').trim())&&later(r,byPt))byPt=r;/* ไม่มี S/N ตรง: เอาใบเบิกล่าสุดที่มีจุดติดตั้ง (ใบ Unplan ไม่มี) */
     if(S&&String(r.serial||'').trim().toUpperCase()===S&&later(r,bySn))bySn=r;/* หลาย S/N ต่อรายการ: จับคู่จุดติดตั้งตาม S/N ก่อน */
   });
-  return bySn||best;
+  return bySn||byPt||best;
 }
 /* เติม S/N + ข้อมูลเพิ่มเติมเฉพาะช่องว่าง (หรือค่าที่ระบบเติมไว้เองเมื่อเปลี่ยนรายการ) — คืน true ถ้าเจอใบเบิก */
 function dnFillRow(it){
@@ -6632,9 +6652,9 @@ function wbOpen(){
 }
 function isBuildPanel(host){
   IS.host=host;
-  host.innerHTML=`<div class="cm-top"><span class="cm-tools"><button type="button" class="btn btn-primary" id="isImp" aria-label="นำเข้า Excel">${cmI('up')}<span>นำเข้า</span></button></span></div><div id="isBody"></div>`;
+  host.innerHTML=`<div class="cm-top"><span class="cm-tools"><button type="button" class="btn btn-primary" id="isImp" aria-label="นำเข้า Excel">${cmI('up')}<span>นำเข้า</span></button><button type="button" class="btn" id="isChk">ตรวจความครบ</button></span></div><div id="isBody"></div>`;
   let tm;
-  host.querySelector('#isImp').addEventListener('click',isImportOpen);
+  host.querySelector('#isImp').addEventListener('click',isImportOpen);host.querySelector('#isChk').addEventListener('click',isCheckOpen);
   host.addEventListener('change',e=>{const k=e.target.dataset&&e.target.dataset.isf;if(!k||k==='q')return;IS.f[k]=e.target.value;if(k==='type')IS.f.part='';IS.page=0;isRender();});
   host.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.isf==='q'){IS.f.q=e.target.value;clearTimeout(tm);tm=setTimeout(()=>{IS.page=0;isRender();const q=host.querySelector('[data-isf="q"]');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length);}},300);}});
   host.addEventListener('click',e=>{
@@ -6687,7 +6707,7 @@ async function tmLoad(month){
 })();
 
 /* เลขรุ่นเล็ก ๆ ท้ายหน้า — ใช้เช็กว่าอัปโหลดไฟล์ชุดล่าสุดขึ้นจริงหรือยัง (ทุกครั้งที่ส่งงานใหม่เลขนี้จะเปลี่ยน) */
-const APP_BUILD='Phase 63c · 24 Nov 2026';
+const APP_BUILD='Phase 64c · 24 Nov 2026';
 (function(){const m=document.querySelector('main');if(!m||document.getElementById('buildTag'))return;const d=document.createElement('div');d.id='buildTag';d.textContent='Build: '+APP_BUILD;m.parentNode.insertBefore(d,m.nextSibling);try{console.info('OMA build',APP_BUILD);}catch(e){}})();
 
 /* ── Phase 40: each project gets its own planet in the report-loading animation ── */
