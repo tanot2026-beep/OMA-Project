@@ -6175,43 +6175,51 @@ function dnAddWo(o){
 }
 function dnPickVendor(name){const v=DN.vendors.find(x=>x.name===name);DN.f.toName=name;if(v){DN.f.addr=v.addr;DN.f.phone=v.phone;DN.f.contact=v.contact;}}
 function dnFmtDate(d){const m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(d||''));return m?`${m[3]}/${m[2]}/${m[1]}`:String(d||'');}
-function dnRows(f){const rows=[];let n=0;f.items.filter(i=>i.desc||i.sn||i.more).forEach(i=>{rows.push({n:i.desc?++n:'',...i,desc:dnClean(i.desc).replace(/\s*\(MAT\.?[^)]*\)/ig,'').trim()});});return rows;}/* รายงาน (พิมพ์/Excel) ไม่แสดง (MAT.รหัส) และหมายเหตุทดแทน — ในฟอร์มเก็บไว้ใช้เติม S/N+จุดติดตั้ง */
+function dnRows(f){
+  /* รายงาน (พิมพ์/Excel): ไม่แสดง (MAT.รหัส) และหมายเหตุทดแทน (ในฟอร์มเก็บไว้เติม S/N+จุดติดตั้ง); แถวอะไหล่ชื่อเดียวกันที่อยู่ติดกัน รวมเป็นรายการเดียว — ลำดับ/ชื่อ/จำนวนรวมที่แถวแรก แถวถัดไปเหลือแต่ S/N */
+  const rows=[],num=v=>{const x=Number(v);return v===''||v==null||isNaN(x)?null:x;};let n=0,head=null;
+  f.items.filter(i=>i.desc||i.sn||i.more).forEach(i=>{
+    const d=dnClean(i.desc).replace(/\s*\(MAT\.?[^)]*\)/ig,'').trim(),k=d.toLowerCase().replace(/\s+/g,' ');
+    if(d&&head&&head._k===k){rows.push({...i,n:'',desc:'',qty:''});if(head._s!=null&&num(i.qty)!=null){head._s+=num(i.qty);head.qty=String(head._s);}else head._s=null;}
+    else{head=d?{...i,n:++n,desc:d,_k:k,_s:num(i.qty)}:null;rows.push(head||{...i,n:'',desc:d});}
+  });
+  return rows;
+}
 function dnPrintHtml(f){
-  const rows=dnRows(f),pad=Math.max(0,13-rows.length);
+  const rows=dnRows(f),pad=0,hasCt=!/คืน/.test(f.remark||'');/* ใบคืนลูกค้าไม่มีบรรทัดติดต่อส่งใบเสนอราคา (ตามฟอร์มจริง) */
   const td=(v,c)=>`<td${c?` class="${c}"`:''}>${esc(v)}</td>`;
-  const body=rows.map(r=>`<tr>${td(r.n,'c')}${td(r.desc)}${td(r.qty,'c')}${td(r.sn)}${td(r.more)}${td(r.iv,'c')}${td(r.rv,'c')}</tr>`).join('')+'<tr class="e"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(pad);
+  const body=rows.map(r=>`<tr>${td(r.n,'c')}${td(r.desc,'d')}${td(r.qty,'c')}${td(r.sn,'c')}${td(r.more,'c')}${td(r.iv,'c')}${td(r.rv,'c')}</tr>`).join('')+'<tr class="e"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(pad);
   /* ตำแหน่ง/สัดส่วนวัดจากชีต F-OMA-0111 และ EMS-012 (ไฟล์ 2026_ทะเบียนคุมใบส่งอุปกรณ์): เส้นใต้เป็นจุด, ผู้ส่ง/ผู้รับแถวเดียวกัน, ผู้อนุมัติใต้ผู้ส่ง */
-  const fl=(r,c,a,v,span)=>`<b class="fb" style="grid-row:${r};grid-column:${c}">${a}</b><span class="fv" style="grid-row:${r}${span?`/span ${span}`:''};grid-column:${c+1}">${esc(v)}${span?'<i></i>':''}</span>`;
+  const fl=(r,c,a,v,span)=>`<b class="fb" style="grid-row:${r};grid-column:${c}">${a}</b><span class="fv" style="grid-row:${r}${span?`/span ${span}`:''};grid-column:${c+1}${span?`;min-height:${span*28}px`:''}">${esc(v)}</span>`;
+  const asp=Math.min(4,Math.max(2,String(f.addr||'').split('\n').reduce((a,l)=>a+Math.max(1,Math.ceil(l.length/30)),0)));/* ที่อยู่: จำนวนบรรทัดโดยประมาณ → ช่องสูงตามจริง */
   const S=(a,v,k)=>`<td class="lb${k?' lc':''}">${a}</td><td class="ln">${esc(v||'')}</td>`;
   return `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(f.no||'ใบส่งอุปกรณ์')}</title><style>
 @page{size:A4;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 html,body{margin:0}body{font-family:Tahoma,'Leelawadee UI','Cordia New',sans-serif;font-size:17px;color:#000;width:210mm;padding:6mm 7mm 14mm}
-.h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.h img{height:76px}.h div{text-align:right;font-size:20px;font-weight:700;line-height:1.3}
-.box{border:1px solid #000}.tt{background:#bfbfbf;border-bottom:1px solid #000;text-align:center;font-size:27px;font-weight:700;padding:4px 0;line-height:1.3}
-.fg{display:grid;grid-template-columns:13.4% 28% 24% 27% 7.6%;grid-auto-rows:minmax(28px,auto);padding:12px 0 8px;column-gap:4px}
-.fb{text-align:right;white-space:nowrap;align-self:end;padding-right:2px;line-height:26px}.fv{position:relative;border-bottom:1px dotted #000;line-height:26px;padding:0 4px;white-space:normal;overflow-wrap:anywhere;align-self:end;min-height:28px}
-.fv.two{height:56px;line-height:28px;overflow:hidden}.fv i{position:absolute;left:0;right:0;top:27px;border-bottom:1px dotted #000}
-table.t{border-collapse:collapse;width:100%;table-layout:fixed;border:1px solid #000;border-top:0}table.t th,table.t td{border:1px solid #000;padding:1px 4px;vertical-align:top;font-size:16px;line-height:1.3;white-space:pre-line;overflow-wrap:anywhere}table.t th{text-align:center;font-weight:700;height:26px;vertical-align:middle}table.t td.c{text-align:center}table.t tr.e td{height:24px}
+.h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.h img{height:76px}.h div{text-align:right;font-size:20px;line-height:1.3}
+.box{border:1px solid #000}.tt{background:#dcdcdc;border-bottom:1px solid #000;text-align:center;font-size:27px;font-weight:700;padding:4px 0;line-height:1.3}
+.fg{display:grid;grid-template-columns:13.4% 27% 18% 33% 8.6%;grid-auto-rows:minmax(28px,auto);padding:12px 0 8px;column-gap:4px}
+.fb{text-align:right;white-space:nowrap;align-self:start;padding-right:2px;line-height:28px}.fv{position:relative;border-bottom:1px dotted #000;line-height:28px;padding:0 4px;white-space:pre-line;overflow-wrap:anywhere;align-self:start;min-height:28px}.fv i{position:absolute;left:0;right:0;border-bottom:1px dotted #000}
+table.t{border-collapse:collapse;width:100%;table-layout:fixed;border:1px solid #000;border-top:0}table.t th,table.t td{border:1px solid #000;padding:1px 4px;vertical-align:middle;font-size:16px;line-height:1.3;white-space:pre-line;overflow-wrap:anywhere}table.t th{text-align:center;font-weight:700;height:26px;vertical-align:middle}table.t td{height:46px}table.t td.d{vertical-align:top}table.t td.c{text-align:center}table.t tr.e td{height:24px}
 .rm{display:flex;align-items:flex-end;margin-top:16px}.rm b{width:13.4%;flex:none;text-align:center}.rm span{flex:1;border-bottom:1px dotted #000;min-height:26px;padding:0 4px;line-height:26px}.rl{margin-left:13.4%;border-bottom:1px dotted #000;height:28px}
 .ct{margin:6px 0 0 14%;font-weight:700;font-size:17.5px}
-table.sg{width:100%;border-collapse:collapse;margin-top:20px;table-layout:fixed}table.sg td{padding:0;vertical-align:bottom;height:30px;font-size:16.5px}table.sg td.lb{text-align:right;font-weight:700;white-space:nowrap;padding-right:6px}table.sg td.lc{text-align:center}table.sg td.ln{border-bottom:1px dotted #000;text-align:center}table.sg td.mid{font-weight:700;padding-left:8px;white-space:nowrap;font-size:15px}table.sg td.nm{text-align:center;vertical-align:top;height:26px}table.sg tr.sp td{height:22px}
-.ft{position:fixed;left:7mm;right:7mm;bottom:7mm;display:flex;font-size:14px}.ft span{flex:1}.ft span:nth-child(2){text-align:center}.ft span:nth-child(3){text-align:right}</style></head><body>
-<div id="pg"><div class="h"><img src="${DN_LOGO}" alt="AMR"><div>บริษัท เอเอ็มอาร์ เอเซีย จำกัด (มหาชน)<br>AMR Asia Public Company Limited</div></div>
+table.sg{width:100%;border-collapse:collapse;margin-top:20px;table-layout:fixed}table.sg td{padding:0;vertical-align:bottom;height:30px;font-size:16.5px}table.sg td.lb{text-align:right;font-weight:700;white-space:nowrap;padding-right:6px}table.sg td.lc{text-align:center}table.sg td.ln{border-bottom:1px dotted #000;text-align:center}table.sg td.mid{font-weight:700;padding-left:8px;white-space:nowrap;font-size:15px}table.sg td.nm{text-align:center;vertical-align:top;height:26px}.ctr{display:flex;justify-content:center}.ctr span{white-space:nowrap}table.sg tr.sp td{height:22px}
+.ft{position:relative;height:22px;margin-top:30px;font-size:14px}.ft span{position:absolute;top:0;white-space:nowrap}.ft span:nth-child(1){left:47%;transform:translateX(-50%)}.ft span:nth-child(2){left:76%}</style></head><body>
+<div id="pg"><div class="h"><img src="${DN_LOGO}" alt="AMR"><div><b>บริษัท เอเอ็มอาร์ เอเซีย จำกัด (มหาชน)</b><br>AMR Asia Public Company Limited</div></div>
 <div class="box"><div class="tt">ใบส่งอุปกรณ์</div>
-<div class="fg">${fl(1,1,'ส่ง :',f.toName)}${fl(2,1,'ที่อยู่ :',f.addr,2).replace('class="fv"','class="fv two"')}${fl(4,1,'โทรศัพท์ :',f.phone)}${fl(5,1,'ชื่อผู้ติดต่อ :',f.contact)}${fl(1,3,'วันที่ :',dnFmtDate(f.date))}${fl(2,3,'เลขที่ใบส่งอุปกรณ์ :',f.no||'(ออกเลขเมื่อบันทึก)')}${fl(3,3,'อ้างอิง :',f.ref)}${fl(4,3,'โครงการ :',f.proj)}${fl(5,3,'เลขที่โครงการ :',f.projNo)}</div></div>
-<table class="t"><colgroup><col style="width:10.1%"><col style="width:28.3%"><col style="width:9.8%"><col style="width:14.7%"><col style="width:16.8%"><col style="width:10.15%"><col style="width:10.15%"></colgroup><thead><tr><th>ลำดับที่</th><th>รายการ</th><th>จำนวน</th><th>หมายเลขเครื่อง</th><th>ข้อมูลเพิ่มเติม</th><th colspan="2">เลขที่ใบรับ/ใบเบิก CMMS</th></tr><tr><th>Item</th><th>Description</th><th>Quantity</th><th>Serial Number</th><th>More details</th><th>IV No.</th><th>RV No.</th></tr></thead><tbody>${body}</tbody></table>
+<div class="fg">${fl(1,1,'ส่ง :',f.toName)}${fl(2,1,'ที่อยู่ :',f.addr,asp)}${fl(2+asp,1,'โทรศัพท์ :',f.phone)}${fl(3+asp,1,'ชื่อผู้ติดต่อ :',f.contact)}${fl(1,3,'วันที่ :',dnFmtDate(f.date))}${fl(2,3,'เลขที่ใบส่งอุปกรณ์ :',f.no||'(ออกเลขเมื่อบันทึก)')}${fl(3,3,'อ้างอิง :',f.ref)}${fl(4,3,'โครงการ :',f.proj)}${fl(5,3,'เลขที่โครงการ :',f.projNo)}</div></div>
+<table class="t"><colgroup><col style="width:7.5%"><col style="width:26%"><col style="width:7.5%"><col style="width:16%"><col style="width:24%"><col style="width:9.5%"><col style="width:9.5%"></colgroup><thead><tr><th>ลำดับที่</th><th>รายการ</th><th>จำนวน</th><th>หมายเลขเครื่อง</th><th>ข้อมูลเพิ่มเติม</th><th colspan="2">เลขที่ใบรับ/ใบเบิก CMMS</th></tr><tr><th>Item</th><th>Description</th><th>Quantity</th><th>Serial Number</th><th>More details</th><th>IV No.</th><th>RV No.</th></tr></thead><tbody>${body}</tbody></table>
 <div class="rm"><b>หมายเหตุ :</b><span>${esc(f.remark)}</span></div><div class="rl"></div><div class="rl"></div>
-<div class="ct">ติดต่อส่งใบเสนอราคา Email : MA_Leader@amrasia.com, Suppakrit.B@amrasia.com</div>
+${hasCt?'<div class="ct">ติดต่อส่งใบเสนอราคา Email : MA_Leader@amrasia.com, Suppakrit.B@amrasia.com</div>':''}
 <table class="sg"><colgroup><col style="width:13.4%"><col style="width:18.5%"><col style="width:24%"><col style="width:10.8%"><col style="width:25.3%"><col style="width:8%"></colgroup>
 <tr>${S('ผู้ส่งอุปกรณ์','',1)}<td class="mid">เจ้าหน้าที่คลังสินค้า OMA</td>${S('ผู้รับอุปกรณ์','')}<td></td></tr>
-<tr><td></td><td class="nm" colspan="2">( ${esc(f.sender)} )</td><td class="nm" colspan="3">( ${esc(f.toName)} )</td></tr>
+<tr><td></td><td class="nm"><div class="ctr"><span>( ${esc(f.sender)} )</span></div></td><td></td><td></td><td class="nm"><div class="ctr"><span>( ${esc(f.toName)} )</span></div></td><td></td></tr>
 <tr>${S('วันที่','')}<td></td>${S('วันที่','')}<td></td></tr>
 <tr class="sp"><td colspan="6"></td></tr>
 <tr>${S('ผู้อนุมัติ','',1)}<td colspan="4"></td></tr>
-<tr><td></td><td class="nm" colspan="2">( ${esc(f.approver)} )</td><td colspan="3"></td></tr>
-<tr>${S('วันที่','')}<td colspan="4"></td></tr></table></div>
-<div class="ft"><span></span><span>Internal Use Only</span><span>F-OMA-0111 Rev.00</span></div>
-<script>addEventListener("load",function(){var g=document.getElementById("pg"),a=1030,z=1;for(;z>.5;z-=.03){g.style.zoom=z;if(Math.min(g.getBoundingClientRect().height,g.scrollHeight*z)<=a)break;}});<\/script></body></html>`;
+<tr><td></td><td class="nm"><div class="ctr"><span>( ${esc(f.approver)} )</span></div></td><td colspan="4"></td></tr>
+<tr>${S('วันที่','')}<td colspan="4"></td></tr></table><div class="ft"><span>Internal Use Only</span><span>F-OMA-0111 Rev.00</span></div></div>
+<script>addEventListener("load",function(){document.querySelectorAll(".fv").forEach(function(e){var n=Math.max(1,Math.round(e.scrollHeight/28));for(var k=0;k<n-1;k++){var i=document.createElement("i");i.style.top=(27+28*k)+"px";e.appendChild(i);}});var g=document.getElementById("pg"),a=1030,z=1;for(;z>.5;z-=.03){g.style.zoom=z;if(Math.min(g.getBoundingClientRect().height,g.scrollHeight*z)<=a)break;}});<\/script></body></html>`;
 }
 function dnPrint(){
   if(!dnValid())return;const fr=document.createElement('iframe');fr.style.cssText='position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:0';document.body.appendChild(fr);
@@ -6223,7 +6231,7 @@ async function dnExcel(){
     ['ส่ง :',f.toName,'','','วันที่ :',dnFmtDate(f.date)],['ที่อยู่ :',f.addr,'','','เลขที่ใบส่งอุปกรณ์ :',f.no],['โทรศัพท์ :',f.phone,'','','อ้างอิง :',f.ref],['ชื่อผู้ติดต่อ :',f.contact,'','','โครงการ :',f.proj],['','','','','เลขที่โครงการ :',f.projNo],[],
     ['ลำดับที่','รายการ','','จำนวน','หมายเลขเครื่อง','ข้อมูลเพิ่มเติม','เลขที่ใบรับ/ใบเบิก CMMS'],['Item','Description','','Quantity','Serial Number','More details','IV No.','RV No.']]
     .concat(rows.map(r=>[r.n,r.desc,'',r.qty===''?'':(isNaN(Number(r.qty))?r.qty:Number(r.qty)),r.sn,r.more,r.iv,r.rv]));
-  A.push([],['หมายเหตุ :',f.remark],['ติดต่อส่งใบเสนอราคา Email : MA_Leader@amrasia.com, Suppakrit.B@amrasia.com'],[],['ผู้ส่งอุปกรณ์','','เจ้าหน้าที่คลังสินค้า OMA','','ผู้รับอุปกรณ์'],['( '+f.sender+' )','','','','( '+f.toName+' )'],['วันที่','','','','วันที่'],[],['ผู้อนุมัติ'],['( '+f.approver+' )'],['วันที่'],[],['','','Internal Use Only','','','','F-OMA-0111 Rev.00']);
+  A.push([],['หมายเหตุ :',f.remark],...(/คืน/.test(f.remark||'')?[]:[['ติดต่อส่งใบเสนอราคา Email : MA_Leader@amrasia.com, Suppakrit.B@amrasia.com']]),[],['ผู้ส่งอุปกรณ์','','เจ้าหน้าที่คลังสินค้า OMA','','ผู้รับอุปกรณ์'],['( '+f.sender+' )','','','','( '+f.toName+' )'],['วันที่','','','','วันที่'],[],['ผู้อนุมัติ'],['( '+f.approver+' )'],['วันที่'],[],['','','Internal Use Only','','','','F-OMA-0111 Rev.00']);
   const ws=XLSX.utils.aoa_to_sheet(A);ws['!cols']=[{wch:10},{wch:44},{wch:4},{wch:10},{wch:22},{wch:30},{wch:16},{wch:12}];
   ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:7}},{s:{r:1,c:0},e:{r:1,c:7}},{s:{r:9,c:1},e:{r:9,c:2}},{s:{r:10,c:1},e:{r:10,c:2}}].concat(rows.map((_,i)=>({s:{r:11+i,c:1},e:{r:11+i,c:2}})));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'F-OMA-0111');
@@ -6314,7 +6322,7 @@ function dnParseXls(a){
 /* Description จาก Excel ที่มีข้อความเกินชื่อในรายการอะไหล่ → ตัดให้เหลือ "ชื่ออะไหล่ (MAT.รหัส)": มี (MAT.รหัส) ในข้อความ → ใช้รหัสค้นชื่อ; ไม่มี → เทียบชื่อที่ยาวที่สุดที่อยู่ในข้อความ; ไม่เจอในรายการอะไหล่คงข้อความเดิม */
 const dnPartNorm=x=>String(x||'').toLowerCase().replace(/\s+/g,' ').trim();
 /* ตัดวงเล็บหมายเหตุทดแทน เช่น (ทดแทนMat.210087) (ใช้ Mat.160232 ทดแทน) — (MAT.รหัส) ของอะไหล่เองคงไว้ */
-const dnClean=x=>String(x||'').replace(/\s*\([^()]*ทดแทน[^()]*\)/g,'').replace(/\s+/g,' ').trim();
+const dnClean=x=>String(x||'').replace(/\s*\([^()]*ทดแทน[^()]*\)/g,'').replace(/\s*(?:ยกเลิก\S*?\s*)?(?:ใช้\s*)?Mat\.?\s*\d+\s*ทดแทน/gi,'').replace(/\s*ทดแทน\s*Mat\.?\s*\d+/gi,'').replace(/\s+/g,' ').trim();
 async function dnTrimDescs(items){
   const memo={},look=q=>memo[q]||(memo[q]=api(ACT.listCmms,{type:'parts',q,limit:100}).then(r=>(r&&r.ok&&r.rows)||[]).catch(()=>[]));
   let n=0;
@@ -6679,7 +6687,7 @@ async function tmLoad(month){
 })();
 
 /* เลขรุ่นเล็ก ๆ ท้ายหน้า — ใช้เช็กว่าอัปโหลดไฟล์ชุดล่าสุดขึ้นจริงหรือยัง (ทุกครั้งที่ส่งงานใหม่เลขนี้จะเปลี่ยน) */
-const APP_BUILD='Phase 62d · 23 Nov 2026';
+const APP_BUILD='Phase 63c · 24 Nov 2026';
 (function(){const m=document.querySelector('main');if(!m||document.getElementById('buildTag'))return;const d=document.createElement('div');d.id='buildTag';d.textContent='Build: '+APP_BUILD;m.parentNode.insertBefore(d,m.nextSibling);try{console.info('OMA build',APP_BUILD);}catch(e){}})();
 
 /* ── Phase 40: each project gets its own planet in the report-loading animation ── */
