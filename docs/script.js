@@ -6460,7 +6460,8 @@ function wbParse(aoa){
     if(/^รายการอุปกรณ์ที่ใช้ในการเปลี่ยน/.test(f)){mode='used';hdr=null;return;}
     if(/^รายการของเสียที่ถอดออกมา/.test(f)){mode='waste';hdr=null;return;}
     if(/^รายละเอียดการรับของเสีย/.test(f)){mode='rcv';hdr=null;return;}
-    if(/^ประเมินผลความพึงพอใจ/.test(f)){mode='end';return;}
+    if(/^ประเมินผลความพึงพอใจ/.test(f)){mode='end';/* ค่าที่ติ๊กไว้ในเอกสาร: ✓/☑/x หน้าตัวเลือก (หรือในช่องเดียวกัน) */
+      const TK=/^[☑☒✓✔√✗xX×]$/;t.forEach((x,k)=>{const m=/^([☑☒✓✔√✗xX×])?\s*([1-5])\s*-/.exec(String(x).trim());if(m&&(m[1]||(k>0&&TK.test(String(t[k-1]).trim()))))d._sat=+m[2];});return;}
     if(/^(โปรดสังเกต|หมายเหตุ)/.test(f)&&mode==='end'){d.remark=t.slice(1).join(' ');return;}
     if(/^(ผู้ปฏิบัติงาน|วันที่|Internal)/.test(f)){mode='end';return;}
     if(mode==='act'){if(!wbKey(f)&&!/^รายละเอียดของ/.test(f))d.activity+=(d.activity?'\n':'')+t.join(' ');return;}
@@ -6491,9 +6492,34 @@ function wbParse(aoa){
   if(!d.type)d.type=/^CM/i.test(d.woNo)?'CM':'PM';
   return d;
 }
+/* อ่านค่าความพึงพอใจที่ติ๊กใน .xls: ช่อง 5..1 เป็นรูปภาพ 5 รูปในแถวเดียวกัน รูปที่ต่างจากอีก 4 รูป = ช่องที่ติ๊ก (คืน array ต่อชีต: 1-5 หรือ 0) */
+function wbXlsSat(buf){
+  try{
+    const u8=new Uint8Array(buf),dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength),U16=o=>dv.getUint16(o,true),U32=o=>dv.getUint32(o,true);
+    if(u8.length<512||U32(0)!==0xE011CFD0)return [];
+    const ss=1<<U16(30),sec=n=>(n+1)*ss,fat=[],END=0xFFFFFFFA;
+    const dif=[];for(let i=0;i<109;i++){const v=U32(76+i*4);if(v<END)dif.push(v);}
+    let nx=U32(68);const per=ss/4-1;while(nx<END){const o=sec(nx);for(let i=0;i<per;i++){const v=U32(o+i*4);if(v<END)dif.push(v);}nx=U32(o+per*4);}
+    dif.forEach(d=>{for(let i=0;i<ss/4;i++)fat.push(U32(sec(d)+i*4));});
+    const chain=s0=>{const o=[];let g=0;while(s0<END&&g++<1e6){o.push(s0);s0=fat[s0];}return o;};
+    const cat=ch=>{const o=new Uint8Array(ch.length*ss);ch.forEach((x,i)=>o.set(u8.subarray(sec(x),sec(x)+ss),i*ss));return o;};
+    const dir=cat(chain(U32(48))),dd=new DataView(dir.buffer);let wb=null;
+    for(let o=0;o+128<=dir.length;o+=128){const nl=dd.getUint16(o+64,true);if(!nl)continue;let nm='';for(let i=0;i<nl/2-1;i++)nm+=String.fromCharCode(dd.getUint16(o+i*2,true));if(/^(Workbook|Book)$/.test(nm)){wb=cat(chain(dd.getUint32(o+116,true))).subarray(0,dd.getUint32(o+120,true));break;}}
+    if(!wb)return [];
+    const w=new DataView(wb.buffer,wb.byteOffset,wb.byteLength),sheets=[];let cur=null,col=null,row=null,pib=0,p=0;
+    while(p+4<=wb.length){
+      const t=w.getUint16(p,true),l=w.getUint16(p+2,true),d=p+4;
+      if(t===0x0809){const k=w.getUint16(d+2,true);if(k===0x10||k===0x20||k===0x40){cur=[];sheets.push(cur);}else cur=null;}
+      else if(cur&&t===0xEC){col=row=null;pib=0;for(let i=d;i+26<=d+l;i++){const ty=w.getUint16(i,true);if(ty===0xF010&&w.getUint32(i+2,true)===18){col=w.getUint16(i+8,true);row=w.getUint16(i+12,true);}if(ty===0xF00B){const n=w.getUint16(i-2,true)>>4;for(let k=0;k<n;k++){const o=i+6+k*6;if(o+6>d+l)break;if((w.getUint16(o,true)&0x3FFF)===0x104)pib=w.getUint32(o+2,true);}}}}
+      else if(cur&&t===0x5D){let q=d,ty=-1;while(q+4<=d+l){const ft=w.getUint16(q,true),cb=w.getUint16(q+2,true);if(ft===0x15)ty=w.getUint16(q+4,true);q+=4+cb;if(!ft)break;}if(ty===8&&col!=null)cur.push({col,row,pib});col=row=null;pib=0;}
+      p=d+l;
+    }
+    return sheets.map(pics=>{const by={};pics.forEach(x=>{(by[x.row]=by[x.row]||[]).push(x);});const g=Object.values(by).find(a=>a.length===5);if(!g)return 0;g.sort((a,b)=>a.col-b.col);const c={};g.forEach(x=>{c[x.pib]=(c[x.pib]||0)+1;});const odd=g.findIndex(x=>c[x.pib]===1);return odd>=0&&Object.keys(c).length===2?5-odd:0;});
+  }catch(e){return [];}
+}
 async function wbReadFile(f){
-  await loadLib('xlsx');const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});
-  return wb.SheetNames.map(n=>XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''})).filter(a=>a.length).map(wbParse).filter(d=>d.woNo);
+  await loadLib('xlsx');const buf=await f.arrayBuffer(),wb=XLSX.read(buf,{type:'array',cellDates:true}),st=wbXlsSat(buf);
+  return wb.SheetNames.map((n,i)=>({a:XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''}),s:st[i]||0})).filter(x=>x.a.length).map(x=>{const d=wbParse(x.a);if(!d._sat&&x.s)d._sat=x.s;return d;}).filter(d=>d.woNo);
 }
 /* สถานะใบงาน: สี + ไอคอน/ข้อความเสมอ (ไม่พึ่งสีอย่างเดียว); แดงแบรนด์ใช้กับปุ่มหลักเท่านั้น */
 const stPill=t=>{t=String(t||'');const k=/complete|done|เสร็จ/i.test(t)?'ok':/hold|wait|progress|pending|รอ/i.test(t)?'wait':/fail|error|cancel|reject/i.test(t)?'bad':'';return `<span class="st-pill ${k}">${k==='ok'?'✓ ':k==='wait'?'⏸ ':k==='bad'?'✕ ':''}${esc(t)}</span>`;};
@@ -6616,7 +6642,7 @@ function wbOpen(){
   const paint0=paint;paint=()=>{paint0();chk();};WB.paint=()=>paint();
   paint();
   const sgOf=()=>{const sig={};m.body.querySelectorAll('.wo-sig').forEach(e=>{const g=e.dataset.g,img=pads[g].toData(),name=e.querySelector('[data-n]').value.trim();sig[g]={img,name};});return {sig,today:woToday(),useWoDate:m.body.querySelector('#wbDate').checked,fill:m.body.querySelector('#wbFill').checked};};
-  const sel=()=>{const s=+WB.sat||0;return WB.list.filter(d=>d.on!==false).map(d=>Object.assign(d,{satisfaction:s}));};
+  const sel=()=>{const s=+WB.sat||0;return WB.list.filter(d=>d.on!==false).map(d=>Object.assign(d,{satisfaction:s||+d._sat||0}));};/* ไม่ได้เลือกในเว็บ → ใช้ค่าที่ติ๊กในเอกสาร */
   m.body.addEventListener('change',async e=>{
     const t=e.target;
     if(t.id==='wbF'){const out=[];for(const f of t.files){try{out.push(...await wbReadFile(f));}catch(x){toast('อ่านไฟล์ไม่ได้: '+f.name,false);}}t.value='';
@@ -6707,7 +6733,7 @@ async function tmLoad(month){
 })();
 
 /* เลขรุ่นเล็ก ๆ ท้ายหน้า — ใช้เช็กว่าอัปโหลดไฟล์ชุดล่าสุดขึ้นจริงหรือยัง (ทุกครั้งที่ส่งงานใหม่เลขนี้จะเปลี่ยน) */
-const APP_BUILD='Phase 64c · 24 Nov 2026';
+const APP_BUILD='Phase 65b · 25 Nov 2026';
 (function(){const m=document.querySelector('main');if(!m||document.getElementById('buildTag'))return;const d=document.createElement('div');d.id='buildTag';d.textContent='Build: '+APP_BUILD;m.parentNode.insertBefore(d,m.nextSibling);try{console.info('OMA build',APP_BUILD);}catch(e){}})();
 
 /* ── Phase 40: each project gets its own planet in the report-loading animation ── */
